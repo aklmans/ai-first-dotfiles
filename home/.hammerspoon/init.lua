@@ -5,6 +5,7 @@ if hs.ipc then
 end
 
 local aerospace = "/opt/homebrew/bin/aerospace"
+local aerospaceCommandTimeoutSeconds = 2.5
 local sketchybar = "/opt/homebrew/bin/sketchybar"
 local sketchybarUpdater = os.getenv("HOME") .. "/.config/sketchybar/plugins/aerospace_spaces.sh"
 local sketchybarNotifications = os.getenv("HOME") .. "/.config/sketchybar/plugins/ai_app_notifications.sh"
@@ -99,7 +100,21 @@ local function parseFirstWindowLine(line)
 end
 
 local function runAerospace(args, callback)
-  hs.task.new(aerospace, function(exitCode, stdout, stderr)
+  local finished = false
+  local timeoutTimer = nil
+  local task = nil
+
+  task = hs.task.new(aerospace, function(exitCode, stdout, stderr)
+    if finished then
+      return
+    end
+
+    finished = true
+    if timeoutTimer then
+      timeoutTimer:stop()
+      timeoutTimer = nil
+    end
+
     if exitCode ~= 0 then
       log("aerospace failed exit=" .. tostring(exitCode) .. " args=" .. table.concat(args, " ") .. " stderr=" .. (stderr or ""))
       callback(nil, exitCode, stderr)
@@ -107,7 +122,22 @@ local function runAerospace(args, callback)
     end
 
     callback(stdout or "", exitCode, stderr)
-  end, args):start()
+  end, args)
+
+  timeoutTimer = hs.timer.doAfter(aerospaceCommandTimeoutSeconds, function()
+    if finished then
+      return
+    end
+
+    finished = true
+    if task and task:isRunning() then
+      task:terminate()
+    end
+    log("aerospace timed out args=" .. table.concat(args, " "))
+    callback(nil, 124, "timeout")
+  end)
+
+  task:start()
 end
 
 local function focusedAeroWindowAsync(callback)

@@ -63,6 +63,7 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 # Common secondary/dialog windows should stay with the workspace that opened them.
 [[on-window-detected]]
     if.window-title-regex-substring = '^(Settings|Preferences|Options|Licenses|Choose|Select|Open|Save|Save As|Export|Import|Find|Replace|Print|Search|Keyboard Shortcuts|Extensions|Plugins|Account|Profile|Sign in|Login|设置|偏好设置|选项|关于|打开|保存|导出|导入|查找|替换|打印|账户|登录)( |$|:|-)'
+    check-further-callbacks = true
     run = 'layout floating'
 
 # JetBrains: keep main IDE windows tiled, but float obvious dialogs/tool windows.
