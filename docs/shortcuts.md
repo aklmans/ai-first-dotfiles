@@ -14,6 +14,21 @@ In this document, `CapsLock + key` means hold `CapsLock`, then press `key`.
 
 Workspace behavior is owned by `home/.aerospace.toml`.
 
+| Workspace | Default role |
+|---|---|
+| `1` | Dia |
+| `2` | Microsoft Edge |
+| `3` | Codex app |
+| `4` | ChatGPT app |
+| `5` | IM apps |
+| `6` | Finder and macOS system apps |
+| `7` | Warp |
+| `8` | JetBrains IDEs |
+| `9` | ChatGPT Atlas |
+| `10` | Typora and MiaoYan |
+| `11` | Auxiliary browsers/editors/tools |
+| `12` | Background utilities |
+
 | Shortcut | Action |
 |---|---|
 | `Ctrl + 1..0` | Switch to workspace `1..10` |

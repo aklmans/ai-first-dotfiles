@@ -19,6 +19,23 @@ It provides predictable workspace keys, quick window movement, and deterministic
 - SketchyBar and Borders integration uses scripts in `home/.config/aerospace/` to keep visible state aligned.
 - Legacy `skhd`, `yabai`, `wezterm`, and `oh-my-posh` modules are **not included**.
 
+## Default Workspace Map
+
+| Workspace | Default role | Tracked apps |
+|---|---|---|
+| `1` | Dia browser | Dia |
+| `2` | Edge browser | Microsoft Edge |
+| `3` | Codex app | Codex |
+| `4` | ChatGPT app | ChatGPT |
+| `5` | IM | WeChat, WeCom, QQ, DingTalk, Feishu/Lark, Zoom, Discord |
+| `6` | macOS system | Finder, System Settings, Activity Monitor, Mail, Preview, Photos, App Store |
+| `7` | Warp terminal | Warp |
+| `8` | JetBrains IDEs | IntelliJ IDEA, GoLand, WebStorm, DataGrip, PyCharm, CLion, Rider, Android Studio |
+| `9` | Atlas browser | ChatGPT Atlas |
+| `10` | Writing and notes | Typora, MiaoYan |
+| `11` | Auxiliary tools | Chrome, Safari, Firefox, VS Code, Sublime Text, Cursor, Kaku, Camtasia, Snagit |
+| `12` | Background utilities | Clash for Windows, Logi Options+, Docker Desktop, Loopback |
+
 ## Core hotkeys
 
 These are the workspace-level shortcuts documented in this repo:

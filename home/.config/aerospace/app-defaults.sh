@@ -38,7 +38,6 @@ is_context_dialog_title() {
         "Settings"*|\
         "Preferences"*|\
         "Options"*|\
-        "About"*|\
         "Licenses"*|\
         "Choose"*|\
         "Select"*|\
@@ -98,7 +97,7 @@ should_float_window() {
         com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|us.zoom.xos|com.hnc.Discord|com.facebook.archon)
             return 0
             ;;
-        com.lbyczf.clashwin|com.1password.1password|com.runningwithcrayons.Alfred-Preferences|org.pqrs.Karabiner-Elements.Settings|com.macpaw.CleanMyMac-setapp|com.tencent.Lemon|com.fiplab.appcleaner|com.culturedcode.ThingsMac|com.pieces.osx|com.rogueamoeba.Loopback|com.charliemonroe.Downie-4)
+        com.lbyczf.clashwin|com.logi.optionsplus|com.docker.docker|com.1password.1password|com.runningwithcrayons.Alfred-Preferences|org.pqrs.Karabiner-Elements.Settings|com.macpaw.CleanMyMac-setapp|com.tencent.Lemon|com.fiplab.appcleaner|com.culturedcode.ThingsMac|com.pieces.osx|com.rogueamoeba.Loopback|com.charliemonroe.Downie-4)
             return 0
             ;;
         com.microsoft.Powerpoint|com.apple.iWork.Keynote|com.spotify.client)
@@ -113,7 +112,7 @@ should_float_window() {
         "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
             return 0
             ;;
-        "Dash"|"Navicat Premium"|"1Password"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows")
+        "Dash"|"Navicat Premium"|"1Password"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop")
             return 0
             ;;
         "NeteaseMusic"|"Music"|"音乐"|"Spotify"|"哔哩哔哩"|"mpv"|"Podcasts"|"播客")
@@ -178,83 +177,93 @@ default_workspace_for_window() {
     fi
 
     if is_jetbrains_app "$app_id" "$app_name"; then
-        printf '7'
+        printf '8'
         return 0
     fi
 
     case "$app_id" in
-        com.spotify.client|com.apple.Music|com.apple.podcasts)
+        company.thebrowser.dia)
             printf '1'
             return 0
             ;;
-        com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|us.zoom.xos|com.hnc.Discord|com.facebook.archon)
+        com.microsoft.edgemac)
             printf '2'
             return 0
             ;;
-        com.apple.mail)
+        com.openai.codex)
             printf '3'
             return 0
             ;;
-        com.apple.ActivityMonitor|eu.exelban.Stats)
+        com.openai.chat)
             printf '4'
             return 0
             ;;
-        com.apple.systempreferences|com.lbyczf.clashwin|com.1password.1password|com.runningwithcrayons.Alfred-Preferences|org.pqrs.Karabiner-Elements.Settings|com.macpaw.CleanMyMac-setapp|com.tencent.Lemon|com.fiplab.appcleaner|com.culturedcode.ThingsMac|com.pieces.osx|com.rogueamoeba.Loopback|com.charliemonroe.Downie-4)
+        com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|com.electron.lark|us.zoom.xos|com.hnc.Discord|com.facebook.archon)
             printf '5'
             return 0
             ;;
-        com.apple.finder|com.apple.Photos)
+        com.apple.finder|com.apple.systempreferences|com.apple.SystemSettings|com.apple.ActivityMonitor|com.apple.Preview|com.apple.Photos|com.apple.archiveutility|com.apple.AppStore|com.apple.mail)
             printf '6'
             return 0
             ;;
-        dev.warp.Warp-Stable|fun.tw93.kaku|com.microsoft.VSCode|com.microsoft.VSCodeInsiders|com.sublimetext.4|com.todesktop.230313mzl4w4u92)
+        dev.warp.Warp-Stable)
             printf '7'
             return 0
             ;;
-        company.thebrowser.Browser|company.thebrowser.dia|com.apple.Safari|com.microsoft.edgemac|com.google.Chrome|org.mozilla.firefox|app.zen-browser.zen)
-            printf '8'
-            return 0
-            ;;
-        md.obsidian|com.apple.Preview|com.microsoft.Powerpoint|com.apple.iWork.Keynote|com.tw93.miaoyan)
+        com.openai.atlas)
             printf '9'
             return 0
             ;;
-        com.openai.chat|com.openai.atlas|com.anthropic.claudefordesktop|com.google.GeminiMacOS)
+        abnerworks.Typora|com.tw93.miaoyan)
             printf '10'
+            return 0
+            ;;
+        com.google.Chrome|com.apple.Safari|org.mozilla.firefox|app.zen-browser.zen|com.microsoft.VSCode|com.microsoft.VSCodeInsiders|com.sublimetext.4|com.todesktop.230313mzl4w4u92|fun.tw93.kaku|com.techsmith.camtasia|com.TechSmith.Snagit)
+            printf '11'
+            return 0
+            ;;
+        com.lbyczf.clashwin|com.logi.optionsplus|com.docker.docker|com.rogueamoeba.Loopback)
+            printf '12'
             return 0
             ;;
     esac
 
     case "$app_name" in
-        "NeteaseMusic"|"Music"|"音乐"|"Spotify"|"哔哩哔哩"|"mpv"|"Podcasts"|"播客")
+        "Dia"|"Dia Browser")
             printf '1'
             ;;
-        "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
+        "Microsoft Edge")
             printf '2'
             ;;
-        "Mail"|"邮件")
+        "Codex"|"OpenAI Codex")
             printf '3'
             ;;
-        "Activity Monitor"|"监视器"|"Stats")
+        "ChatGPT")
             printf '4'
             ;;
-        "Dash"|"Navicat Premium"|"1Password"|"System Settings"|"System Preferences"|"系统设置"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows")
+        "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
             printf '5'
             ;;
-        "Finder"|"访达"|"Photos"|"照片")
+        "Finder"|"访达"|"System Settings"|"System Preferences"|"系统设置"|"Activity Monitor"|"监视器"|"Stats"|"Mail"|"邮件"|"Photos"|"照片"|"Preview"|"预览"|"Archive Utility"|"归档实用工具"|"App Store")
             printf '6'
             ;;
-        "Warp"|"Kaku"|"Cursor"|"Visual Studio Code"|"Code"|"Code - Insiders"|"Sublime Text"|"GoLand"|"IntelliJ IDEA"|"IntelliJ IDEA-EAP"|"WebStorm"|"PhpStorm"|"RustRover"|"PyCharm"|"CLion"|"DataGrip"|"Rider"|"Android Studio")
+        "Warp")
             printf '7'
             ;;
-        "Arc"|"Dia"|"Safari"|"Microsoft Edge"|"Google Chrome"|"Firefox"|"Zen")
+        "GoLand"|"IntelliJ IDEA"|"IntelliJ IDEA-EAP"|"WebStorm"|"PhpStorm"|"RustRover"|"PyCharm"|"CLion"|"DataGrip"|"Rider"|"Android Studio")
             printf '8'
             ;;
-        "Obsidian"|"Preview"|"预览"|"Microsoft PowerPoint"|"Keynote"*|"MiaoYan")
+        "ChatGPT Atlas"|"Atlas")
             printf '9'
             ;;
-        "Claude"|"ChatGPT"|"ChatGPT Atlas"|"Gemini")
+        "Typora"|"MiaoYan"|"Miaoyan"|"妙言")
             printf '10'
+            ;;
+        "Google Chrome"|"Safari"|"Firefox"|"Zen"|"Cursor"|"Visual Studio Code"|"Code"|"Code - Insiders"|"Sublime Text"|"Kaku"|"Camtasia"|"Snagit")
+            printf '11'
+            ;;
+        "Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop"|"Loopback")
+            printf '12'
             ;;
         *)
             return 1
@@ -269,7 +278,7 @@ emit_on_window_detected_rules() {
 
 # Common secondary/dialog windows should stay with the workspace that opened them.
 [[on-window-detected]]
-    if.window-title-regex-substring = '^(Settings|Preferences|Options|About|Licenses|Choose|Select|Open|Save|Save As|Export|Import|Find|Replace|Print|Search|Keyboard Shortcuts|Extensions|Plugins|Account|Profile|Sign in|Login|设置|偏好设置|选项|关于|打开|保存|导出|导入|查找|替换|打印|账户|登录)( |$|:|-)'
+    if.window-title-regex-substring = '^(Settings|Preferences|Options|Licenses|Choose|Select|Open|Save|Save As|Export|Import|Find|Replace|Print|Search|Keyboard Shortcuts|Extensions|Plugins|Account|Profile|Sign in|Login|设置|偏好设置|选项|关于|打开|保存|导出|导入|查找|替换|打印|账户|登录)( |$|:|-)'
     run = 'layout floating'
 
 # JetBrains: keep main IDE windows tiled, but float obvious dialogs/tool windows.
@@ -290,7 +299,7 @@ emit_on_window_detected_rules() {
     run = 'layout floating'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Dash|Navicat Premium|1Password|Alfred Preferences|Karabiner-Elements|Karabiner-EventViewer|Things|Pieces|Loopback|Downie 4|CleanMyMac X|Tencent Lemon|AppCleaner|Clash for Windows)$'
+    if.app-name-regex-substring = '^(Dash|Navicat Premium|1Password|Alfred Preferences|Karabiner-Elements|Karabiner-EventViewer|Things|Pieces|Loopback|Downie 4|CleanMyMac X|Tencent Lemon|AppCleaner|Clash for Windows|Logi Options\+|Logi Options Plus|Docker|Docker Desktop)$'
     check-further-callbacks = true
     run = 'layout floating'
 
@@ -307,93 +316,153 @@ emit_on_window_detected_rules() {
 
 # Exact app-id placement for stable apps.
 [[on-window-detected]]
-    if.app-id = 'com.openai.atlas'
-    run = 'move-node-to-workspace 10'
+    if.app-id = 'company.thebrowser.dia'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
-    if.app-id = 'com.google.GeminiMacOS'
-    run = 'move-node-to-workspace 10'
+    if.app-id = 'com.microsoft.edgemac'
+    run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+    if.app-id = 'com.openai.codex'
+    run = 'move-node-to-workspace 3'
+
+[[on-window-detected]]
+    if.app-id = 'com.openai.chat'
+    run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
     if.app-id = 'dev.warp.Warp-Stable'
     run = 'move-node-to-workspace 7'
 
 [[on-window-detected]]
-    if.app-id = 'fun.tw93.kaku'
-    run = 'move-node-to-workspace 7'
-
-[[on-window-detected]]
-    if.app-id = 'com.sublimetext.4'
-    run = 'move-node-to-workspace 7'
-
-[[on-window-detected]]
-    if.app-id = 'com.microsoft.edgemac'
-    run = 'move-node-to-workspace 8'
-
-[[on-window-detected]]
-    if.app-id = 'company.thebrowser.dia'
-    run = 'move-node-to-workspace 8'
-
-[[on-window-detected]]
-    if.app-id = 'com.tw93.miaoyan'
+    if.app-id = 'com.openai.atlas'
     run = 'move-node-to-workspace 9'
 
 [[on-window-detected]]
-    if.app-id = 'com.lbyczf.clashwin'
-    run = 'move-node-to-workspace 5'
+    if.app-id = 'abnerworks.Typora'
+    run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
-    if.app-id = 'com.apple.systempreferences'
-    run = 'move-node-to-workspace 5'
+    if.app-id = 'com.tw93.miaoyan'
+    run = 'move-node-to-workspace 10'
+
+[[on-window-detected]]
+    if.app-id = 'com.google.Chrome'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.apple.Safari'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'org.mozilla.firefox'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.microsoft.VSCode'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.microsoft.VSCodeInsiders'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.sublimetext.4'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.todesktop.230313mzl4w4u92'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'fun.tw93.kaku'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.techsmith.camtasia'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.TechSmith.Snagit'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.lbyczf.clashwin'
+    run = 'move-node-to-workspace 12'
+
+[[on-window-detected]]
+    if.app-id = 'com.logi.optionsplus'
+    run = 'move-node-to-workspace 12'
+
+[[on-window-detected]]
+    if.app-id = 'com.docker.docker'
+    run = 'move-node-to-workspace 12'
+
+[[on-window-detected]]
+    if.app-id = 'com.rogueamoeba.Loopback'
+    run = 'move-node-to-workspace 12'
 
 [[on-window-detected]]
     if.app-id = 'com.apple.finder'
     run = 'move-node-to-workspace 6'
 
 [[on-window-detected]]
-    if.app-id = 'com.tencent.xinWeChat'
-    run = 'move-node-to-workspace 2'
-
-# Fallback app-name placement for apps that may have unstable or unknown bundle ids.
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|哔哩哔哩|mpv|Podcasts|播客)$'
-    run = 'move-node-to-workspace 1'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(微信|WeChat|企业微信|WeCom|QQ|钉钉|DingTalk|飞书|Feishu|Lark|Lark Meetings|zoom\.us|Mattermost|Messenger|Discord|BaiduIM)$'
-    run = 'move-node-to-workspace 2'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Mail|邮件)$'
-    run = 'move-node-to-workspace 3'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Activity Monitor|监视器|Stats)$'
-    run = 'move-node-to-workspace 4'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Dash|Navicat Premium|1Password|System Settings|System Preferences|系统设置|Alfred Preferences|Karabiner-Elements|Karabiner-EventViewer|Things|Pieces|Loopback|Downie 4|CleanMyMac X|Tencent Lemon|AppCleaner|Clash for Windows)$'
-    run = 'move-node-to-workspace 5'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Finder|访达|Photos|照片)$'
+    if.app-id = 'com.apple.systempreferences'
     run = 'move-node-to-workspace 6'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio)$'
+    if.app-id = 'com.apple.SystemSettings'
+    run = 'move-node-to-workspace 6'
+
+# Fallback app-name placement for apps that may have unstable or unknown bundle ids.
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Dia|Dia Browser)$'
+    run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Microsoft Edge)$'
+    run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Codex|OpenAI Codex)$'
+    run = 'move-node-to-workspace 3'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(ChatGPT)$'
+    run = 'move-node-to-workspace 4'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(微信|WeChat|企业微信|WeCom|QQ|钉钉|DingTalk|飞书|Feishu|Lark|Lark Meetings|zoom\.us|Mattermost|Messenger|Discord|BaiduIM)$'
+    run = 'move-node-to-workspace 5'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Archive Utility|归档实用工具|App Store)$'
+    run = 'move-node-to-workspace 6'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Warp)$'
     run = 'move-node-to-workspace 7'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen)$'
+    if.app-name-regex-substring = '^(GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio)$'
     run = 'move-node-to-workspace 8'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Obsidian|Preview|预览|Microsoft PowerPoint|Keynote.*|MiaoYan)$'
+    if.app-name-regex-substring = '^(ChatGPT Atlas|Atlas)$'
     run = 'move-node-to-workspace 9'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Claude|ChatGPT|ChatGPT Atlas|Gemini)$'
+    if.app-name-regex-substring = '^(Typora|MiaoYan|Miaoyan|妙言)$'
     run = 'move-node-to-workspace 10'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Google Chrome|Safari|Firefox|Zen|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|Kaku|Camtasia|Snagit)$'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Clash for Windows|Logi Options\+|Logi Options Plus|Docker|Docker Desktop|Loopback)$'
+    run = 'move-node-to-workspace 12'
 TOML
 }
 
