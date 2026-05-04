@@ -53,14 +53,18 @@ Workspace behavior is owned by `home/.aerospace.toml`.
 | `Alt + Shift + E` | Balance tiled window sizes |
 | `Alt + /` | Toggle tiles layout orientation |
 | `Alt + ,` | Toggle accordion layout orientation |
-| `Alt + Shift + T` | Toggle floating / tiling |
+| `Alt + Shift + T` | Toggle focused window floating / tiling |
+| `Alt + Shift + A` | Toggle windows from the focused app in the current workspace floating / tiling |
+| `Alt + Shift + W` | Toggle all windows in the current workspace floating / tiling |
 | `Alt + Shift + V` | Use tiles layout |
 | `Alt + Shift + X` | Split vertically for the next tiled window |
 | `Alt + Shift + Y` | Split horizontally for the next tiled window |
 | `Alt + F` | Toggle AeroSpace fullscreen |
 | `Ctrl + Alt + F` | Toggle AeroSpace fullscreen |
 | `Alt + Shift + F` | Toggle native macOS fullscreen |
-| `Alt + Shift + R` | Flatten workspace tree and reset layout |
+| `Alt + Shift + R` | Repair current workspace: tiling, flatten tree, tiles layout, balance sizes |
+
+These layout commands are one-shot operations. They do not change app default placement or default floating/tiling rules; restarting an app or reloading placement rules returns windows to the tracked defaults.
 
 ## Displays And Desktop UI
 
