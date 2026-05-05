@@ -10,7 +10,7 @@ options=(
 	#background_color=0xff3D465E
 
 	active_color=0xff8aadf4
-	inactive_color=0xff414550
+	inactive_color=0xff8aadf4
 
 	#active_color=0xc0e2e2e3
 	#inactive_color=0xc02c2e34
