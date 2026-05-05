@@ -2,15 +2,15 @@
 
 ai_total=(
   icon=$BELL_DOT
-  icon.font="$FONT:Bold:15.0"
+  icon.font="$FONT:Semibold:13.5"
   icon.color=$GREY
-  icon.padding_left=10
-  icon.padding_right=6
+  icon.padding_left=8
+  icon.padding_right=4
   label.drawing=off
-  label.font="$FONT:Black:17.0"
+  label.font="$FONT:Semibold:14.0"
   label.color=$WHITE
-  label.padding_left=2
-  label.padding_right=10
+  label.padding_left=1
+  label.padding_right=8
   padding_left=3
   padding_right=3
   background.drawing=off
@@ -19,15 +19,15 @@ ai_total=(
 )
 
 ai_app_common=(
-  icon.font="sketchybar-app-font:Regular:16.0"
+  icon.font="sketchybar-app-font:Regular:15.0"
   icon.color=$GREY
-  icon.padding_left=10
-  icon.padding_right=6
+  icon.padding_left=8
+  icon.padding_right=4
   label.drawing=off
-  label.font="$FONT:Black:17.0"
+  label.font="$FONT:Semibold:14.0"
   label.color=$WHITE
-  label.padding_left=2
-  label.padding_right=10
+  label.padding_left=1
+  label.padding_right=8
   padding_left=3
   padding_right=3
   background.drawing=off

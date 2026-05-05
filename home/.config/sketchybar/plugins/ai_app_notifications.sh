@@ -391,7 +391,7 @@ set_item_state() {
       icon.color=$BLUE \
       label="$count" \
       label.drawing=on \
-      label.width=10 \
+      label.width=18 \
       label.color=$WHITE \
       drawing=off \
       background.drawing=off >/dev/null 2>&1 || true
@@ -445,17 +445,17 @@ append_app_args() {
   if [ "${count:-0}" -gt 0 ]; then
     args+=(--set "$item" \
       icon="$icon" \
-      icon.font="sketchybar-app-font:Regular:16.0" \
+      icon.font="sketchybar-app-font:Regular:15.0" \
       icon.color=$BLUE \
-      icon.padding_left=10 \
-      icon.padding_right=6 \
+      icon.padding_left=8 \
+      icon.padding_right=4 \
       label="$count" \
       label.drawing=on \
-      label.font="SF Pro:Black:17.0" \
-      label.width=24 \
+      label.font="SF Pro:Semibold:14.0" \
+      label.width=18 \
       label.color=$WHITE \
-      label.padding_left=2 \
-      label.padding_right=10 \
+      label.padding_left=1 \
+      label.padding_right=8 \
       drawing=on \
       background.drawing=off)
 
@@ -511,17 +511,17 @@ update_bar() {
     args+=(--set ai_notify.total \
       drawing=on \
       icon=$BELL \
-      icon.font="SF Pro:Bold:15.0" \
+      icon.font="SF Pro:Semibold:13.5" \
       icon.color=$GREY \
-      icon.padding_left=10 \
-      icon.padding_right=6 \
+      icon.padding_left=8 \
+      icon.padding_right=4 \
       label=0 \
       label.drawing=on \
-      label.font="SF Pro:Black:17.0" \
-      label.width=24 \
+      label.font="SF Pro:Semibold:14.0" \
+      label.width=18 \
       label.color=$WHITE \
-      label.padding_left=2 \
-      label.padding_right=10)
+      label.padding_left=1 \
+      label.padding_right=8)
     args+=(--set ai_notify.popup.empty \
       drawing=on \
       icon=$BELL \
@@ -535,17 +535,17 @@ update_bar() {
     args+=(--set ai_notify.total \
       drawing=on \
       icon=$BELL_DOT \
-      icon.font="SF Pro:Bold:15.0" \
+      icon.font="SF Pro:Semibold:13.5" \
       icon.color=$BLUE \
-      icon.padding_left=10 \
-      icon.padding_right=6 \
+      icon.padding_left=8 \
+      icon.padding_right=4 \
       label="$total" \
       label.drawing=on \
-      label.font="SF Pro:Black:17.0" \
-      label.width=24 \
+      label.font="SF Pro:Semibold:14.0" \
+      label.width=18 \
       label.color=$WHITE \
-      label.padding_left=2 \
-      label.padding_right=10)
+      label.padding_left=1 \
+      label.padding_right=8)
     args+=(--set ai_notify.popup.empty drawing=off)
   fi
 
