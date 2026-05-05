@@ -63,8 +63,8 @@ for workspace in $WORKSPACES; do
 
   if [ "$workspace" = "$focused_workspace" ]; then
     selected=true
-    border_color="$GREY"
-    icon_color="$RED"
+    border_color="$MAGENTA"
+    icon_color="$MAGENTA"
   fi
 
   args+=(
