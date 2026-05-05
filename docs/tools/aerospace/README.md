@@ -49,10 +49,10 @@ These are the workspace-level shortcuts documented in this repo:
 - `Alt + Shift + T` -> toggle focused window floating/tiling
 - `Alt + Shift + A` -> toggle the focused app's current-workspace windows floating/tiling
 - `Alt + Shift + W` -> toggle all windows in the current workspace floating/tiling
-- `Alt + Shift + R` -> repair current workspace: all tiling, flatten tree, tiles layout, balance sizes
+- `Alt + Shift + R` -> repair current workspace: default tiling/floating, flatten tree, tiles layout, balance sizes
 - `Option + Shift + Space` -> hide/show SketchyBar and compact/restore the AeroSpace top gap
 
-The layout toggles are intentionally temporary one-shot commands. They help fix or adjust the current workspace without changing the default app rules used after restart or app relaunch.
+The layout toggles are intentionally temporary one-shot commands. They help fix or adjust the current workspace without changing the default app rules used after restart or app relaunch. Repair preserves known utility/status windows as floating so they do not take half of a terminal or editor workspace.
 
 Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 

@@ -62,9 +62,9 @@ Workspace behavior is owned by `home/.aerospace.toml`.
 | `Alt + F` | Toggle AeroSpace fullscreen |
 | `Ctrl + Alt + F` | Toggle AeroSpace fullscreen |
 | `Alt + Shift + F` | Toggle native macOS fullscreen |
-| `Alt + Shift + R` | Repair current workspace: tiling, flatten tree, tiles layout, balance sizes |
+| `Alt + Shift + R` | Repair current workspace: restore default tiling/floating, flatten tree, tiles layout, balance sizes |
 
-These layout commands are one-shot operations. They do not change app default placement or default floating/tiling rules; restarting an app or reloading placement rules returns windows to the tracked defaults.
+These layout commands are one-shot operations. They do not change app default placement or default floating/tiling rules; restarting an app or reloading placement rules returns windows to the tracked defaults. Repair keeps known utility/status windows floating so they do not consume tiling space.
 
 ## Displays And Desktop UI
 

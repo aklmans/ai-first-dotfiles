@@ -97,7 +97,7 @@ should_float_window() {
         com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|us.zoom.xos|com.hnc.Discord|com.facebook.archon)
             return 0
             ;;
-        com.lbyczf.clashwin|com.logi.optionsplus|com.docker.docker|com.1password.1password|com.runningwithcrayons.Alfred-Preferences|org.pqrs.Karabiner-Elements.Settings|com.macpaw.CleanMyMac-setapp|com.tencent.Lemon|com.fiplab.appcleaner|com.culturedcode.ThingsMac|com.pieces.osx|com.rogueamoeba.Loopback|com.charliemonroe.Downie-4)
+        com.lbyczf.clashwin|com.logi.optionsplus|com.docker.docker|com.1password.1password|com.runningwithcrayons.Alfred-Preferences|org.pqrs.Karabiner-Elements.Settings|com.macpaw.CleanMyMac-setapp|com.tencent.Lemon|com.fiplab.appcleaner|com.culturedcode.ThingsMac|com.pieces.osx|com.rogueamoeba.Loopback|com.charliemonroe.Downie-4|now.typeless.desktop)
             return 0
             ;;
         com.microsoft.Powerpoint|com.apple.iWork.Keynote|com.spotify.client)
@@ -112,7 +112,7 @@ should_float_window() {
         "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
             return 0
             ;;
-        "Dash"|"Navicat Premium"|"1Password"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop")
+        "Dash"|"Navicat Premium"|"1Password"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop"|"Typeless")
             return 0
             ;;
         "NeteaseMusic"|"Music"|"音乐"|"Spotify"|"哔哩哔哩"|"mpv"|"Podcasts"|"播客")
@@ -301,6 +301,11 @@ emit_on_window_detected_rules() {
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Dash|Navicat Premium|1Password|Alfred Preferences|Karabiner-Elements|Karabiner-EventViewer|Things|Pieces|Loopback|Downie 4|CleanMyMac X|Tencent Lemon|AppCleaner|Clash for Windows|Logi Options\+|Logi Options Plus|Docker|Docker Desktop)$'
+    check-further-callbacks = true
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'now.typeless.desktop'
     check-further-callbacks = true
     run = 'layout floating'
 

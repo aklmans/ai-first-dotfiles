@@ -3,8 +3,13 @@ set -euo pipefail
 
 AEROSPACE_BIN="${AEROSPACE_BIN:-/opt/homebrew/bin/aerospace}"
 SKETCHYBAR_SPACES="${SKETCHYBAR_SPACES:-$HOME/.config/sketchybar/plugins/aerospace_spaces.sh}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 action="${1:-}"
+
+if [ -r "$SCRIPT_DIR/app-defaults.sh" ]; then
+    source "$SCRIPT_DIR/app-defaults.sh"
+fi
 
 aerospace_cmd() {
     local status=0
@@ -32,6 +37,10 @@ focused_window() {
 
 workspace_windows() {
     aerospace_cmd list-windows --workspace focused --format "%{window-id}%{tab}%{workspace}%{tab}%{app-bundle-id}%{tab}%{window-layout}"
+}
+
+workspace_windows_with_metadata() {
+    aerospace_cmd list-windows --workspace focused --format "%{window-id}%{tab}%{workspace}%{tab}%{app-bundle-id}%{tab}%{app-name}%{tab}%{window-title}%{tab}%{window-layout}"
 }
 
 layout_target_for_lines() {
@@ -94,12 +103,25 @@ toggle_workspace() {
 }
 
 repair_workspace() {
-    local lines
+    local lines target first_tiling_window
 
-    lines="$(workspace_windows)"
-    printf '%s\n' "$lines" | while IFS=$'\t' read -r window_id _ _ _; do
-        layout_window "$window_id" tiling
-    done
+    lines="$(workspace_windows_with_metadata)"
+    first_tiling_window=""
+
+    while IFS=$'\t' read -r window_id _ app_id app_name title _; do
+        target="tiling"
+        if type should_float_window >/dev/null 2>&1 && should_float_window "$app_id" "$app_name" "$title"; then
+            target="floating"
+        elif [ -z "$first_tiling_window" ]; then
+            first_tiling_window="$window_id"
+        fi
+        layout_window "$window_id" "$target"
+    done <<< "$lines"
+
+    if [ -n "$first_tiling_window" ]; then
+        aerospace_cmd focus --window-id "$first_tiling_window" >/dev/null 2>&1 || true
+    fi
+
     aerospace_cmd flatten-workspace-tree >/dev/null
     aerospace_cmd layout tiles horizontal vertical >/dev/null
     aerospace_cmd balance-sizes >/dev/null

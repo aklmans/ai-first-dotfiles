@@ -48,7 +48,7 @@ for workspace in $WORKSPACES; do
 
   apps="$(
     printf '%s\n' "$WINDOWS" |
-      awk -F "$(printf '\t')" -v workspace="$workspace" '$1 == workspace && $2 != "" { print $2 }' |
+      awk -F "$(printf '\t')" -v workspace="$workspace" '$1 == workspace && $2 != "" && $2 != "Typeless" { print $2 }' |
       sort -u
   )"
 

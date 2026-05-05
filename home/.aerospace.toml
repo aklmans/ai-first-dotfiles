@@ -89,6 +89,11 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'layout floating'
 
 [[on-window-detected]]
+    if.app-id = 'now.typeless.desktop'
+    check-further-callbacks = true
+    run = 'layout floating'
+
+[[on-window-detected]]
     if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|哔哩哔哩|mpv|Podcasts|播客)$'
     check-further-callbacks = true
     run = 'layout floating'
