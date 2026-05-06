@@ -10,6 +10,12 @@ parse_install_args "$@"
 if should_deploy; then
   deploy_repo_path \
     "$repo_root" \
+    "home/Library/Application Support/Sublime Text/Packages/User/gui_path.py" \
+    "$HOME/Library/Application Support/Sublime Text/Packages/User/gui_path.py" \
+    "$stamp"
+
+  deploy_repo_path \
+    "$repo_root" \
     "home/Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings" \
     "$HOME/Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings" \
     "$stamp"

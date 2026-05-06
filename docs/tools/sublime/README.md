@@ -1,6 +1,26 @@
 # Sublime Text
 
-This repository only manages a small Sublime Text integration instead of taking over the full editor profile.
+This repository only manages small Sublime Text integrations instead of taking over the full editor profile.
+
+## GUI PATH
+
+Sublime Text plugins can run with a minimal macOS GUI `PATH` when the editor is launched from Dock, Spotlight, Finder, or login restoration. That can break packages such as `LSP-json`, which need to resolve Homebrew `node`.
+
+The module deploys a tiny User plugin:
+
+```text
+$HOME/Library/Application Support/Sublime Text/Packages/User/gui_path.py
+```
+
+It prepends these paths inside Sublime's Python plugin host:
+
+```text
+/opt/homebrew/bin
+/opt/homebrew/sbin
+/usr/local/bin
+```
+
+This is intentionally scoped to Sublime and does not modify package source files.
 
 ## Terminal Package
 
@@ -32,6 +52,7 @@ Or as part of the full setup:
 The module deploys:
 
 ```text
+$HOME/Library/Application Support/Sublime Text/Packages/User/gui_path.py
 $HOME/Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings
 ```
 
