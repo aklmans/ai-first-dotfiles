@@ -108,6 +108,7 @@ If you hit local-only files, create private overrides instead of editing tracked
 
 - `docs/tools/zsh-starship/README.md`
 - `docs/tools/terminal/README.md`
+- `docs/tools/sublime/README.md`
 - `docs/tools/aerospace/README.md`
 - `docs/tools/sketchybar/README.md`
 - `docs/tools/karabiner/README.md`

@@ -20,6 +20,7 @@ Profiles:
   packages-all  Every Homebrew profile in bootstrap/brew.sh
   gui-path      Make Homebrew tools visible to GUI-launched apps
   shell         zsh, Starship, Kaku, Warp, Yazi, IdeaVim
+  sublime       Sublime Text Terminal package integration
   desktop       Karabiner, AeroSpace, SketchyBar, Borders, BTT, Hammerspoon
   ai            AI Workflow Router
   media         mpv
@@ -112,6 +113,10 @@ profile_shell() {
   run_module ideavim
 }
 
+profile_sublime() {
+  run_module sublime
+}
+
 profile_desktop() {
   run_module karabiner
   run_module aerospace
@@ -150,6 +155,7 @@ profile_deploy() {
   deploy_only=1
   profile_gui_path
   profile_shell
+  profile_sublime
   profile_desktop
   profile_ai
   profile_media
@@ -160,6 +166,7 @@ profile_all() {
   profile_packages
   profile_gui_path
   profile_shell
+  profile_sublime
   profile_desktop
   profile_ai
   profile_media
@@ -217,6 +224,9 @@ for profile in "${profiles[@]}"; do
       ;;
     shell)
       profile_shell
+      ;;
+    sublime)
+      profile_sublime
       ;;
     desktop)
       profile_desktop

@@ -46,7 +46,7 @@ Designed for developers who want fast keyboard workflows, predictable multi-disp
 | CapsLock AI layer | `Karabiner`, `Hammerspoon` | Hotkeys for prompts, snippets, app launchers, agent entry points |
 | AI Workflow Router | `ai-router` | Local prompts, snippets, provider scripts, chooser, snippet exports |
 | Terminal workflow | `Kaku`, `Warp`\*, `zsh`, `Starship`, `Yazi`, GUI PATH helper | Shell ergonomics, file manager, terminal stack, Homebrew tools for GUI-launched apps |
-| Editor / media | `IdeaVim`, `mpv` | Vim bindings in JetBrains IDEs, media player config |
+| Editor / media | `IdeaVim`, Sublime Text Terminal integration, `mpv` | Vim bindings in JetBrains IDEs, Warp launch from Sublime, media player config |
 
 \* optional
 
@@ -93,6 +93,7 @@ Useful variants:
 ./bootstrap/setup.sh gui-path        # make Homebrew tools visible to GUI-launched apps
 ./bootstrap/setup.sh desktop         # desktop/window-management layer only
 ./bootstrap/setup.sh shell           # shell, terminal, and file-manager layer only
+./bootstrap/setup.sh sublime         # Sublime Text Terminal package integration only
 ./bootstrap/setup.sh ai              # AI Workflow Router only
 ./bootstrap/setup.sh all --dry-run   # preview commands
 ```
@@ -128,6 +129,7 @@ Manual order, if you do not want to use `setup.sh`:
 ./bootstrap/install/yazi.sh
 ./bootstrap/install/warp.sh       # optional
 ./bootstrap/install/ideavim.sh    # optional
+./bootstrap/install/sublime.sh     # optional
 ```
 
 #### 3. Desktop and workspace
@@ -235,6 +237,7 @@ Full shortcut reference: [docs/shortcuts.md](docs/shortcuts.md)
 - [GUI PATH helper](docs/tools/gui-path/README.md)
 - [Zsh + Starship](docs/tools/zsh-starship/README.md)
 - [Terminal (Kaku / Warp)](docs/tools/terminal/README.md)
+- [Sublime Text](docs/tools/sublime/README.md)
 - [Yazi](docs/tools/yazi/README.md)
 - [BetterTouchTool](docs/tools/bettertouchtool/README.md)
 - [IdeaVim](docs/tools/ideavim/README.md)

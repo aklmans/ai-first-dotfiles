@@ -1,0 +1,9 @@
+{
+    "terminal": "/usr/bin/open",
+    "parameters": [
+        "-a",
+        "/Applications/Warp.app",
+        "%CWD%"
+    ],
+    "env": {}
+}

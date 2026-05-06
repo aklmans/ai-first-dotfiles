@@ -37,6 +37,10 @@ require_dir docs/tools
 require_dir docs/tools/current-workflow
 require_dir home/Library
 require_dir home/Library/LaunchAgents
+require_dir "home/Library/Application Support"
+require_dir "home/Library/Application Support/Sublime Text"
+require_dir "home/Library/Application Support/Sublime Text/Packages"
+require_dir "home/Library/Application Support/Sublime Text/Packages/User"
 require_dir home/.config
 require_dir home/.config/ai-router
 require_dir home/.config/kaku
@@ -57,6 +61,7 @@ require_dir home/.hammerspoon
 require_file home/.zshenv
 require_file home/.ideavimrc
 require_file home/Library/LaunchAgents/com.aklman.gui-path.plist
+require_file "home/Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings"
 require_file home/.config/zsh/.zprofile
 require_file home/.config/zsh/.zshrc
 require_file home/.config/zsh/env.zsh
@@ -114,6 +119,7 @@ require_file bootstrap/install/hammerspoon.sh
 require_file bootstrap/install/aerospace.sh
 require_file bootstrap/install/sketchybar.sh
 require_file bootstrap/install/ideavim.sh
+require_file bootstrap/install/sublime.sh
 require_file bootstrap/install/zsh.sh
 require_file bootstrap/install/mpv.sh
 require_file bootstrap/install/kaku.sh
