@@ -35,6 +35,8 @@ require_dir tests/smoke
 require_dir docs
 require_dir docs/tools
 require_dir docs/tools/current-workflow
+require_dir home/Library
+require_dir home/Library/LaunchAgents
 require_dir home/.config
 require_dir home/.config/ai-router
 require_dir home/.config/kaku
@@ -54,6 +56,7 @@ require_dir home/.hammerspoon
 
 require_file home/.zshenv
 require_file home/.ideavimrc
+require_file home/Library/LaunchAgents/com.aklman.gui-path.plist
 require_file home/.config/zsh/.zprofile
 require_file home/.config/zsh/.zshrc
 require_file home/.config/zsh/env.zsh
@@ -104,6 +107,7 @@ require_file bootstrap/app-store.sh
 
 require_file bootstrap/install/ai-router.sh
 require_file bootstrap/install/borders.sh
+require_file bootstrap/install/gui-path.sh
 require_file bootstrap/install/karabiner.sh
 require_file bootstrap/install/warp.sh
 require_file bootstrap/install/hammerspoon.sh

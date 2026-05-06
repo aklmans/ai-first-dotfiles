@@ -18,6 +18,7 @@ Profiles:
   all           Recommended bootstrap: packages, shell, desktop, ai, media
   packages      Homebrew packages required by the recommended setup
   packages-all  Every Homebrew profile in bootstrap/brew.sh
+  gui-path      Make Homebrew tools visible to GUI-launched apps
   shell         zsh, Starship, Kaku, Warp, Yazi, IdeaVim
   desktop       Karabiner, AeroSpace, SketchyBar, Borders, BTT, Hammerspoon
   ai            AI Workflow Router
@@ -98,6 +99,10 @@ profile_packages_all() {
   run_brew_profile all
 }
 
+profile_gui_path() {
+  run_module gui-path
+}
+
 profile_shell() {
   run_module zsh
   run_module starship
@@ -143,6 +148,7 @@ profile_gbrain() {
 profile_deploy() {
   local previous_deploy_only="$deploy_only"
   deploy_only=1
+  profile_gui_path
   profile_shell
   profile_desktop
   profile_ai
@@ -152,6 +158,7 @@ profile_deploy() {
 
 profile_all() {
   profile_packages
+  profile_gui_path
   profile_shell
   profile_desktop
   profile_ai
@@ -204,6 +211,9 @@ for profile in "${profiles[@]}"; do
       ;;
     packages-all)
       profile_packages_all
+      ;;
+    gui-path)
+      profile_gui_path
       ;;
     shell)
       profile_shell

@@ -45,7 +45,7 @@ Designed for developers who want fast keyboard workflows, predictable multi-disp
 | Desktop status UI | `SketchyBar`, `Borders` | Workspace indicators, app icons, focused-window feedback |
 | CapsLock AI layer | `Karabiner`, `Hammerspoon` | Hotkeys for prompts, snippets, app launchers, agent entry points |
 | AI Workflow Router | `ai-router` | Local prompts, snippets, provider scripts, chooser, snippet exports |
-| Terminal workflow | `Kaku`, `Warp`\*, `zsh`, `Starship`, `Yazi` | Shell ergonomics, file manager, terminal stack |
+| Terminal workflow | `Kaku`, `Warp`\*, `zsh`, `Starship`, `Yazi`, GUI PATH helper | Shell ergonomics, file manager, terminal stack, Homebrew tools for GUI-launched apps |
 | Editor / media | `IdeaVim`, `mpv` | Vim bindings in JetBrains IDEs, media player config |
 
 \* optional
@@ -90,6 +90,7 @@ Useful variants:
 ```bash
 ./bootstrap/setup.sh deploy          # deploy tracked config only
 ./bootstrap/setup.sh all --no-brew   # skip Homebrew, keep non-brew setup steps
+./bootstrap/setup.sh gui-path        # make Homebrew tools visible to GUI-launched apps
 ./bootstrap/setup.sh desktop         # desktop/window-management layer only
 ./bootstrap/setup.sh shell           # shell, terminal, and file-manager layer only
 ./bootstrap/setup.sh ai              # AI Workflow Router only
@@ -114,6 +115,7 @@ Manual order, if you do not want to use `setup.sh`:
 
 ```bash
 ./bootstrap/brew.sh base desktop fonts
+./bootstrap/install/gui-path.sh
 ./bootstrap/app-store.sh
 ```
 
@@ -230,6 +232,7 @@ Full shortcut reference: [docs/shortcuts.md](docs/shortcuts.md)
 - [Karabiner](docs/tools/karabiner/README.md)
 - [Hammerspoon](docs/tools/hammerspoon/README.md)
 - [AI Workflow Router](docs/tools/ai-router/README.md)
+- [GUI PATH helper](docs/tools/gui-path/README.md)
 - [Zsh + Starship](docs/tools/zsh-starship/README.md)
 - [Terminal (Kaku / Warp)](docs/tools/terminal/README.md)
 - [Yazi](docs/tools/yazi/README.md)

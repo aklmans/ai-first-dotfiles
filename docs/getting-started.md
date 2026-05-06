@@ -113,6 +113,7 @@ If you hit local-only files, create private overrides instead of editing tracked
 - `docs/tools/karabiner/README.md`
 - `docs/tools/hammerspoon/README.md`
 - `docs/tools/ai-router/README.md`
+- `docs/tools/gui-path/README.md`
 - `docs/tools/yazi/README.md`
 - `docs/tools/bettertouchtool/README.md`
 - `docs/tools/mpv/README.md`
