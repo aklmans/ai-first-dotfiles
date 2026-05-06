@@ -68,3 +68,29 @@ If a local key binding passes custom terminal parameters, remove those parameter
   "command": "open_terminal"
 }
 ```
+
+## AI-First Key Bindings
+
+The module also deploys:
+
+```text
+$HOME/Library/Application Support/Sublime Text/Packages/User/ZZ AI First (OSX).sublime-keymap
+$HOME/Library/Application Support/Sublime Text/Packages/User/ai_first_sidebar.py
+```
+
+The `ZZ` prefix keeps the keymap late in User package ordering so it can override older local bindings.
+
+| Shortcut | Action |
+|---|---|
+| `Cmd + B` | Toggle sidebar |
+| `Cmd + 1` | Toggle focus between sidebar and editor |
+| `Cmd + 2` | Open current file/project directory in Warp |
+| `Cmd + 3` | Find in files |
+| `Cmd + E` | Reveal current file in sidebar |
+| `Cmd + Shift + E` | Reveal current file in Finder |
+| `Cmd + Shift + C` | Copy current file path |
+| `Ctrl + Shift + R` | Command Palette |
+| `Ctrl + Shift + I` | LSP Code Actions / Quick Fix |
+| `Cmd + Option + F` | Format with LSP when available; otherwise reindent |
+
+For existing machines, remove or override older local bindings such as `Cmd + E` for sidebar toggle and `Ctrl + Alt + T` for terminal launch so there is only one shortcut per action.

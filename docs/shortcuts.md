@@ -93,6 +93,23 @@ BetterTouchTool owns the portable gesture preset in `home/.config/bettertouchtoo
 | 3-finger swipe down | App Expose |
 | 4-finger swipe down | App Expose |
 
+## Sublime Text
+
+Sublime Text bindings are deployed by `bootstrap/install/sublime.sh`.
+
+| Shortcut | Action |
+|---|---|
+| `Cmd + B` | Toggle sidebar |
+| `Cmd + 1` | Toggle focus between sidebar and editor |
+| `Cmd + 2` | Open current file/project directory in Warp |
+| `Cmd + 3` | Find in files |
+| `Cmd + E` | Reveal current file in sidebar |
+| `Cmd + Shift + E` | Reveal current file in Finder |
+| `Cmd + Shift + C` | Copy current file path |
+| `Ctrl + Shift + R` | Command Palette |
+| `Ctrl + Shift + I` | LSP Code Actions / Quick Fix |
+| `Cmd + Option + F` | Format with LSP when available; otherwise reindent |
+
 ## CapsLock Navigation
 
 These chords work anywhere Karabiner is active.

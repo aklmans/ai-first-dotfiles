@@ -61,8 +61,10 @@ require_dir home/.hammerspoon
 require_file home/.zshenv
 require_file home/.ideavimrc
 require_file home/Library/LaunchAgents/com.aklman.gui-path.plist
+require_file "home/Library/Application Support/Sublime Text/Packages/User/ai_first_sidebar.py"
 require_file "home/Library/Application Support/Sublime Text/Packages/User/gui_path.py"
 require_file "home/Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings"
+require_file "home/Library/Application Support/Sublime Text/Packages/User/ZZ AI First (OSX).sublime-keymap"
 require_file home/.config/zsh/.zprofile
 require_file home/.config/zsh/.zshrc
 require_file home/.config/zsh/env.zsh
