@@ -74,23 +74,17 @@ If a local key binding passes custom terminal parameters, remove those parameter
 The module also deploys:
 
 ```text
-$HOME/Library/Application Support/Sublime Text/Packages/User/ZZ AI First (OSX).sublime-keymap
-$HOME/Library/Application Support/Sublime Text/Packages/User/ai_first_sidebar.py
+$HOME/Library/Application Support/Sublime Text/Packages/User/Default (OSX).sublime-keymap
 ```
-
-The `ZZ` prefix keeps the keymap late in User package ordering so it can override older local bindings.
 
 | Shortcut | Action |
 |---|---|
 | `Cmd + B` | Toggle sidebar |
-| `Cmd + 1` | Toggle focus between sidebar and editor |
+| `Cmd + 1` | Focus sidebar |
 | `Cmd + 2` | Open current file/project directory in Warp |
 | `Cmd + 3` | Find in files |
 | `Cmd + E` | Reveal current file in sidebar |
 | `Cmd + Shift + E` | Reveal current file in Finder |
 | `Cmd + Shift + C` | Copy current file path |
-| `Ctrl + Shift + R` | Command Palette |
-| `Ctrl + Shift + I` | LSP Code Actions / Quick Fix |
-| `Cmd + Option + F` | Format with LSP when available; otherwise reindent |
 
-For existing machines, remove or override older local bindings such as `Cmd + E` for sidebar toggle and `Ctrl + Alt + T` for terminal launch so there is only one shortcut per action.
+Sublime exposes only index-based commands for Open Recent, such as `open_recent_file` with a fixed index. This setup does not bind Open Recent because there is no built-in command for showing the full Open Recent menu as a chooser.

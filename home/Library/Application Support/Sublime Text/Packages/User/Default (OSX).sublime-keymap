@@ -1,0 +1,93 @@
+[
+    {
+        "keys": ["ctrl+s"],
+        "command": "auto_pep8",
+        "args": {
+            "preview": false
+        }
+    },
+    {
+        "keys": ["super+b"],
+        "command": "toggle_side_bar"
+    },
+    {
+        "keys": ["alt+tab"],
+        "command": "show_overlay",
+        "args": {
+            "overlay": "goto",
+            "show_files": true
+        }
+    },
+    {
+        "keys": ["super+1"],
+        "command": "focus_side_bar"
+    },
+    {
+        "keys": ["super+2"],
+        "command": "open_terminal"
+    },
+    {
+        "keys": ["super+3"],
+        "command": "show_panel",
+        "args": {
+            "panel": "find_in_files"
+        }
+    },
+    {
+        "keys": ["super+e"],
+        "command": "reveal_in_side_bar"
+    },
+    {
+        "keys": ["super+shift+e"],
+        "command": "open_dir",
+        "args": {
+            "dir": "$file_path",
+            "file": "$file_name"
+        }
+    },
+    {
+        "keys": ["super+shift+c"],
+        "command": "copy_path"
+    },
+    {
+        "keys": ["super+n"],
+        "command": "side_bar_new_file"
+    },
+    {
+        "keys": ["super+shift+n"],
+        "command": "side_bar_new_directory"
+    },
+    {
+        "keys": ["ctrl+r"],
+        "command": "side_bar_rename"
+    },
+    {
+        "keys": ["super+backspace"],
+        "command": "side_bar_delete"
+    },
+    {
+        "keys": ["shift+enter"],
+        "command": "run_macro_file",
+        "args": {
+            "file": "res://Packages/Default/Add Line.sublime-macro"
+        },
+        "context": [
+            {
+                "key": "overlay_has_focus",
+                "operator": "equal",
+                "operand": false
+            }
+        ]
+    },
+    {
+        "keys": ["super+shift+enter"],
+        "command": "run_macro_file",
+        "args": {
+            "file": "res://Packages/Default/Add Line Before.sublime-macro"
+        }
+    },
+    {
+        "keys": ["super+shift+l"],
+        "command": "htmlprettify"
+    }
+]
