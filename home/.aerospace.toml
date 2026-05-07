@@ -3,7 +3,8 @@ start-at-login = true
 
 after-startup-command = [
     'exec-and-forget sketchybar',
-    'exec-and-forget /bin/bash $HOME/.config/aerospace/toggle-sketchybar-space.sh apply'
+    'exec-and-forget /bin/bash $HOME/.config/aerospace/toggle-sketchybar-space.sh apply',
+    'exec-and-forget /bin/bash $HOME/.config/aerospace/startup-restore.sh'
 ]
 
 exec-on-workspace-change = [
