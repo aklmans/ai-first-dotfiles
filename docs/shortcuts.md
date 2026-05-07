@@ -20,7 +20,7 @@ Workspace behavior is owned by `home/.aerospace.toml`.
 | `2` | JetBrains IDEs |
 | `3` | Codex app |
 | `4` | ChatGPT app |
-| `5` | Free / ad-hoc workspace |
+| `5` | Claude app |
 | `6` | Dia |
 | `7` | Microsoft Edge |
 | `8` | ChatGPT Atlas |

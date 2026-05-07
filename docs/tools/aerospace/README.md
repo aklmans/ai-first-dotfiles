@@ -33,7 +33,7 @@ Default monitor split:
 | `2` | JetBrains IDEs | IntelliJ IDEA, GoLand, WebStorm, DataGrip, PyCharm, CLion, Rider, Android Studio |
 | `3` | Codex app | Codex |
 | `4` | ChatGPT app | ChatGPT |
-| `5` | Free / ad-hoc | No default app placement |
+| `5` | Claude app | Claude |
 | `6` | Dia browser | Dia |
 | `7` | Edge browser | Microsoft Edge |
 | `8` | Atlas browser | ChatGPT Atlas |

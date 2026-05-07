@@ -194,6 +194,10 @@ default_workspace_for_window() {
             printf '4'
             return 0
             ;;
+        com.anthropic.claudefordesktop)
+            printf '5'
+            return 0
+            ;;
         dev.warp.Warp-Stable)
             printf '1'
             return 0
@@ -240,6 +244,9 @@ default_workspace_for_window() {
             ;;
         "ChatGPT")
             printf '4'
+            ;;
+        "Claude")
+            printf '5'
             ;;
         "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
             printf '10'
@@ -338,6 +345,10 @@ emit_on_window_detected_rules() {
     run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
+    if.app-id = 'com.anthropic.claudefordesktop'
+    run = 'move-node-to-workspace 5'
+
+[[on-window-detected]]
     if.app-id = 'dev.warp.Warp-Stable'
     run = 'move-node-to-workspace 1'
 
@@ -417,6 +428,10 @@ emit_on_window_detected_rules() {
 [[on-window-detected]]
     if.app-name-regex-substring = '^(ChatGPT)$'
     run = 'move-node-to-workspace 4'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Claude)$'
+    run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Lark Meetings|zoom\.us|Tencent Meeting|腾讯会议|VooV Meeting|Camtasia|Snagit)$'

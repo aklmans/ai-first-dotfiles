@@ -123,6 +123,10 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
+    if.app-id = 'com.anthropic.claudefordesktop'
+    run = 'move-node-to-workspace 5'
+
+[[on-window-detected]]
     if.app-id = 'dev.warp.Warp-Stable'
     run = 'move-node-to-workspace 1'
 
@@ -202,6 +206,10 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 [[on-window-detected]]
     if.app-name-regex-substring = '^(ChatGPT)$'
     run = 'move-node-to-workspace 4'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Claude)$'
+    run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Lark Meetings|zoom\.us|Tencent Meeting|腾讯会议|VooV Meeting|Camtasia|Snagit)$'
