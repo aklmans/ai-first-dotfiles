@@ -16,6 +16,8 @@
 - Left/center/right bar sections configured by `home/.config/sketchybar/sketchybarrc`.
 - Visual themes and runtime helper scripts in `home/.config/sketchybar/` and `home/.config/borders/bordersrc`.
 - AeroSpace workspace integration via plugin callbacks.
+- Workspace badges are assigned by AeroSpace monitor names instead of fixed SketchyBar display IDs, so closing the MacBook lid or changing display arrangement keeps workspaces `1-6` on `PHL 279C9`, workspaces `7-12` on `24V5C2`, and workspace `13` on the built-in display when available. When the built-in display is absent, workspace `13` follows the side display.
+- Override monitor names with `SKETCHYBAR_MAIN_MONITOR_NAME`, `SKETCHYBAR_SIDE_MONITOR_NAME`, and `SKETCHYBAR_STAGE_MONITOR_NAME`.
 - AI attention indicators for selected tools and IDEs.
 - `Option + Shift + Space` hides/shows SketchyBar on the main display through AeroSpace and also updates that display's top gap so captured windows reclaim or release the bar area.
 - The battery item is display-aware by default: MacBooks with `InternalBattery` show battery status, while desktop Macs hide it automatically. Override with `SKETCHYBAR_SHOW_BATTERY=0`, `1`, or `auto`.
