@@ -64,13 +64,15 @@ lua -e "assert(loadfile('home/.hammerspoon/ai_hotkeys.lua'))"
 
 ## Screencast window presets
 
-The screencast helper temporarily sets the focused window to AeroSpace floating, then applies a centered recording frame:
+The screencast helper temporarily sets the focused window to AeroSpace floating, then applies a centered recording frame. Recording Mode additionally moves the focused window to workspace `13` on the built-in display, hides SketchyBar, applies the compact top gap, and opens Camtasia or Snagit when available.
 
 | Shortcut | Action |
 |---|---|
+| `Ctrl + Alt + Cmd + M` | Enter Recording Mode |
+| `Ctrl + Alt + Cmd + Shift + M` | Exit Recording Mode |
 | `Ctrl + Alt + Cmd + R` | 720p recording frame |
 | `Ctrl + Alt + Cmd + F` | Largest centered 16:9 frame |
-| `Ctrl + Alt + Cmd + 0` | Preset chooser |
+| `Ctrl + Alt + Cmd + 0` | Preset chooser, including Recording Mode on/off |
 | `Ctrl + Alt + Cmd + T` | Restore focused window to tiling |
 
 ## Notes

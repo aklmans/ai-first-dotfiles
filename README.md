@@ -198,6 +198,8 @@ Grant the following permissions when prompted (System Settings → Privacy & Sec
 | `Ctrl + Up/Down` | Mission Control / App Exposé |
 | `Alt + H/J/K/L` | Move focus in tiled layout |
 | `Option + Shift + Space` | Toggle SketchyBar and matching AeroSpace top gap |
+| `Ctrl + Alt + Cmd + M` | Enter Recording Mode on workspace 13 |
+| `Ctrl + Alt + Cmd + Shift + M` | Exit Recording Mode |
 
 ### AI hotkeys (CapsLock layer)
 
