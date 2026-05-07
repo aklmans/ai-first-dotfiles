@@ -75,7 +75,7 @@ These layout commands are one-shot operations. They do not change app default pl
 |---|---|
 | `Alt + S` / `Alt + G` | Focus left / right display |
 | `Alt + Shift + S` / `Alt + Shift + G` | Move focused window to left / right display |
-| `Option + Shift + Space` | Toggle SketchyBar visibility and matching AeroSpace top gap |
+| `Option + Shift + Space` | Toggle SketchyBar only on the main display and compact/restore that display's top gap |
 | `Ctrl + Alt + 0` | Reset tracked apps to default workspaces |
 | `Ctrl + Alt + R` | Reload AeroSpace config and SketchyBar |
 | `Ctrl + Alt + S` | Reload AeroSpace config |

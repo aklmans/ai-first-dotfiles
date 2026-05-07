@@ -325,4 +325,4 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     ctrl-alt-r = ['reload-config', 'exec-and-forget sketchybar --reload']
     ctrl-alt-s = 'reload-config'
     ctrl-alt-y = 'enable toggle'
-    alt-shift-space = 'exec-and-forget /bin/bash $HOME/.config/aerospace/toggle-sketchybar-space.sh'
+    alt-shift-space = 'exec-and-forget /bin/bash $HOME/.config/aerospace/toggle-sketchybar-space.sh toggle-main'

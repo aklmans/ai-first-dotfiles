@@ -197,7 +197,7 @@ Grant the following permissions when prompted (System Settings → Privacy & Sec
 | `Ctrl + Left/Right` | Cycle workspace groups |
 | `Ctrl + Up/Down` | Mission Control / App Exposé |
 | `Alt + H/J/K/L` | Move focus in tiled layout |
-| `Option + Shift + Space` | Toggle SketchyBar and matching AeroSpace top gap |
+| `Option + Shift + Space` | Toggle SketchyBar only on the main display and compact/restore that display's top gap |
 | `Ctrl + Alt + Cmd + M` | Enter Recording Mode on workspace 13 |
 | `Ctrl + Alt + Cmd + Shift + M` | Exit Recording Mode |
 
