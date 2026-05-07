@@ -41,6 +41,58 @@ local function runAerospace(args, callback)
   end, args):start()
 end
 
+local function standardVisibleWindow(win)
+  return win and win:isStandard() and win:isVisible() and not win:isMinimized()
+end
+
+local function frontmostAppWindow()
+  local app = hs.application.frontmostApplication()
+  if not app then
+    return nil
+  end
+
+  local candidates = {
+    app:focusedWindow(),
+    app:mainWindow(),
+  }
+
+  for _, win in ipairs(candidates) do
+    if standardVisibleWindow(win) then
+      return win
+    end
+  end
+
+  for _, win in ipairs(app:allWindows()) do
+    if standardVisibleWindow(win) then
+      return win
+    end
+  end
+
+  return nil
+end
+
+local function targetWindow(winOverride)
+  if standardVisibleWindow(winOverride) then
+    return winOverride
+  end
+
+  local focused = hs.window.focusedWindow()
+  if standardVisibleWindow(focused) then
+    return focused
+  end
+
+  return frontmostAppWindow()
+end
+
+local function layoutArgsForWindow(win, layout)
+  local windowID = win and win:id()
+  if windowID then
+    return { "layout", "--window-id", tostring(windowID), layout }
+  end
+
+  return { "layout", layout }
+end
+
 local function activeScreenFrame(win)
   local screen = win and win:screen() or hs.screen.mainScreen()
   if not screen then
@@ -103,7 +155,8 @@ local function applyFrameAfterFloating(win, rect, label)
     return
   end
 
-  runAerospace({ "layout", "floating" }, function()
+  win:focus()
+  runAerospace(layoutArgsForWindow(win, "floating"), function()
     hs.timer.doAfter(0.08, function()
       if not win:isStandard() then
         hs.alert.show("Focused window cannot be resized")
@@ -119,7 +172,7 @@ end
 
 function module.apply(name, winOverride)
   local preset = presets[name] or presets["720p"]
-  local win = winOverride or hs.window.focusedWindow()
+  local win = targetWindow(winOverride)
   if not win then
     hs.alert.show("No focused window")
     return
@@ -135,7 +188,13 @@ function module.apply(name, winOverride)
 end
 
 function module.restoreTiling()
-  runAerospace({ "layout", "tiling" }, function(ok)
+  local win = targetWindow()
+  if not win then
+    hs.alert.show("No focused window")
+    return
+  end
+
+  runAerospace(layoutArgsForWindow(win, "tiling"), function(ok)
     if ok then
       hs.alert.show("Window restored to tiling", 0.8)
     end
@@ -143,7 +202,7 @@ function module.restoreTiling()
 end
 
 function module.showChooser()
-  pendingWindow = hs.window.focusedWindow()
+  pendingWindow = targetWindow()
 
   local choices = {
     { text = "720p recording window", subText = "1280x720 canvas with safe gutters", value = "720p" },
