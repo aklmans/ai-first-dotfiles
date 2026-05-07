@@ -4,6 +4,7 @@ set -u
 
 AEROSPACE_BIN="${AEROSPACE_BIN:-/opt/homebrew/bin/aerospace}"
 SKETCHYBAR_BIN="${SKETCHYBAR_BIN:-/opt/homebrew/bin/sketchybar}"
+HS_BIN="${HS_BIN:-/opt/homebrew/bin/hs}"
 RESET_SCRIPT="$HOME/.config/aerospace/reset-apps-to-default-workspaces.sh"
 SPACE_PLUGIN="$HOME/.config/sketchybar/plugins/aerospace_spaces.sh"
 RESTORE_DELAY="${AEROSPACE_STARTUP_RESTORE_DELAY:-2}"
@@ -29,8 +30,28 @@ wait_for_aerospace() {
     [ -n "$monitors" ]
 }
 
+wait_for_screen_metadata() {
+    local attempt=0
+    local screens
+
+    while [ "$attempt" -lt 20 ]; do
+        screens="$("$HS_BIN" -c 'for _, screen in ipairs(hs.screen.allScreens()) do print(screen:name()) end' 2>/dev/null || true)"
+        if [ -n "$screens" ] &&
+            /usr/bin/grep -Fxq "$MAIN_MONITOR_NAME" <<<"$screens" &&
+            /usr/bin/grep -Fxq "$SIDE_MONITOR_NAME" <<<"$screens"; then
+            return 0
+        fi
+
+        attempt=$((attempt + 1))
+        sleep 0.5
+    done
+
+    [ -n "$screens" ]
+}
+
 sleep "$RESTORE_DELAY"
 wait_for_aerospace || exit 0
+wait_for_screen_metadata || true
 
 # SketchyBar may start before AeroSpace has stable display metadata. Reload once
 # after AeroSpace is ready so workspace items bind to the current monitor IDs.

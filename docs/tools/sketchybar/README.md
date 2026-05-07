@@ -16,7 +16,8 @@
 - Left/center/right bar sections configured by `home/.config/sketchybar/sketchybarrc`.
 - Visual themes and runtime helper scripts in `home/.config/sketchybar/` and `home/.config/borders/bordersrc`.
 - AeroSpace workspace integration via plugin callbacks.
-- Workspace badges are assigned by AeroSpace monitor names instead of fixed SketchyBar display IDs, so closing the MacBook lid or changing display arrangement keeps workspaces `1-6` on `PHL 279C9`, workspaces `7-12` on `24V5C2`, and workspace `13` on the built-in display when available. When the built-in display is absent, workspace `13` follows the side display.
+- Workspace badges are assigned by monitor name, but resolve to SketchyBar arrangement IDs through Hammerspoon screen UUID/DirectDisplayID metadata. This avoids 24-inch and 27-inch bars swapping when macOS changes display arrangement IDs after login, lid open/close, or monitor reconnect.
+- The default layout keeps workspaces `1-6` on `PHL 279C9`, workspaces `7-12` on `24V5C2`, and workspace `13` on the built-in display when available. When the built-in display is absent, workspace `13` follows the side display.
 - Override monitor names with `SKETCHYBAR_MAIN_MONITOR_NAME`, `SKETCHYBAR_SIDE_MONITOR_NAME`, and `SKETCHYBAR_STAGE_MONITOR_NAME`.
 - AI attention indicators for selected tools and IDEs.
 - `Option + Shift + Space` hides/shows SketchyBar on the main display through AeroSpace and also updates that display's top gap so captured windows reclaim or release the bar area.
