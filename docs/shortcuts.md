@@ -16,25 +16,28 @@ Workspace behavior is owned by `home/.aerospace.toml`.
 
 | Workspace | Default role |
 |---|---|
-| `1` | Dia |
-| `2` | Microsoft Edge |
+| `1` | Warp |
+| `2` | JetBrains IDEs |
 | `3` | Codex app |
 | `4` | ChatGPT app |
-| `5` | IM apps |
-| `6` | Finder and macOS system apps |
-| `7` | Warp |
-| `8` | JetBrains IDEs |
-| `9` | ChatGPT Atlas |
-| `10` | Typora and MiaoYan |
-| `11` | Auxiliary browsers/editors/tools |
+| `5` | Free / ad-hoc workspace |
+| `6` | Dia |
+| `7` | Microsoft Edge |
+| `8` | ChatGPT Atlas |
+| `9` | Writing apps |
+| `10` | IM apps |
+| `11` | Finder and macOS system apps |
 | `12` | Background utilities |
+| `13` | Recording / meeting / presentation stage |
 
 | Shortcut | Action |
 |---|---|
 | `Ctrl + 1..0` | Switch to workspace `1..10` |
 | `Ctrl + [` / `Ctrl + ]` | Switch to workspace `11` / `12` |
+| `Ctrl + \` | Switch to workspace `13` |
 | `Ctrl + Shift + 1..0` | Move focused window to workspace `1..10` and follow it |
 | `Ctrl + Shift + [` / `Ctrl + Shift + ]` | Move focused window to workspace `11` / `12` and follow it |
+| `Ctrl + Shift + \` | Move focused window to workspace `13` and follow it |
 | `Ctrl + Left` / `Ctrl + Right` | Move to previous / next workspace group |
 | `Alt + Tab` | Toggle back to the previously focused workspace |
 | `Ctrl + Up` | Mission Control |

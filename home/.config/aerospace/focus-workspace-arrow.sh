@@ -17,6 +17,9 @@ case "$focused_workspace" in
     7|8|9|10|11|12)
         workspaces=(7 8 9 10 11 12)
         ;;
+    13)
+        workspaces=(13)
+        ;;
     *)
         aerospace workspace --wrap-around "$direction"
         exit 0

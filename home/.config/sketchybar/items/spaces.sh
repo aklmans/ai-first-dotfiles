@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SPACE_ICONS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12")
+SPACE_ICONS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13")
 
 sketchybar --add event aerospace_workspace_change
 
@@ -9,6 +9,9 @@ for i in "${!SPACE_ICONS[@]}"; do
   display=1
   if [ "$sid" -gt 6 ]; then
     display=2
+  fi
+  if [ "$sid" -eq 13 ]; then
+    display=3
   fi
 
   space=(

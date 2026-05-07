@@ -35,8 +35,10 @@ Do not assume behavior from these modules in this repository.
 
 - `Ctrl + 1...0` switch workspace `1..10`
 - `Ctrl + [` / `Ctrl + ]` switch workspace `11/12`
+- `Ctrl + \` switch workspace `13`
 - `Ctrl + Shift + 1...0` move focused window to target workspace
 - `Ctrl + Shift + [` / `Ctrl + Shift + ]` move focused window to workspace `11/12`
+- `Ctrl + Shift + \` move focused window to workspace `13`
 - `Alt + H/J/K/L` move focus in tiled layout
 - `Ctrl + Left/Right` cycle workspace groups
 - `Ctrl + Up` / `Ctrl + Down` are reserved for Mission Control / App Expose style system workflows, depending on your active keyboard layer.

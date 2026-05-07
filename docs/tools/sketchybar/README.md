@@ -18,7 +18,7 @@
 - AeroSpace workspace integration via plugin callbacks.
 - AI attention indicators for selected tools and IDEs.
 - `Option + Shift + Space` hides/shows SketchyBar through AeroSpace and also updates the AeroSpace top gap so windows reclaim or release the bar area.
-- The battery item is display-aware by default: MacBooks with `InternalBattery` show battery status, desktop Macs such as Mac Studio hide it automatically. Override with `SKETCHYBAR_SHOW_BATTERY=0`, `1`, or `auto`.
+- The battery item is display-aware by default: MacBooks with `InternalBattery` show battery status, while desktop Macs hide it automatically. Override with `SKETCHYBAR_SHOW_BATTERY=0`, `1`, or `auto`.
 - Optional font fetch for the bar icon font and symbols.
 - SbarLua is installed from a pinned upstream commit by `bootstrap/install/sketchybar.sh`; override `SBARLUA_REF` only when intentionally upgrading.
 

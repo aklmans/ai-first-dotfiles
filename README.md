@@ -191,7 +191,9 @@ Grant the following permissions when prompted (System Settings → Privacy & Sec
 |---|---|
 | `Ctrl + 1..0` | Switch workspace 1–10 |
 | `Ctrl + [` / `Ctrl + ]` | Switch workspace 11 / 12 |
+| `Ctrl + \` | Switch workspace 13 |
 | `Ctrl + Shift + 1..0` | Move focused window to workspace |
+| `Ctrl + Shift + \` | Move focused window to workspace 13 |
 | `Ctrl + Left/Right` | Cycle workspace groups |
 | `Ctrl + Up/Down` | Mission Control / App Exposé |
 | `Alt + H/J/K/L` | Move focus in tiled layout |

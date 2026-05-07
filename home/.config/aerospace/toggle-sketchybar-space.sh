@@ -40,10 +40,10 @@ profile = sys.argv[2]
 profiles = {
     "normal": [
         "    outer.top = [\n",
-        '        { monitor."Built-in Retina Display" = 88 },\n',
-        '        { monitor."24V5C2" = 88 },\n',
+        '        { monitor."Built-in Retina Display" = 95 },\n',
+        '        { monitor."24V5C2" = 95 },\n',
         '        { monitor."PHL 279C9" = 95 },\n',
-        "        88\n",
+        "        95\n",
         "    ]\n",
     ],
     "compact": [

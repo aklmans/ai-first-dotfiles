@@ -34,7 +34,7 @@ run_aerospace() {
   return "$status"
 }
 
-WORKSPACES="1 2 3 4 5 6 7 8 9 10 11 12"
+WORKSPACES="1 2 3 4 5 6 7 8 9 10 11 12 13"
 WINDOWS="$(run_aerospace list-windows --all --format "%{workspace}%{tab}%{app-name}" || true)"
 focused_workspace="$(run_aerospace list-workspaces --focused | head -n 1 || true)"
 

@@ -14,27 +14,34 @@ It provides predictable workspace keys, quick window movement, and deterministic
 
 ## What it does
 
-- 12 workspaces by default (`1`–`12`, where `[` is `11`, `]` is `12`).
+- 13 workspaces by default: `1`–`12` for daily work and `13` for the built-in display recording/meeting stage.
 - Window-focused tiling and move commands are exposed as fast workspace shortcuts.
 - SketchyBar and Borders integration uses scripts in `home/.config/aerospace/` to keep visible state aligned.
 - Legacy `skhd`, `yabai`, `wezterm`, and `oh-my-posh` modules are **not included**.
 
 ## Default Workspace Map
 
+Default monitor split:
+
+- `PHL 279C9` / 27-inch main display: workspaces `1`-`6`
+- `24V5C2` / 24-inch side display: workspaces `7`-`12`
+- `Built-in Retina Display`: workspace `13`
+
 | Workspace | Default role | Tracked apps |
 |---|---|---|
-| `1` | Dia browser | Dia |
-| `2` | Edge browser | Microsoft Edge |
+| `1` | Warp terminal | Warp |
+| `2` | JetBrains IDEs | IntelliJ IDEA, GoLand, WebStorm, DataGrip, PyCharm, CLion, Rider, Android Studio |
 | `3` | Codex app | Codex |
 | `4` | ChatGPT app | ChatGPT |
-| `5` | IM | WeChat, WeCom, QQ, DingTalk, Feishu/Lark, Zoom, Discord |
-| `6` | macOS system | Finder, System Settings, Activity Monitor, Mail, Preview, Photos, App Store |
-| `7` | Warp terminal | Warp |
-| `8` | JetBrains IDEs | IntelliJ IDEA, GoLand, WebStorm, DataGrip, PyCharm, CLion, Rider, Android Studio |
-| `9` | Atlas browser | ChatGPT Atlas |
-| `10` | Writing and notes | Typora, MiaoYan |
-| `11` | Auxiliary tools | Chrome, Safari, Firefox, VS Code, Sublime Text, Cursor, Kaku, Camtasia, Snagit |
+| `5` | Free / ad-hoc | No default app placement |
+| `6` | Dia browser | Dia |
+| `7` | Edge browser | Microsoft Edge |
+| `8` | Atlas browser | ChatGPT Atlas |
+| `9` | Writing and notes | Typora, MiaoYan, Markdown, MarkEditor |
+| `10` | IM | WeChat, WeCom, QQ, DingTalk, Feishu/Lark, Discord |
+| `11` | macOS system | Finder, System Settings, Activity Monitor, Mail, Preview, Photos, App Store |
 | `12` | Background utilities | Clash for Windows, Logi Options+, Docker Desktop, Loopback |
+| `13` | Recording / meeting / presentation stage | Camtasia, Snagit, Zoom, Lark Meetings |
 
 ## Core hotkeys
 
@@ -42,8 +49,10 @@ These are the workspace-level shortcuts documented in this repo:
 
 - `Ctrl + 1..0` -> switch workspace 1..10
 - `Ctrl + [` / `Ctrl + ]` -> switch workspace 11/12
+- `Ctrl + \` -> switch workspace 13
 - `Ctrl + Shift + 1..0` -> move focused window to workspace 1..10
 - `Ctrl + Shift + [` / `Ctrl + Shift + ]` -> move focused window to workspace 11/12
+- `Ctrl + Shift + \` -> move focused window to workspace 13
 - `Ctrl + Left/Right` -> cycle workspace groups by monitor split logic
 - `Alt + H/J/K/L` -> move focus inside the active layout
 - `Alt + Shift + T` -> toggle focused window floating/tiling

@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-left_monitor_name="24V5C2"
-right_monitor_name="PHL 279C9"
-left_workspaces=(1 2 3 4 5 6)
-right_workspaces=(7 8 9 10 11 12)
+AEROSPACE="${AEROSPACE:-/opt/homebrew/bin/aerospace}"
 
-monitor_lines="$(aerospace list-monitors --format '%{monitor-id}	%{monitor-name}')"
+main_monitor_name="PHL 279C9"
+side_monitor_name="24V5C2"
+stage_monitor_name="Built-in Retina Display"
+main_workspaces=(1 2 3 4 5 6)
+side_workspaces=(7 8 9 10 11 12)
+stage_workspaces=(13)
+
+monitor_lines="$("$AEROSPACE" list-monitors --format '%{monitor-id}	%{monitor-name}')"
 
 monitor_id_for_name() {
     local name="$1"
@@ -15,7 +19,7 @@ monitor_id_for_name() {
 
 workspaces_for_monitor() {
     local monitor_id="$1"
-    aerospace list-workspaces --monitor "$monitor_id" --format '%{workspace}' | tr '\n' ' '
+    "$AEROSPACE" list-workspaces --monitor "$monitor_id" --format '%{workspace}' | tr '\n' ' '
 }
 
 contains_workspace() {
@@ -38,44 +42,61 @@ print_array() {
 }
 
 issues=0
-left_monitor_id="$(monitor_id_for_name "$left_monitor_name")"
-right_monitor_id="$(monitor_id_for_name "$right_monitor_name")"
+main_monitor_id="$(monitor_id_for_name "$main_monitor_name")"
+side_monitor_id="$(monitor_id_for_name "$side_monitor_name")"
+stage_monitor_id="$(monitor_id_for_name "$stage_monitor_name")"
 
 printf 'Detected monitors:\n%s\n\n' "$monitor_lines"
 
-if [ -z "$left_monitor_id" ]; then
-    printf 'WARN: left monitor "%s" is not connected.\n' "$left_monitor_name"
+if [ -z "$main_monitor_id" ]; then
+    printf 'WARN: main monitor "%s" is not connected.\n' "$main_monitor_name"
     issues=$((issues + 1))
 else
-    left_actual="$(workspaces_for_monitor "$left_monitor_id")"
-    printf 'Left monitor %s (%s): %s\n' "$left_monitor_name" "$left_monitor_id" "$left_actual"
-    for workspace in "${left_workspaces[@]}"; do
-        if ! contains_workspace "$left_actual" "$workspace"; then
-            printf 'WARN: workspace %s is not on left monitor %s.\n' "$workspace" "$left_monitor_name"
+    main_actual="$(workspaces_for_monitor "$main_monitor_id")"
+    printf 'Main monitor %s (%s): %s\n' "$main_monitor_name" "$main_monitor_id" "$main_actual"
+    for workspace in "${main_workspaces[@]}"; do
+        if ! contains_workspace "$main_actual" "$workspace"; then
+            printf 'WARN: workspace %s is not on main monitor %s.\n' "$workspace" "$main_monitor_name"
             issues=$((issues + 1))
         fi
     done
 fi
 
-if [ -z "$right_monitor_id" ]; then
-    printf 'WARN: right monitor "%s" is not connected.\n' "$right_monitor_name"
+if [ -z "$side_monitor_id" ]; then
+    printf 'WARN: side monitor "%s" is not connected.\n' "$side_monitor_name"
     issues=$((issues + 1))
 else
-    right_actual="$(workspaces_for_monitor "$right_monitor_id")"
-    printf 'Right monitor %s (%s): %s\n' "$right_monitor_name" "$right_monitor_id" "$right_actual"
-    for workspace in "${right_workspaces[@]}"; do
-        if ! contains_workspace "$right_actual" "$workspace"; then
-            printf 'WARN: workspace %s is not on right monitor %s.\n' "$workspace" "$right_monitor_name"
+    side_actual="$(workspaces_for_monitor "$side_monitor_id")"
+    printf 'Side monitor %s (%s): %s\n' "$side_monitor_name" "$side_monitor_id" "$side_actual"
+    for workspace in "${side_workspaces[@]}"; do
+        if ! contains_workspace "$side_actual" "$workspace"; then
+            printf 'WARN: workspace %s is not on side monitor %s.\n' "$workspace" "$side_monitor_name"
+            issues=$((issues + 1))
+        fi
+    done
+fi
+
+if [ -z "$stage_monitor_id" ]; then
+    printf 'WARN: stage monitor "%s" is not connected.\n' "$stage_monitor_name"
+    issues=$((issues + 1))
+else
+    stage_actual="$(workspaces_for_monitor "$stage_monitor_id")"
+    printf 'Stage monitor %s (%s): %s\n' "$stage_monitor_name" "$stage_monitor_id" "$stage_actual"
+    for workspace in "${stage_workspaces[@]}"; do
+        if ! contains_workspace "$stage_actual" "$workspace"; then
+            printf 'WARN: workspace %s is not on stage monitor %s.\n' "$workspace" "$stage_monitor_name"
             issues=$((issues + 1))
         fi
     done
 fi
 
 printf '\nExpected: '
-print_array "${left_workspaces[@]}"
-printf ' on %s; ' "$left_monitor_name"
-print_array "${right_workspaces[@]}"
-printf ' on %s.\n' "$right_monitor_name"
+print_array "${main_workspaces[@]}"
+printf ' on %s; ' "$main_monitor_name"
+print_array "${side_workspaces[@]}"
+printf ' on %s; ' "$side_monitor_name"
+print_array "${stage_workspaces[@]}"
+printf ' on %s.\n' "$stage_monitor_name"
 
 if [ "$issues" -eq 0 ]; then
     printf 'OK: workspace layout matches the current monitor profile.\n'
