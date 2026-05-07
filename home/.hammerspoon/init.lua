@@ -859,6 +859,11 @@ if hs.fs.attributes(airForceQuit, "mode") == "file" then
   dofile(airForceQuit)
 end
 
+local screencastWindow = os.getenv("HOME") .. "/.hammerspoon/screencast.lua"
+if hs.fs.attributes(screencastWindow, "mode") == "file" then
+  dofile(screencastWindow)
+end
+
 scheduleRememberFocusedWindow(0.05)
 scheduleExistingJetBrainsRepair(0.4)
 if _G.wowAINotificationRefreshTimer then

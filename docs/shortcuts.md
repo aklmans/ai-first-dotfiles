@@ -107,6 +107,17 @@ Sublime Text bindings are deployed by `bootstrap/install/sublime.sh`.
 | `Cmd + Shift + E` | Reveal current file in Finder |
 | `Cmd + Shift + C` | Copy current file path |
 
+## Screencast Window Presets
+
+Hammerspoon applies these presets to the focused window. The window is temporarily set to AeroSpace floating before it is resized, so the recording frame stays predictable.
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl + Alt + Cmd + R` | Set focused window to a 720p recording size |
+| `Ctrl + Alt + Cmd + F` | Set focused window to the largest centered 16:9 recording region on the current display |
+| `Ctrl + Alt + Cmd + 0` | Open screencast preset chooser |
+| `Ctrl + Alt + Cmd + T` | Restore focused window to AeroSpace tiling |
+
 ## CapsLock Navigation
 
 These chords work anywhere Karabiner is active.
@@ -198,4 +209,5 @@ When Hammerspoon is running, its AI Router bindings consume the prompt-related c
 - `home/.aerospace.toml`: workspace, window, display, and desktop UI shortcuts.
 - `home/.config/karabiner/karabiner.json`: CapsLock Hyper, navigation, editing, global chords, launchers.
 - `home/.hammerspoon/ai_hotkeys.lua`: AI Router chooser, prompt hotkeys, agent chooser.
+- `home/.hammerspoon/screencast.lua`: focused-window recording size presets.
 - `home/.config/bettertouchtool/aerospace-gestures.sh`: trackpad gestures.

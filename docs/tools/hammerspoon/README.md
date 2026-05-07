@@ -9,6 +9,7 @@ Hammerspoon is the event and workflow glue that connects keyboard shortcuts, Aer
 - `home/.hammerspoon/init.lua`
 - `home/.hammerspoon/ai_hotkeys.lua`
 - `home/.hammerspoon/app_reveal.lua`
+- `home/.hammerspoon/screencast.lua`
 - `bootstrap/install/hammerspoon.sh`
 
 ## Install
@@ -26,6 +27,7 @@ Open Hammerspoon and allow Accessibility + Automation permissions.
 - Execute AI Router actions from CapsLock hotkeys.
 - Clear SketchyBar AI attention badges when tracked apps become active.
 - Reveal tracked app windows through AeroSpace after app activation events.
+- Resize the focused window into predictable screencast recording frames.
 - Keep chooser tools deterministic and local.
 
 ## Runtime behavior
@@ -59,6 +61,17 @@ lua -e "assert(loadfile('home/.hammerspoon/ai_hotkeys.lua'))"
 - **Karabiner** creates `CapsLock` chords.
 - **AeroSpace** provides workspace commands and window IDs for focus/move logic.
 - **AI Router** executes render/run commands and agent chooser actions.
+
+## Screencast window presets
+
+The screencast helper temporarily sets the focused window to AeroSpace floating, then applies a centered recording frame:
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl + Alt + Cmd + R` | 720p recording frame |
+| `Ctrl + Alt + Cmd + F` | Largest centered 16:9 frame |
+| `Ctrl + Alt + Cmd + 0` | Preset chooser |
+| `Ctrl + Alt + Cmd + T` | Restore focused window to tiling |
 
 ## Notes
 
