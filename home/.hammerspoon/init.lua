@@ -7,7 +7,7 @@ end
 local aerospace = "/opt/homebrew/bin/aerospace"
 local aerospaceCommandTimeoutSeconds = 2.5
 local sketchybar = "/opt/homebrew/bin/sketchybar"
-local sketchybarUpdater = os.getenv("HOME") .. "/.config/sketchybar/plugins/aerospace_spaces.sh"
+local sketchybarUpdater = os.getenv("HOME") .. "/.config/sketchybar/plugins/aerospace_spaces_refresh.sh"
 local sketchybarNotifications = os.getenv("HOME") .. "/.config/sketchybar/plugins/ai_app_notifications.sh"
 local logPath = "/tmp/hammerspoon-workspace-inherit.log"
 local maxLogBytes = 256 * 1024

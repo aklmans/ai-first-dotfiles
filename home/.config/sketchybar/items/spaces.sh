@@ -100,8 +100,8 @@ space_creator=(
   padding_right=8
   label.drawing=off
   display=active
-  click_script="$PLUGIN_DIR/aerospace_spaces.sh"
-  script="$PLUGIN_DIR/aerospace_spaces.sh"
+  click_script="$PLUGIN_DIR/aerospace_spaces_refresh.sh"
+  script="$PLUGIN_DIR/aerospace_spaces_refresh.sh"
   icon.color=$ORANGE
 )
 
@@ -109,4 +109,4 @@ sketchybar --add item space_creator left                 \
            --set space_creator "${space_creator[@]}"     \
            --subscribe space_creator aerospace_workspace_change front_app_switched
 
-"$PLUGIN_DIR/aerospace_spaces.sh"
+"$PLUGIN_DIR/aerospace_spaces_refresh.sh"

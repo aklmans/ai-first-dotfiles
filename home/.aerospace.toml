@@ -13,9 +13,7 @@ exec-on-workspace-change = [
     '/opt/homebrew/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE'
 ]
 
-on-focus-changed = [
-    'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh'
-]
+on-focus-changed = []
 
 enable-normalization-flatten-containers = false
 enable-normalization-opposite-orientation-for-nested-containers = true
@@ -250,37 +248,37 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     alt-k = 'focus up'
     alt-l = 'focus right'
 
-    alt-shift-h = ['swap left', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    alt-shift-j = ['swap down', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    alt-shift-k = ['swap up', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    alt-shift-l = ['swap right', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    alt-shift-h = ['swap left', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    alt-shift-j = ['swap down', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    alt-shift-k = ['swap up', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    alt-shift-l = ['swap right', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
 
     alt-slash = 'layout tiles horizontal vertical'
     alt-comma = 'layout accordion horizontal vertical'
     alt-n = 'focus dfs-next'
     alt-p = 'focus dfs-prev'
-    alt-f = ['fullscreen', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    alt-f = ['fullscreen', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
     alt-shift-f = 'macos-native-fullscreen'
     alt-minus = 'resize smart -50'
     alt-equal = 'resize smart +50'
     alt-shift-e = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh balance'
     alt-shift-r = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh repair-workspace'
-    alt-shift-y = ['split horizontal', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    alt-shift-x = ['split vertical', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    alt-shift-y = ['split horizontal', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    alt-shift-x = ['split vertical', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
     alt-shift-t = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh toggle-window'
     alt-shift-a = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh toggle-app'
     alt-shift-w = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh toggle-workspace'
     alt-shift-v = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh tiles'
 
-    ctrl-alt-f = ['fullscreen', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    ctrl-alt-f = ['fullscreen', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
     ctrl-alt-left = 'resize width -50'
     ctrl-alt-right = 'resize width +50'
     ctrl-alt-down = 'resize height +50'
     ctrl-alt-up = 'resize height -50'
-    ctrl-alt-h = ['move left', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-alt-j = ['move down', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-alt-k = ['move up', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-alt-l = ['move right', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    ctrl-alt-h = ['move left', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-alt-j = ['move down', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-alt-k = ['move up', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-alt-l = ['move right', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
 
     ctrl-1 = 'workspace 1'
     ctrl-2 = 'workspace 2'
@@ -296,19 +294,19 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     ctrl-rightSquareBracket = 'workspace 12'
     ctrl-backslash = 'workspace 13'
 
-    ctrl-shift-1 = ['move-node-to-workspace --focus-follows-window 1', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-2 = ['move-node-to-workspace --focus-follows-window 2', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-3 = ['move-node-to-workspace --focus-follows-window 3', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-4 = ['move-node-to-workspace --focus-follows-window 4', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-5 = ['move-node-to-workspace --focus-follows-window 5', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-6 = ['move-node-to-workspace --focus-follows-window 6', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-7 = ['move-node-to-workspace --focus-follows-window 7', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-8 = ['move-node-to-workspace --focus-follows-window 8', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-9 = ['move-node-to-workspace --focus-follows-window 9', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-0 = ['move-node-to-workspace --focus-follows-window 10', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-leftSquareBracket = ['move-node-to-workspace --focus-follows-window 11', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-rightSquareBracket = ['move-node-to-workspace --focus-follows-window 12', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    ctrl-shift-backslash = ['move-node-to-workspace --focus-follows-window 13', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    ctrl-shift-1 = ['move-node-to-workspace --focus-follows-window 1', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-2 = ['move-node-to-workspace --focus-follows-window 2', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-3 = ['move-node-to-workspace --focus-follows-window 3', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-4 = ['move-node-to-workspace --focus-follows-window 4', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-5 = ['move-node-to-workspace --focus-follows-window 5', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-6 = ['move-node-to-workspace --focus-follows-window 6', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-7 = ['move-node-to-workspace --focus-follows-window 7', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-8 = ['move-node-to-workspace --focus-follows-window 8', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-9 = ['move-node-to-workspace --focus-follows-window 9', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-0 = ['move-node-to-workspace --focus-follows-window 10', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-leftSquareBracket = ['move-node-to-workspace --focus-follows-window 11', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-rightSquareBracket = ['move-node-to-workspace --focus-follows-window 12', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    ctrl-shift-backslash = ['move-node-to-workspace --focus-follows-window 13', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
 
     alt-tab = 'workspace-back-and-forth'
     ctrl-left = 'exec-and-forget /bin/bash $HOME/.config/aerospace/focus-workspace-arrow.sh prev'
@@ -317,10 +315,10 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     ctrl-down = 'exec-and-forget /bin/bash $HOME/.config/aerospace/macos-control.sh app-expose'
     alt-s = 'focus-monitor left'
     alt-g = 'focus-monitor right'
-    alt-shift-s = ['move-node-to-monitor left', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
-    alt-shift-g = ['move-node-to-monitor right', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    alt-shift-s = ['move-node-to-monitor left', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
+    alt-shift-g = ['move-node-to-monitor right', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
 
-    ctrl-alt-0 = ['exec-and-forget bash ~/.config/aerospace/reset-apps-to-default-workspaces.sh', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces.sh']
+    ctrl-alt-0 = ['exec-and-forget bash ~/.config/aerospace/reset-apps-to-default-workspaces.sh', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
     ctrl-alt-c = 'exec-and-forget bash ~/.config/ai-router/ai-router.sh agent codex'
     ctrl-alt-a = 'exec-and-forget bash ~/.config/ai-router/ai-router.sh agent claude'
     ctrl-alt-r = ['reload-config', 'exec-and-forget sketchybar --reload']

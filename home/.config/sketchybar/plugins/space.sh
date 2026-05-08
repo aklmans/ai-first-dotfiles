@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 AEROSPACE="${AEROSPACE:-/opt/homebrew/bin/aerospace}"
-UPDATER="${CONFIG_DIR:-$HOME/.config/sketchybar}/plugins/aerospace_spaces.sh"
+UPDATER="${CONFIG_DIR:-$HOME/.config/sketchybar}/plugins/aerospace_spaces_refresh.sh"
 
 set_space_label() {
   sketchybar --set "$NAME" icon="$*"
