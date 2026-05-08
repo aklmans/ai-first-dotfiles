@@ -34,10 +34,12 @@ selection_polling="${AI_ROUTER_SELECTION_POLLING:-1}"
 selection_poll_interval="${AI_ROUTER_SELECTION_POLL_INTERVAL:-0.03}"
 selection_poll_count="${AI_ROUTER_SELECTION_POLL_COUNT:-10}"
 selection_strict="${AI_ROUTER_SELECTION_STRICT:-0}"
+selection_backend="${AI_ROUTER_SELECTION_BACKEND:-applescript}"
 log_retention_days="${AI_ROUTER_LOG_RETENTION_DAYS:-30}"
 max_log_size="${AI_ROUTER_MAX_LOG_SIZE:-10485760}"
 provider_health_cache_ttl="${AI_ROUTER_PROVIDER_HEALTH_CACHE_TTL:-60}"
 provider_timeout_seconds="${AI_ROUTER_PROVIDER_TIMEOUT_SECONDS:-60}"
+debug_full_log="${AI_ROUTER_DEBUG_FULL_LOG:-0}"
 
 ensure_dirs() {
   mkdir -p "$prompts_dir" "$snippets_dir" "$providers_dir" "$catalogs_dir" "$exports_dir" "$cache_dir" "$state_dir" "$logs_dir" "$errors_dir" "$lib_dir"
@@ -175,6 +177,67 @@ APPLESCRIPT
   return 1
 }
 
+read_selection_applescript() {
+  /usr/bin/osascript - "$selection_attempts" "$selection_poll_count" "$selection_poll_interval" "$selection_copy_delay" "$selection_verify_delay" "$selection_polling" <<'APPLESCRIPT'
+on run argv
+  set maxAttempts to item 1 of argv as integer
+  set pollCount to item 2 of argv as integer
+  set pollInterval to item 3 of argv as real
+  set copyDelay to item 4 of argv as real
+  set verifyDelay to item 5 of argv as real
+  set pollingEnabled to item 6 of argv is "1"
+  set savedClipboard to missing value
+  set selectedText to ""
+  set attemptsUsed to 0
+
+  try
+    set savedClipboard to the clipboard
+  end try
+
+  repeat with attempt from 1 to maxAttempts
+    set attemptsUsed to attempt
+    set sentinel to "__AI_ROUTER_SELECTION_SENTINEL_" & (random number from 100000 to 999999) & "_" & attempt & "__"
+    set the clipboard to sentinel
+    tell application "System Events" to keystroke "c" using {command down}
+
+    if pollingEnabled then
+      repeat with poll from 1 to pollCount
+        delay pollInterval
+        try
+          set candidate to the clipboard as text
+        on error
+          set candidate to ""
+        end try
+        if candidate is not sentinel and candidate is not "" then
+          set selectedText to candidate
+          exit repeat
+        end if
+      end repeat
+    else
+      delay copyDelay
+      try
+        set candidate to the clipboard as text
+      on error
+        set candidate to ""
+      end try
+      if candidate is not sentinel and candidate is not "" then
+        set selectedText to candidate
+      end if
+    end if
+
+    if selectedText is not "" then exit repeat
+    delay verifyDelay
+  end repeat
+
+  if savedClipboard is not missing value then
+    set the clipboard to savedClipboard
+  end if
+
+  return (attemptsUsed as text) & linefeed & selectedText
+end run
+APPLESCRIPT
+}
+
 read_selection() {
   if [ -n "${AI_ROUTER_SELECTION:-}" ]; then
     write_selection_meta "env" "0" "0" "ok"
@@ -182,8 +245,27 @@ read_selection() {
     return
   fi
 
-  local saved_clipboard selected sentinel attempt poll start_ms end_ms duration_ms attempts_used
+  local saved_clipboard selected sentinel attempt poll start_ms end_ms duration_ms attempts_used raw
   start_ms="$(now_ms)"
+
+  if [ "$selection_backend" = "applescript" ]; then
+    raw="$(read_selection_applescript 2>/dev/null || true)"
+    if [ -n "$raw" ]; then
+      attempts_used="${raw%%$'\n'*}"
+      selected="${raw#*$'\n'}"
+      [ "$selected" != "$raw" ] || selected=""
+      end_ms="$(now_ms)"
+      duration_ms=$((end_ms - start_ms))
+      if [ -n "$selected" ]; then
+        write_selection_meta "selection" "$duration_ms" "$attempts_used" "ok"
+      else
+        write_selection_meta "empty" "$duration_ms" "$attempts_used" "fallback"
+      fi
+      printf '%s' "$selected"
+      return
+    fi
+  fi
+
   saved_clipboard="$(clipboard_paste 2>/dev/null || true)"
   sentinel="__AI_ROUTER_SELECTION_SENTINEL_$$_$(now_ms)__"
   selected=""
@@ -351,7 +433,9 @@ write_error_log() {
   local action="$2"
   local provider="$3"
   local error="$4"
+  local raw_error="${5:-}"
   local path="$errors_dir/$request_id.log"
+  local raw_path="$errors_dir/$request_id.raw.log"
 
   ensure_dirs
   {
@@ -360,6 +444,18 @@ write_error_log() {
     printf 'provider: %s\n\n' "$provider"
     printf '%s\n' "$error"
   } > "$path"
+
+  if [ "$debug_full_log" = "1" ] && [ -n "$raw_error" ] && [ "$raw_error" != "$error" ]; then
+    {
+      printf 'request_id: %s\n' "$request_id"
+      printf 'action: %s\n' "$action"
+      printf 'provider: %s\n' "$provider"
+      printf 'debug: raw provider error\n\n'
+      printf '%s\n' "$raw_error"
+    } > "$raw_path"
+    chmod 600 "$raw_path" 2>/dev/null || true
+  fi
+
   cp "$path" "$last_error" 2>/dev/null || true
   printf '%s' "$path"
 }
@@ -592,15 +688,15 @@ run_action() {
     status="failed"
     error="All providers failed for action '$action'. Tried: ${provider_attempts:-none}"$'\n\n'"$provider_errors"
     sanitized_error="$(sanitize_error_text "$error")"
-    write_last_output "$error"
+    write_last_output "$sanitized_error"
     copy_text_to_clipboard "$sanitized_error" || true
-    error_path="$(write_error_log "$request_id" "$action" "${provider_attempts:-none}" "$error")"
+    error_path="$(write_error_log "$request_id" "$action" "${provider_attempts:-none}" "$sanitized_error" "$error")"
     error_summary="$(short_error "$sanitized_error")"
     end_ms="$(now_ms)"
     duration_ms=$((end_ms - start_ms))
-    log_event "$action" "${provider_attempts:-none}" "$input_chars" "${#error}" "$duration_ms" "$status" "$error" "$request_id"
+    log_event "$action" "${provider_attempts:-none}" "$input_chars" "${#sanitized_error}" "$duration_ms" "$status" "$sanitized_error" "$request_id"
     notify "AI Router failed" "$action: $error_summary"
-    printf '%s\n' "$error" >&2
+    printf '%s\n' "$sanitized_error" >&2
     return "$provider_exit"
   fi
 

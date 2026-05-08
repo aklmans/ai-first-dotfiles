@@ -61,6 +61,21 @@ assert_no_matches \
   "(?i)(api[_-]?key|access[_-]?token|bearer[_-]?token|secret[_-]?token)\\s*[=:]\\s*[\\\"']?(?!YOUR_)[A-Za-z0-9_./:+-]{20,}[\\\"']?" \
   "${scan_targets[@]}"
 
+assert_no_matches \
+  'Public Kaku assistant config must not hard-code private or third-party API endpoints' \
+  'api\.vivgrid\.com' \
+  "$repo_root/home/.config/kaku"
+
+assert_no_matches \
+  'Public zsh aliases should not expose personal directory topology' \
+  'Knowledge|Documents/Personal|Assets/Archive/Pending' \
+  "$repo_root/home/.config/zsh/aliases.zsh"
+
+assert_no_matches \
+  'Public zsh aliases should not contain destructive cleanup shortcuts' \
+  'sudo rm -rf' \
+  "$repo_root/home/.config/zsh/aliases.zsh"
+
 # block suspicious machine-bound absolute paths from migrated sources
 grep -RIn --binary-files=without-match --exclude="privacy_scan_smoke.sh" '/Users/aklman' "${scan_targets[@]}" > "$abs_path_matches_file" || true
 if [ -s "$abs_path_matches_file" ]; then

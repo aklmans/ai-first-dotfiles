@@ -25,19 +25,9 @@ alias sites="cd $WORKFLOW_PROJECTS_DIR"
 alias workflow="cd $WORKFLOW_DIR"
 alias dotfiles="cd $DOTFILES_DIR"
 alias gbrainp="cd $GBRAIN_DIR_LOCAL"
-alias knowledge="cd $HOME/Knowledge"
-alias obsidian="cd $HOME/Knowledge/Obsidian/Main"
-alias books="cd $HOME/Knowledge/Books"
-alias cour="cd $HOME/Knowledge/Courses"
-alias courses="cd $HOME/Knowledge/Courses"
-alias assets="cd $HOME/Assets"
-alias pending="cd $HOME/Assets/Archive/Pending"
-alias personal="cd $HOME/Documents/Personal"
 alias gopath="cd $HOME/.local/share/go"
 alias gobin="cd $GOBIN"
 alias localbin="cd $HOME/.local/bin"
-alias front="cd $HOME/Workspace/Projects/front-end"
-alias crates="cd $HOME/Workspace/Projects/crates"
 alias odw="cd $HOME/Downloads && open ."
 alias dw="cd $HOME/Downloads"
 
@@ -92,8 +82,12 @@ alias upall='topgrade'
 alias show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
 alias hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
 
-# System cleanup alias
-alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; sudo rm -rfv ~/.Trash; sudo rm -rfv /private/var/log/asl/*.asl; sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV* 'delete from LSQuarantineEvent'"
+# System cleanup placeholder. Put machine-specific destructive cleanup in
+# ~/.config/zsh/private.zsh if you need it.
+emptytrash() {
+  printf 'emptytrash is disabled in the public config; use Finder or a private override.\n' >&2
+  return 64
+}
 
 # Utility aliases
 alias path='print -l ${(s/:/)PATH}'

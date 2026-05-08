@@ -82,7 +82,7 @@ aerospace reload-config --dry-run --no-gui
 ## File rules and behavior
 
 - App placement defaults are intentionally generated from tracked config, not from local session state.
-- `home/.config/aerospace/warp-launch-agent.sh` is intentionally not tracked.
+- Agent launch shortcuts use the tracked AI Router `agent` command, which opens a new Warp tab and pastes the command without executing it.
 - `home/.config/aerospace/layout-control.sh` owns temporary layout repair/toggle actions so shortcuts do not rely on multi-command inline AeroSpace chains.
 - `home/.config/aerospace/reveal-app.sh` jumps to and focuses the workspace window for a bundle id. SketchyBar AI attention badges use it for app reveal actions.
 - `home/.config/aerospace/toggle-sketchybar-space.sh` keeps SketchyBar visibility and AeroSpace `outer.top` in sync. The default shortcut targets the main display only for livestream capture. Explicit `hide` / `show` modes still hide or restore all displays for Recording Mode and scripted workflows.

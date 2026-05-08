@@ -4,7 +4,9 @@ local sketchybarNotifications = os.getenv("HOME") .. "/.config/sketchybar/plugin
 local logPath = "/tmp/hammerspoon-app-reveal.log"
 local revealDelaySeconds = 0.12
 local revealCooldownSeconds = 0.8
+local clearAttentionCooldownSeconds = 1.5
 local lastRevealAtByBundle = {}
+local lastClearAttentionAtByBundle = {}
 
 local revealAppByBundle = {
   ["dev.warp.Warp-Stable"] = "warp",
@@ -114,6 +116,30 @@ local function revealBundle(bundleID)
   end)
 end
 
+local function clearAttention(bundleID)
+  local attentionApp = revealAppByBundle[bundleID]
+  if not attentionApp then
+    return
+  end
+
+  local now = hs.timer.secondsSinceEpoch()
+  if lastClearAttentionAtByBundle[bundleID] and now - lastClearAttentionAtByBundle[bundleID] < clearAttentionCooldownSeconds then
+    return
+  end
+  lastClearAttentionAtByBundle[bundleID] = now
+
+  if hs.fs.attributes(sketchybarNotifications, "mode") ~= "file" then
+    return
+  end
+
+  log("clear attention " .. bundleID)
+  hs.task.new(sketchybarNotifications, function()
+    if hs.fs.attributes(sketchybar, "mode") == "file" then
+      hs.task.new(sketchybar, nil, { "--trigger", "ai_notification_sync" }):start()
+    end
+  end, { "request-clear", attentionApp }):start()
+end
+
 if _G.wowAppRevealWatcher then
   _G.wowAppRevealWatcher:stop()
 end
@@ -129,9 +155,9 @@ _G.wowAppRevealWatcher = hs.application.watcher.new(function(appName, eventType,
   end
 
   hs.timer.doAfter(revealDelaySeconds, function()
-    revealBundle(bundleID)
+    clearAttention(bundleID)
   end)
 end)
 
 _G.wowAppRevealWatcher:start()
-log("app reveal watcher started")
+log("app attention clear watcher started")

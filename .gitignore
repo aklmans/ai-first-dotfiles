@@ -61,6 +61,7 @@ home/.config/ai-router/logs/
 **/cache/
 **/logs/
 **/state/
+home/.config/zsh/private.zsh
 !templates/gbrain/.env.local.example
 !templates/gbrain/*.example.toml
 **/__pycache__/

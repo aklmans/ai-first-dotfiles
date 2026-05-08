@@ -25,34 +25,34 @@ install_base() {
   ensure_brew_tap nao1215/tap
 
   # Base utilities required by the rest of the setup.
-  brew install mas coreutils gnu-sed
+  brew_install mas coreutils gnu-sed
 
   # Everyday CLI tools and shell-facing utilities.
-  brew install ast-grep bat bottom chafa fd fzf gdu gh git-delta nao1215/tap/gup jq lazydocker lazygit neovim starship ripgrep tree trash yazi zoxide
+  brew_install ast-grep bat bottom chafa fd fzf gdu gh git-delta nao1215/tap/gup jq lazydocker lazygit neovim starship ripgrep tree trash yazi zoxide
 
   # Writing, media, and OCR helpers used by tracked workflows.
-  brew install hugo pandoc ffmpeg imagemagick summarize tesseract tesseract-lang
+  brew_install hugo pandoc ffmpeg imagemagick summarize tesseract tesseract-lang
 
   # Language runtimes, developer toolchains, and update orchestration.
-  brew install composer go golangci-lint lua mise node protobuf topgrade uv
+  brew_install composer go golangci-lint lua mise node protobuf topgrade uv
 }
 
 install_infra() {
   # Local services, container tooling, and infrastructure CLIs.
-  brew install dnsmasq docker kubernetes-cli mysql nginx ollama
+  brew_install dnsmasq docker kubernetes-cli mysql nginx ollama
 }
 
 install_desktop() {
   # Desktop status bar, borders, and audio helpers.
   ensure_brew_tap felixkratz/formulae
   ensure_brew_tap nikitabobko/tap
-  brew install felixkratz/formulae/borders felixkratz/formulae/sketchybar nowplaying-cli switchaudio-osx
-  brew install --cask nikitabobko/tap/aerospace hammerspoon bettertouchtool
+  brew_install felixkratz/formulae/borders felixkratz/formulae/sketchybar nowplaying-cli switchaudio-osx
+  brew_install_cask nikitabobko/tap/aerospace hammerspoon bettertouchtool
 }
 
 install_fonts() {
   # Fonts required by tracked terminal and shell configs.
-  brew install --cask sf-symbols font-caskaydia-cove-nerd-font font-fantasque-sans-mono-nerd-font font-hack-nerd-font font-jetbrains-mono-nerd-font font-maple-mono
+  brew_install_cask sf-symbols font-caskaydia-cove-nerd-font font-fantasque-sans-mono-nerd-font font-hack-nerd-font font-jetbrains-mono-nerd-font font-maple-mono
 }
 
 install_apps() {
@@ -62,19 +62,19 @@ install_apps() {
   ensure_brew_tap tw93/tap
 
   # Optional terminal, utility, and desktop apps currently installed on this machine.
-  brew install tw93/tap/kakuku
-  brew install --cask adguard alt-tab karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast
+  brew_install tw93/tap/kakuku
+  brew_install_cask adguard alt-tab karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast
 
   # Optional AI, developer, and workflow GUI tools currently installed on this machine.
-  brew install --cask apifox cc-switch chatgpt claude claude-code codex steipete/tap/codexbar cursor openclaw postman visual-studio-code
+  brew_install_cask apifox cc-switch chatgpt claude claude-code codex steipete/tap/codexbar cursor openclaw postman visual-studio-code
 
   # Optional browser, writing, and communication apps currently installed on this machine.
-  brew install --cask arc google-chrome obsidian wechat
+  brew_install_cask arc google-chrome obsidian wechat
 }
 
 install_quicklook() {
   # Optional QuickLook extras for local Finder previews.
-  brew install --cask qlmarkdown quicklook-video syntax-highlight
+  brew_install_cask qlmarkdown quicklook-video syntax-highlight
   if [[ -d "$HOME/Library/QuickLook" ]]; then
     if xattr -r -p com.apple.quarantine "$HOME/Library/QuickLook" >/dev/null 2>&1; then
       xattr -r -d com.apple.quarantine "$HOME/Library/QuickLook"

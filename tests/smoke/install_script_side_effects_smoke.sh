@@ -9,6 +9,10 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ! rg -n 'homebrew/cask-fonts' "$repo_root/bootstrap"
 ! rg -n 'qlcolorcode|qlstephen|quicklook-json|quicklookase|webpquicklook|homebrew/services|homebrew-services' "$repo_root/bootstrap"
 ! rg -n 'brew install .*([^/:[:alnum:]_-]|^)gup([^/[:alnum:]_-]|$)' "$repo_root/bootstrap/brew.sh"
+if rg -n 'brew install --cask' "$repo_root/bootstrap/brew.sh"; then
+  printf 'bootstrap/brew.sh must route casks through brew_install_cask\n' >&2
+  exit 1
+fi
 rg -n 'ensure_brew_tap nao1215/tap' "$repo_root/bootstrap/brew.sh" >/dev/null
 rg -n 'nao1215/tap/gup' "$repo_root/bootstrap/brew.sh" >/dev/null
 

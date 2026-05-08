@@ -48,6 +48,7 @@ require_dir home/.config/yazi
 require_dir home/.config/zsh
 require_dir home/.config/zsh/completions
 require_dir home/.config/sketchybar
+require_dir home/.config/sketchybar/lib
 require_dir home/.config/borders
 require_dir home/.config/aerospace
 require_dir home/.config/karabiner
@@ -94,6 +95,7 @@ require_file home/.config/ai-router/providers/warp-agent.sh
 
 require_file home/.config/sketchybar/sketchybarrc
 require_file home/.config/sketchybar/colors.sh
+require_file home/.config/sketchybar/lib/display-resolver.sh
 require_file home/.config/sketchybar/items/ai_notifications.sh
 require_file home/.config/sketchybar/plugins/ai_app_notifications.sh
 require_file home/.config/borders/bordersrc
@@ -134,6 +136,7 @@ require_file README.md
 require_file docs/shortcuts.md
 
 require_file tests/smoke/ai_router_exports_smoke.sh
+require_file tests/smoke/aerospace_workflow_smoke.sh
 require_file tests/smoke/repository_structure_smoke.sh
 require_file tests/smoke/install_script_syntax_smoke.sh
 require_file tests/smoke/install_script_side_effects_smoke.sh
@@ -159,3 +162,8 @@ require_absent docs/tools/wezterm
 require_absent docs/tools/skhd
 require_absent docs/tools/yabai
 require_absent docs/tools/oh-my-posh
+
+if rg -n 'status brew github\.bell wifi' "$repo_root/home/.config/sketchybar/items/volume.sh"; then
+  printf 'SketchyBar volume bracket references stale status items\n' >&2
+  exit 1
+fi

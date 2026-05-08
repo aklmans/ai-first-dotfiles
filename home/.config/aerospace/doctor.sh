@@ -5,6 +5,7 @@ AEROSPACE_CONFIG="$HOME/.aerospace.toml"
 AEROSPACE_DIR="$HOME/.config/aerospace"
 SKETCHYBAR_PLUGINS="$HOME/.config/sketchybar/plugins"
 HAMMERSPOON_CONFIG="$HOME/.hammerspoon/init.lua"
+CHECK_TIMEOUT_SECONDS="${DOTFILES_DOCTOR_TIMEOUT_SECONDS:-5}"
 
 issues=0
 warnings=0
@@ -36,8 +37,36 @@ run_check() {
     local label="$1"
     shift
 
-    local output
-    if output="$("$@" 2>&1)"; then
+    local output output_file timeout_file pid watchdog_pid status
+    output_file="$(mktemp)"
+    timeout_file="$(mktemp)"
+    rm -f "$timeout_file"
+
+    "$@" >"$output_file" 2>&1 &
+    pid="$!"
+
+    (
+        sleep "$CHECK_TIMEOUT_SECONDS"
+        if kill -0 "$pid" >/dev/null 2>&1; then
+            printf 'timeout\n' >"$timeout_file"
+            kill "$pid" >/dev/null 2>&1 || true
+            sleep 0.2
+            kill -9 "$pid" >/dev/null 2>&1 || true
+        fi
+    ) &
+    watchdog_pid="$!"
+
+    wait "$pid" 2>/dev/null
+    status="$?"
+    kill "$watchdog_pid" >/dev/null 2>&1 || true
+    wait "$watchdog_pid" >/dev/null 2>&1 || true
+
+    output="$(cat "$output_file")"
+
+    if [ -s "$timeout_file" ]; then
+        fail "$label"
+        printf '      timed out after %ss\n' "$CHECK_TIMEOUT_SECONDS"
+    elif [ "$status" -eq 0 ]; then
         ok "$label"
     else
         fail "$label"
@@ -45,6 +74,8 @@ run_check() {
             printf '%s\n' "$output" | sed 's/^/      /' | head -n 6
         fi
     fi
+
+    rm -f "$output_file" "$timeout_file"
 }
 
 check_file_executable() {

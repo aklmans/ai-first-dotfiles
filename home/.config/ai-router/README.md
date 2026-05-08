@@ -241,7 +241,8 @@ tags:
 - `output: clipboard` 的 prompt 会把结果复制到剪贴板。
 - `output: preview` 的 prompt 只保存结果并通知，可从 palette 的 `Tool: Open Last Output` 打开。
 - 日志写入 `logs/events.jsonl`，新事件带 `request_id`、`input_source`、`selection_source`、`selection_ms` 等元信息。
-- Provider 不可用或执行失败时，错误会复制到剪贴板，完整错误写入 `logs/errors/<request_id>.log`。
+- Provider 不可用或执行失败时，默认把 sanitized/capped 错误复制到剪贴板并写入 `logs/errors/<request_id>.log`。
+- 如需调试原始 provider 错误，显式设置 `AI_ROUTER_DEBUG_FULL_LOG=1`，原始错误会写入 `logs/errors/<request_id>.raw.log`。
 - 最近一次错误会复制到 `logs/errors/latest.log`，可从 palette 的 `Tool: Open Last Error` 打开。
 - 日志只记录元信息，不记录完整 selection、prompt 或 output。
 

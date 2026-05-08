@@ -7,8 +7,8 @@
 #                 format: ["Header-Name: value", "Another-Header: value"]
 #                 note: Authorization and Content-Type are reserved and cannot be overridden.
 
-enabled = true
-# Secrets are injected outside git (environment or secure store).
-model = "DeepSeek-V3.2"
-base_url = "https://api.vivgrid.com/v1"
+enabled = false
+# Keep public defaults inert. Configure model/base_url locally outside git.
+model = ""
+base_url = ""
 # custom_headers = ["X-Customer-ID: your-customer-id"]

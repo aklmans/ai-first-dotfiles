@@ -3,6 +3,7 @@ set -euo pipefail
 
 SKETCHYBAR_BIN="${SKETCHYBAR_BIN:-/opt/homebrew/bin/sketchybar}"
 AEROSPACE_BIN="${AEROSPACE_BIN:-/opt/homebrew/bin/aerospace}"
+HS_BIN="${HS_BIN:-/opt/homebrew/bin/hs}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 INFERRED_HOME=""
@@ -21,6 +22,9 @@ AEROSPACE_CONFIG="${AEROSPACE_CONFIG:-$HOME_DIR/.aerospace.toml}"
 STATE_DIR="${STATE_DIR:-$HOME_DIR/.config/aerospace/state}"
 STATE_FILE="${STATE_FILE:-$STATE_DIR/sketchybar-space-mode}"
 MAIN_MONITOR_NAME="${SKETCHYBAR_HIDE_MONITOR_NAME:-PHL 279C9}"
+SKETCHYBAR_CONFIG_DIR="${SKETCHYBAR_CONFIG_DIR:-$HOME_DIR/.config/sketchybar}"
+
+source "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh"
 
 mode="${1:-toggle}"
 
@@ -135,51 +139,18 @@ set_bar_hidden() {
   return 0
 }
 
-main_display_ids() {
-  "$AEROSPACE_BIN" list-monitors --format '%{monitor-name}	%{monitor-appkit-nsscreen-screens-id}' 2>/dev/null |
-    /usr/bin/awk -F '\t' -v name="$MAIN_MONITOR_NAME" '$1 == name { print $2; exit }'
-}
-
-visible_display_list_without_main() {
-  local main_display_id="$1"
-  local displays_json
-
-  displays_json="$("$SKETCHYBAR_BIN" --query displays 2>/dev/null)"
-  /usr/bin/python3 - "$main_display_id" "$displays_json" <<'PY'
-import json
-import sys
-
-target = sys.argv[1]
-payload = sys.argv[2]
-try:
-    displays = json.loads(payload)
-except json.JSONDecodeError:
-    raise SystemExit(1)
-
-visible = [
-    str(display.get("arrangement-id"))
-    for display in displays
-    if str(display.get("arrangement-id")) != target
-]
-
-if not visible:
-    visible = ["all"]
-
-print(",".join(visible))
-PY
-}
-
 set_bar_main_hidden() {
   local value="$1"
   local main_display_id visible_displays
 
-  main_display_id="${SKETCHYBAR_HIDE_DISPLAY_ID:-$(main_display_ids || true)}"
+  main_display_id="${SKETCHYBAR_HIDE_DISPLAY_ID:-$(sketchybar_display_id_for_monitor "$MAIN_MONITOR_NAME" || true)}"
   if [ -z "$main_display_id" ]; then
-    main_display_id="1"
+    printf 'Unable to resolve SketchyBar display id for monitor: %s\n' "$MAIN_MONITOR_NAME" >&2
+    return 1
   fi
 
   if [ "$value" = "on" ]; then
-    visible_displays="$(visible_display_list_without_main "$main_display_id")"
+    visible_displays="$(sketchybar_visible_display_list_excluding "$main_display_id")"
     "$SKETCHYBAR_BIN" --bar hidden=off display="$visible_displays" >/dev/null
   else
     "$SKETCHYBAR_BIN" --bar hidden=off display=all >/dev/null

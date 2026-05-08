@@ -23,7 +23,7 @@ is_jetbrains_dialog_title() {
     local title="${1:-}"
 
     case "$title" in
-        "Welcome to"*|"Settings"|"Preferences"|"Project Structure"*|"Run/Debug Configurations"*|"Edit Configuration"*|"Plugins"|"Tip of the Day"*|"New Project"*|"Open File or Project"*|"Attach Directory"*|"About"*|"Licenses"*|"Choose"*|"Select"*|"Import"*|"Export"*|"Find"*|"Replace"*|"Search Everywhere"*|"Local History"*|"Commit"*|"Push"*|"Pull"*|"Merge"*|"Rebase"*|"Checkout"*|"Branch"*|"Clone Repository"*|"Delete"*|"Rename"*|"Remove"*|"Move"*|"Copy"*|"Add File to Git"*|"Edit Commit Message"*|"Confirm"*|"Discard"*|"Overwrite"*|"File Already Exists"*|"Resolve Conflicts"*)
+        "Welcome to"*|"Settings"|"Preferences"|"Project Structure"*|"Run/Debug Configurations"*|"Edit Configuration"*|"Plugins"|"Tip of the Day"*|"New Project"*|"Open File or Project"*|"Attach Directory"*|"About"*|"Licenses"*|"Choose"*|"Select"*|"Import"*|"Export"*|"Find"*|"Replace"*|"Search Everywhere"*|"Local History"*|"Commit"*|"Push"*|"Pull"*|"Merge"*|"Rebase"*|"Checkout"*|"Branch"*|"Clone Repository"*|"Refactor"*|"Extract"*|"Inline"*|"Change Signature"*|"Delete"*|"Rename"*|"Remove"*|"Move"*|"Copy"*|"Add File to Git"*|"Edit Commit Message"*|"Confirm"*|"Discard"*|"Overwrite"*|"File Already Exists"*|"Resolve Conflicts"*)
             return 0
             ;;
     esac
@@ -292,7 +292,7 @@ emit_on_window_detected_rules() {
 # JetBrains: keep main IDE windows tiled, but float obvious dialogs/tool windows.
 [[on-window-detected]]
     if.app-name-regex-substring = '^(GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio)$'
-    if.window-title-regex-substring = '^(Welcome to|Settings|Preferences|Project Structure|Run/Debug Configurations|Edit Configuration|Plugins|Tip of the Day|New Project|Open File or Project|Attach Directory|About|Licenses|Choose|Select|Import|Export|Find|Replace|Search Everywhere|Local History|Commit|Push|Pull|Merge|Rebase|Checkout|Branch|Clone Repository|Delete|Rename|Remove|Move|Copy|Add File to Git|Edit Commit Message|Confirm|Discard|Overwrite|File Already Exists|Resolve Conflicts)'
+    if.window-title-regex-substring = '^(Welcome to|Settings|Preferences|Project Structure|Run/Debug Configurations|Edit Configuration|Plugins|Tip of the Day|New Project|Open File or Project|Attach Directory|About|Licenses|Choose|Select|Import|Export|Find|Replace|Search Everywhere|Local History|Commit|Push|Pull|Merge|Rebase|Checkout|Branch|Clone Repository|Refactor|Extract|Inline|Change Signature|Delete|Rename|Remove|Move|Copy|Add File to Git|Edit Commit Message|Confirm|Discard|Overwrite|File Already Exists|Resolve Conflicts)'
     run = 'layout floating'
 
 # Float apps that should behave like utility/dialog surfaces, then continue to placement rules.
