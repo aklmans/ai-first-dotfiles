@@ -540,6 +540,9 @@ function __icon_map() {
    "Codex" | "OpenAI Codex")
         icon_result=":codex:"
         ;;
+   "Cola")
+        icon_result=":spark:"
+        ;;
    "OpenAI Translator")
         icon_result=":openai_translator:"
         ;;

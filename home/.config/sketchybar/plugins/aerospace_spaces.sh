@@ -13,7 +13,22 @@ run_aerospace() {
 }
 
 WORKSPACES="1 2 3 4 5 6 7 8 9 10 11 12 13"
-WINDOWS="$(run_aerospace list-windows --all --format "%{workspace}%{tab}%{app-name}" || true)"
+
+collect_windows() {
+  local windows
+  windows="$(run_aerospace list-windows --all --format "%{workspace}%{tab}%{app-name}" || true)"
+  if [ -n "$windows" ]; then
+    printf '%s\n' "$windows"
+    return 0
+  fi
+
+  local workspace
+  for workspace in $WORKSPACES; do
+    run_aerospace list-windows --workspace "$workspace" --format "%{workspace}%{tab}%{app-name}" || true
+  done
+}
+
+WINDOWS="$(collect_windows)"
 focused_workspace="$(run_aerospace list-workspaces --focused | head -n 1 || true)"
 
 args=(--animate sin 10)

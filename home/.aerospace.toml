@@ -100,7 +100,7 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 
 # Primary work/browser/AI windows should stay tiled, even if the app restored a floating state.
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Claude|ChatGPT|ChatGPT Atlas|Gemini)$'
+    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Cola|ChatGPT|ChatGPT Atlas|Gemini)$'
     check-further-callbacks = true
     run = 'layout tiling'
 
@@ -122,7 +122,7 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
-    if.app-id = 'com.anthropic.claudefordesktop'
+    if.app-id = 'ai.marswave.cola'
     run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]
@@ -207,7 +207,7 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Claude)$'
+    if.app-name-regex-substring = '^(Cola)$'
     run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]

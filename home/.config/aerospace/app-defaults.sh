@@ -143,7 +143,7 @@ should_tile_window() {
         company.thebrowser.Browser|company.thebrowser.dia|com.apple.Safari|com.microsoft.edgemac|com.google.Chrome|org.mozilla.firefox|app.zen-browser.zen)
             return 0
             ;;
-        md.obsidian|com.tw93.miaoyan|com.openai.chat|com.openai.atlas|com.anthropic.claudefordesktop|com.google.GeminiMacOS)
+        md.obsidian|com.tw93.miaoyan|com.openai.chat|com.openai.atlas|ai.marswave.cola|com.google.GeminiMacOS)
             return 0
             ;;
     esac
@@ -155,7 +155,7 @@ should_tile_window() {
         "Arc"|"Dia"|"Safari"|"Microsoft Edge"|"Google Chrome"|"Firefox"|"Zen")
             return 0
             ;;
-        "Obsidian"|"MiaoYan"|"Claude"|"ChatGPT"|"ChatGPT Atlas"|"Gemini")
+        "Obsidian"|"MiaoYan"|"Cola"|"ChatGPT"|"ChatGPT Atlas"|"Gemini")
             return 0
             ;;
     esac
@@ -194,7 +194,7 @@ default_workspace_for_window() {
             printf '4'
             return 0
             ;;
-        com.anthropic.claudefordesktop)
+        ai.marswave.cola)
             printf '5'
             return 0
             ;;
@@ -245,7 +245,7 @@ default_workspace_for_window() {
         "ChatGPT")
             printf '4'
             ;;
-        "Claude")
+        "Cola")
             printf '5'
             ;;
         "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
@@ -323,7 +323,7 @@ emit_on_window_detected_rules() {
 
 # Primary work/browser/AI windows should stay tiled, even if the app restored a floating state.
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Claude|ChatGPT|ChatGPT Atlas|Gemini)$'
+    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Cola|ChatGPT|ChatGPT Atlas|Gemini)$'
     check-further-callbacks = true
     run = 'layout tiling'
 
@@ -345,7 +345,7 @@ emit_on_window_detected_rules() {
     run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
-    if.app-id = 'com.anthropic.claudefordesktop'
+    if.app-id = 'ai.marswave.cola'
     run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]
@@ -430,7 +430,7 @@ emit_on_window_detected_rules() {
     run = 'move-node-to-workspace 4'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Claude)$'
+    if.app-name-regex-substring = '^(Cola)$'
     run = 'move-node-to-workspace 5'
 
 [[on-window-detected]]

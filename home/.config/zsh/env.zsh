@@ -12,8 +12,10 @@ export GOPATH="$HOME/.local/share/go"
 export GOBIN="$GOPATH/bin"
 unset GOSRC GOPKG
 
-export RUSTUP_DIST_SERVER="https://rsproxy.cn/rustup"
-export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+# export RUSTUP_DIST_SERVER="https://rsproxy.cn/rustup"
+# export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+export RUSTUP_DIST_SERVER="https://static.rust-lang.org"
+export RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup"
 
 export BUN_INSTALL="$HOME/.bun"
 export PUB_HOSTED_URL="https://pub.flutter-io.cn"
