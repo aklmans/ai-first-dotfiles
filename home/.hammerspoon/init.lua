@@ -36,6 +36,11 @@ local aiAttentionAppByBundle = {
   ["com.jetbrains.intellij"] = "idea",
   ["com.jetbrains.goland"] = "goland",
 }
+local fixedWorkspaceAppByBundle = {
+  ["com.blade.shadow-macos"] = "2",
+  ["com.obsproject.obs-studio"] = "11",
+  ["com.bilibili.bilibiliPC"] = "10",
+}
 local terminalMasterStackAppByBundle = {
   ["dev.warp.Warp-Stable"] = true,
   ["fun.tw93.kaku"] = true,
@@ -744,6 +749,11 @@ local function inheritWorkspaceForCreatedWindow(win)
   local app = win and win:application()
   local bundleID = app and app:bundleID()
   if not bundleID or bundleID == "" then
+    return
+  end
+
+  if fixedWorkspaceAppByBundle[bundleID] then
+    log("skip inherit fixed workspace " .. bundleID .. " target=" .. fixedWorkspaceAppByBundle[bundleID])
     return
   end
 

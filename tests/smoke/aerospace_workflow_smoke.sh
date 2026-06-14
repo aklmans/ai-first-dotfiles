@@ -31,12 +31,24 @@ assert_contains "$toml" ".config/ai-router/ai-router.sh agent codex" "Codex agen
 assert_contains "$toml" ".config/ai-router/ai-router.sh agent claude" "Claude agent binding"
 assert_not_contains "$toml" "agent-run codex" "Codex binding must not auto-run"
 assert_not_contains "$toml" "agent-run claude" "Claude binding must not auto-run"
+assert_contains "$toml" "com.obsproject.obs-studio" "OBS workspace binding"
+assert_contains "$toml" "move-node-to-workspace 11" "OBS workspace target"
+assert_contains "$toml" "com.bilibili.bilibiliPC" "Bilibili workspace binding"
+assert_contains "$toml" "move-node-to-workspace 10" "Bilibili workspace target"
+assert_contains "$toml" "com.blade.shadow-macos" "Shadow workspace binding"
+assert_contains "$toml" "ShadowPCDisplay" "Shadow app-name fallback"
 
 hammerspoon="$(cat "$repo_root/home/.hammerspoon/init.lua")"
 assert_contains "$hammerspoon" 'jetbrainsDefaultWorkspace = "2"' "Hammerspoon JetBrains default workspace"
+assert_contains "$hammerspoon" '["com.obsproject.obs-studio"] = "11"' "Hammerspoon OBS fixed workspace skip"
+assert_contains "$hammerspoon" '["com.bilibili.bilibiliPC"] = "10"' "Hammerspoon Bilibili fixed workspace skip"
+assert_contains "$hammerspoon" '["com.blade.shadow-macos"] = "2"' "Hammerspoon Shadow fixed workspace skip"
 
 rules="$("$repo_root/home/.config/aerospace/app-defaults.sh" --toml)"
 assert_contains "$rules" "Refactor" "JetBrains floating dialog matcher"
+assert_contains "$rules" "com.obsproject.obs-studio" "Generated OBS workspace binding"
+assert_contains "$rules" "com.bilibili.bilibiliPC" "Generated Bilibili workspace binding"
+assert_contains "$rules" "com.blade.shadow-macos" "Generated Shadow workspace binding"
 
 cp "$repo_root/home/.aerospace.toml" "$tmp_dir/.aerospace.toml"
 mkdir -p "$tmp_dir/bin" "$tmp_dir/.config/aerospace"
@@ -98,6 +110,13 @@ bash "$repo_root/home/.config/aerospace/toggle-sketchybar-space.sh" hide-main
 if ! grep -F -- '--bar hidden=off display=1,3' "$SKETCHYBAR_TEST_LOG" >/dev/null; then
   printf 'hide-main did not hide the SketchyBar arrangement-id for PHL 279C9\n' >&2
   cat "$SKETCHYBAR_TEST_LOG" >&2
+  exit 1
+fi
+
+main_compact_gap_count="$(grep -F '{ monitor."PHL 279C9" = 8 }' "$tmp_dir/.aerospace.toml" | wc -l | tr -d ' ')"
+if [ "$main_compact_gap_count" -lt 4 ]; then
+  printf 'hide-main did not compact all outer gaps for PHL 279C9\n' >&2
+  sed -n '/^\[gaps\]/,/^\[/p' "$tmp_dir/.aerospace.toml" >&2
   exit 1
 fi
 

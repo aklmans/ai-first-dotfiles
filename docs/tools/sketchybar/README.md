@@ -20,7 +20,7 @@
 - The default layout keeps workspaces `1-6` on `PHL 279C9`, workspaces `7-12` on `24V5C2`, and workspace `13` on the built-in display when available. When the built-in display is absent, workspace `13` follows the side display.
 - Override monitor names with `SKETCHYBAR_MAIN_MONITOR_NAME`, `SKETCHYBAR_SIDE_MONITOR_NAME`, and `SKETCHYBAR_STAGE_MONITOR_NAME`.
 - AI attention indicators for selected tools and IDEs.
-- `Option + Shift + Space` hides/shows SketchyBar on the main display through AeroSpace and also updates that display's top gap so captured windows reclaim or release the bar area.
+- `Option + Shift + Space` hides/shows SketchyBar on the main display through AeroSpace and also updates that display's outer gaps so captured windows reclaim or release the bar area.
 - The battery item is display-aware by default: MacBooks with `InternalBattery` show battery status, while desktop Macs hide it automatically. Override with `SKETCHYBAR_SHOW_BATTERY=0`, `1`, or `auto`.
 - Optional font fetch for the bar icon font and symbols.
 - SbarLua is installed from a pinned upstream commit by `bootstrap/install/sketchybar.sh`; override `SBARLUA_REF` only when intentionally upgrading.
@@ -31,15 +31,16 @@
 ./bootstrap/install/sketchybar.sh
 ./bootstrap/install/borders.sh
 brew services restart sketchybar
-brew services restart borders
 ```
+
+`Borders` is installed and its config is deployed, but the service is kept stopped by default. Start it explicitly with `BORDERS_START_SERVICE=1 ./bootstrap/install/borders.sh` or `brew services start borders`.
 
 ## Core behavior
 
 - No user session state is tracked in this repo.
 - SketchyBar plugin cache/sockets are runtime-only and recreated per machine.
 - AI attention runtime state is stored in `~/Library/Caches/sketchybar/ai_attention.json`.
-- Border style is reproducible from `bordersrc` and can be adjusted safely.
+- Border style is reproducible from `bordersrc` and can be adjusted safely when Borders is enabled.
 
 ## AI Attention Notifications
 

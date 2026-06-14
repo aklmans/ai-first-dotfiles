@@ -115,7 +115,7 @@ should_float_window() {
         "Dash"|"Navicat Premium"|"1Password"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop"|"Typeless")
             return 0
             ;;
-        "NeteaseMusic"|"Music"|"音乐"|"Spotify"|"哔哩哔哩"|"mpv"|"Podcasts"|"播客")
+        "NeteaseMusic"|"Music"|"音乐"|"Spotify"|"Bilibili"|"哔哩哔哩"|"mpv"|"Podcasts"|"播客")
             return 0
             ;;
     esac
@@ -146,6 +146,9 @@ should_tile_window() {
         md.obsidian|com.tw93.miaoyan|com.openai.chat|com.openai.atlas|ai.marswave.cola|com.google.GeminiMacOS)
             return 0
             ;;
+        com.blade.shadow-macos)
+            return 0
+            ;;
     esac
 
     case "$app_name" in
@@ -155,7 +158,7 @@ should_tile_window() {
         "Arc"|"Dia"|"Safari"|"Microsoft Edge"|"Google Chrome"|"Firefox"|"Zen")
             return 0
             ;;
-        "Obsidian"|"MiaoYan"|"Cola"|"ChatGPT"|"ChatGPT Atlas"|"Gemini")
+        "Obsidian"|"MiaoYan"|"Cola"|"ChatGPT"|"ChatGPT Atlas"|"Gemini"|"Shadow"|"Shadow PC"|"ShadowPCDisplay")
             return 0
             ;;
     esac
@@ -202,6 +205,10 @@ default_workspace_for_window() {
             printf '1'
             return 0
             ;;
+        com.blade.shadow-macos)
+            printf '2'
+            return 0
+            ;;
         com.microsoft.edgemac)
             printf '7'
             return 0
@@ -216,6 +223,14 @@ default_workspace_for_window() {
             ;;
         us.zoom.xos|com.techsmith.camtasia|com.TechSmith.Snagit)
             printf '13'
+            return 0
+            ;;
+        com.obsproject.obs-studio)
+            printf '11'
+            return 0
+            ;;
+        com.bilibili.bilibiliPC)
+            printf '10'
             return 0
             ;;
         com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|com.electron.lark|us.zoom.xos|com.hnc.Discord|com.facebook.archon)
@@ -251,11 +266,20 @@ default_workspace_for_window() {
         "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
             printf '10'
             ;;
+        "Bilibili"|"哔哩哔哩")
+            printf '10'
+            ;;
         "Finder"|"访达"|"System Settings"|"System Preferences"|"系统设置"|"Activity Monitor"|"监视器"|"Stats"|"Mail"|"邮件"|"Photos"|"照片"|"Preview"|"预览"|"Archive Utility"|"归档实用工具"|"App Store")
+            printf '11'
+            ;;
+        "OBS"|"OBS Studio")
             printf '11'
             ;;
         "Warp")
             printf '1'
+            ;;
+        "Shadow"|"Shadow PC"|"ShadowPCDisplay")
+            printf '2'
             ;;
         "GoLand"|"IntelliJ IDEA"|"IntelliJ IDEA-EAP"|"WebStorm"|"PhpStorm"|"RustRover"|"PyCharm"|"CLion"|"DataGrip"|"Rider"|"Android Studio")
             printf '2'
@@ -317,13 +341,18 @@ emit_on_window_detected_rules() {
     run = 'layout floating'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|哔哩哔哩|mpv|Podcasts|播客)$'
+    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|Bilibili|哔哩哔哩|mpv|Podcasts|播客)$'
     check-further-callbacks = true
     run = 'layout floating'
 
 # Primary work/browser/AI windows should stay tiled, even if the app restored a floating state.
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Cola|ChatGPT|ChatGPT Atlas|Gemini)$'
+    if.app-id = 'com.blade.shadow-macos'
+    check-further-callbacks = true
+    run = 'layout tiling'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Cola|ChatGPT|ChatGPT Atlas|Gemini|Shadow|Shadow PC|ShadowPCDisplay)$'
     check-further-callbacks = true
     run = 'layout tiling'
 
@@ -351,6 +380,10 @@ emit_on_window_detected_rules() {
 [[on-window-detected]]
     if.app-id = 'dev.warp.Warp-Stable'
     run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+    if.app-id = 'com.blade.shadow-macos'
+    run = 'move-node-to-workspace 2'
 
 [[on-window-detected]]
     if.app-id = 'com.openai.atlas'
@@ -383,6 +416,14 @@ emit_on_window_detected_rules() {
 [[on-window-detected]]
     if.app-id = 'com.TechSmith.Snagit'
     run = 'move-node-to-workspace 13'
+
+[[on-window-detected]]
+    if.app-id = 'com.obsproject.obs-studio'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.bilibili.bilibiliPC'
+    run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
     if.app-id = 'com.lbyczf.clashwin'
@@ -442,12 +483,24 @@ emit_on_window_detected_rules() {
     run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
+    if.app-name-regex-substring = '^(Bilibili|哔哩哔哩)$'
+    run = 'move-node-to-workspace 10'
+
+[[on-window-detected]]
     if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Archive Utility|归档实用工具|App Store)$'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(OBS|OBS Studio)$'
     run = 'move-node-to-workspace 11'
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Warp)$'
     run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Shadow|Shadow PC|ShadowPCDisplay)$'
+    run = 'move-node-to-workspace 2'
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio)$'

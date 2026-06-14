@@ -33,7 +33,7 @@ bar_hidden() {
     /usr/bin/awk -F'"' '/"hidden"/ { print $4; exit }'
 }
 
-rewrite_outer_top() {
+rewrite_outer_gaps() {
   local profile="$1"
   /usr/bin/python3 - "$AEROSPACE_CONFIG" "$profile" "$MAIN_MONITOR_NAME" <<'PY'
 import pathlib
@@ -42,61 +42,67 @@ import sys
 path = pathlib.Path(sys.argv[1])
 profile = sys.argv[2]
 main_monitor_name = sys.argv[3]
+monitor_names = ["Built-in Retina Display", "24V5C2", "PHL 279C9"]
 
-def monitor_top(name, value):
+def monitor_gap(name, value):
     escaped = name.replace("\\", "\\\\").replace('"', '\\"')
     return f'        {{ monitor."{escaped}" = {value} }},\n'
 
-profiles = {
-    "normal": [
-        "    outer.top = [\n",
-        '        { monitor."Built-in Retina Display" = 95 },\n',
-        '        { monitor."24V5C2" = 95 },\n',
-        '        { monitor."PHL 279C9" = 95 },\n',
-        "        95\n",
-        "    ]\n",
-    ],
-    "compact": [
-        "    outer.top = [\n",
-        '        { monitor."Built-in Retina Display" = 20 },\n',
-        '        { monitor."24V5C2" = 20 },\n',
-        '        { monitor."PHL 279C9" = 20 },\n',
-        "        20\n",
-        "    ]\n",
-    ],
-    "main-compact": [
-        "    outer.top = [\n",
-        monitor_top("Built-in Retina Display", 20 if main_monitor_name == "Built-in Retina Display" else 95),
-        monitor_top("24V5C2", 20 if main_monitor_name == "24V5C2" else 95),
-        monitor_top("PHL 279C9", 20 if main_monitor_name == "PHL 279C9" else 95),
-        "        95\n",
-        "    ]\n",
-    ],
-}
+def side_value(name):
+    if profile == "compact":
+        return 8
+    if profile == "main-compact" and name == main_monitor_name:
+        return 8
+    return 20
 
-if profile not in profiles:
+def top_value(name):
+    if profile == "compact":
+        return 8
+    if profile == "main-compact" and name == main_monitor_name:
+        return 8
+    return 95
+
+def gap_lines(key, values, fallback):
+    return (
+        [f"    {key} = [\n"]
+        + [monitor_gap(name, values(name)) for name in monitor_names]
+        + [f"        {fallback}\n", "    ]\n"]
+    )
+
+if profile not in {"normal", "compact", "main-compact"}:
     raise SystemExit(f"unknown profile: {profile}")
+
+side_fallback = 8 if profile == "compact" else 20
+top_fallback = 8 if profile == "compact" else 95
+profile_lines = [
+    "[gaps]\n",
+    "    inner.horizontal = 8\n",
+    "    inner.vertical = 8\n",
+    *gap_lines("outer.left", side_value, side_fallback),
+    *gap_lines("outer.bottom", side_value, side_fallback),
+    *gap_lines("outer.top", top_value, top_fallback),
+    *gap_lines("outer.right", side_value, side_fallback),
+    "\n",
+]
 
 lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
 start = None
 end = None
 
 for index, line in enumerate(lines):
-    if line.strip() == "outer.top = [":
+    if line.strip() == "[gaps]":
         start = index
-        depth = 0
-        for close_index in range(index, len(lines)):
-            depth += lines[close_index].count("[")
-            depth -= lines[close_index].count("]")
-            if close_index > index and depth <= 0:
+        end = len(lines)
+        for close_index in range(index + 1, len(lines)):
+            if lines[close_index].startswith("["):
                 end = close_index
                 break
         break
 
-if start is None or end is None:
-    raise SystemExit("outer.top block not found in AeroSpace config")
+if start is None:
+    raise SystemExit("[gaps] block not found in AeroSpace config")
 
-new_lines = lines[:start] + profiles[profile] + lines[end + 1 :]
+new_lines = lines[:start] + profile_lines + lines[end:]
 if new_lines != lines:
     path.write_text("".join(new_lines), encoding="utf-8")
 PY
@@ -202,22 +208,22 @@ case "$mode" in
 esac
 
 if [ "$mode" = "hide" ]; then
-  rewrite_outer_top compact
+  rewrite_outer_gaps compact
   reload_aerospace
   set_bar_hidden on
   save_mode hide
 elif [ "$mode" = "hide-main" ]; then
-  rewrite_outer_top main-compact
+  rewrite_outer_gaps main-compact
   reload_aerospace
   set_bar_main_hidden on
   save_mode main-hide
 elif [ "$mode" = "show-main" ]; then
-  rewrite_outer_top normal
+  rewrite_outer_gaps normal
   reload_aerospace
   set_bar_main_hidden off
   save_mode show
 else
-  rewrite_outer_top normal
+  rewrite_outer_gaps normal
   reload_aerospace
   set_bar_hidden off
   save_mode show

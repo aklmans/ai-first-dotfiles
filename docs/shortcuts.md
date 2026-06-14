@@ -75,7 +75,7 @@ These layout commands are one-shot operations. They do not change app default pl
 |---|---|
 | `Alt + S` / `Alt + G` | Focus left / right display |
 | `Alt + Shift + S` / `Alt + Shift + G` | Move focused window to left / right display |
-| `Option + Shift + Space` | Toggle SketchyBar only on the main display and compact/restore that display's top gap |
+| `Option + Shift + Space` | Toggle SketchyBar only on the main display and compact/restore that display's outer gaps |
 | `Ctrl + Alt + 0` | Reset tracked apps to default workspaces |
 | `Ctrl + Alt + R` | Reload AeroSpace config and SketchyBar |
 | `Ctrl + Alt + S` | Reload AeroSpace config |
@@ -117,7 +117,7 @@ Hammerspoon applies these presets to the focused window. The window is temporari
 | Shortcut | Action |
 |---|---|
 | `Ctrl + Alt + Cmd + M` | Enter Recording Mode: move the focused window to workspace `13`, hide SketchyBar, fit a 16:9 stage, and open Camtasia/Snagit |
-| `Ctrl + Alt + Cmd + Shift + M` | Exit Recording Mode: restore SketchyBar and the normal AeroSpace top gap |
+| `Ctrl + Alt + Cmd + Shift + M` | Exit Recording Mode: restore SketchyBar and the normal AeroSpace outer gaps |
 | `Ctrl + Alt + Cmd + R` | Set focused window to a 720p recording size |
 | `Ctrl + Alt + Cmd + F` | Set focused window to the largest centered 16:9 recording region on the current display |
 | `Ctrl + Alt + Cmd + 0` | Open screencast preset chooser, including Recording Mode on/off |

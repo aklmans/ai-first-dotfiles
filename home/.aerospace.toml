@@ -94,13 +94,18 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'layout floating'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|哔哩哔哩|mpv|Podcasts|播客)$'
+    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|Bilibili|哔哩哔哩|mpv|Podcasts|播客)$'
     check-further-callbacks = true
     run = 'layout floating'
 
 # Primary work/browser/AI windows should stay tiled, even if the app restored a floating state.
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Cola|ChatGPT|ChatGPT Atlas|Gemini)$'
+    if.app-id = 'com.blade.shadow-macos'
+    check-further-callbacks = true
+    run = 'layout tiling'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Warp|Kaku|Cursor|Visual Studio Code|Code|Code - Insiders|Sublime Text|GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio|Arc|Dia|Safari|Microsoft Edge|Google Chrome|Firefox|Zen|Obsidian|MiaoYan|Cola|ChatGPT|ChatGPT Atlas|Gemini|Shadow|Shadow PC|ShadowPCDisplay)$'
     check-further-callbacks = true
     run = 'layout tiling'
 
@@ -128,6 +133,10 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 [[on-window-detected]]
     if.app-id = 'dev.warp.Warp-Stable'
     run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+    if.app-id = 'com.blade.shadow-macos'
+    run = 'move-node-to-workspace 2'
 
 [[on-window-detected]]
     if.app-id = 'com.openai.atlas'
@@ -160,6 +169,14 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 [[on-window-detected]]
     if.app-id = 'com.TechSmith.Snagit'
     run = 'move-node-to-workspace 13'
+
+[[on-window-detected]]
+    if.app-id = 'com.obsproject.obs-studio'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-id = 'com.bilibili.bilibiliPC'
+    run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
     if.app-id = 'com.lbyczf.clashwin'
@@ -219,12 +236,24 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
+    if.app-name-regex-substring = '^(Bilibili|哔哩哔哩)$'
+    run = 'move-node-to-workspace 10'
+
+[[on-window-detected]]
     if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Archive Utility|归档实用工具|App Store)$'
+    run = 'move-node-to-workspace 11'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(OBS|OBS Studio)$'
     run = 'move-node-to-workspace 11'
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Warp)$'
     run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^(Shadow|Shadow PC|ShadowPCDisplay)$'
+    run = 'move-node-to-workspace 2'
 
 [[on-window-detected]]
     if.app-name-regex-substring = '^(GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio)$'

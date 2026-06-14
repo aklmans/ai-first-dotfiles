@@ -64,7 +64,7 @@ lua -e "assert(loadfile('home/.hammerspoon/ai_hotkeys.lua'))"
 
 ## Screencast window presets
 
-The screencast helper temporarily sets the focused window to AeroSpace floating, then applies a centered recording frame. Recording Mode additionally moves the focused window to workspace `13` on the built-in display, hides SketchyBar, applies the compact top gap, and opens Camtasia or Snagit when available.
+The screencast helper temporarily sets the focused window to AeroSpace floating, then applies a centered recording frame. Recording Mode additionally moves the focused window to workspace `13` on the built-in display, hides SketchyBar, applies the compact outer gaps, and opens Camtasia or Snagit when available.
 
 | Shortcut | Action |
 |---|---|
