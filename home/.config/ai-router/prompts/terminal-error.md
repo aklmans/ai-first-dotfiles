@@ -4,8 +4,8 @@ title: Terminal Error Analysis
 description: 分析终端错误并给出最小修复步骤
 category: debugging
 priority: 260
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

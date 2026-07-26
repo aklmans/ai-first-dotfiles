@@ -15,8 +15,16 @@ if should_deploy; then
   chmod +x "$HOME/.config/ai-router/ai-router.sh"
   find "$HOME/.config/ai-router/providers" "$HOME/.config/ai-router/tests" -type f -name '*.sh' -exec chmod +x {} \;
 
+  # The first run also moves any pre-2.4.0 catalogs/cache/state/logs out of
+  # ~/.config and into the XDG state directory.
   "$HOME/.config/ai-router/ai-router.sh" index
   "$HOME/.config/ai-router/ai-router.sh" export-snippets all
+fi
+
+if should_install; then
+  # Ends the install with the one thing a new user needs to know: which
+  # providers are usable and the exact command to install the rest.
+  "$HOME/.config/ai-router/ai-router.sh" doctor || true
 fi
 
 echo "Finished installing AI Workflow Router"

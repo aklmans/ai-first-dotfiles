@@ -5,8 +5,8 @@ description: 保留原意，改写成更清晰直接的表达
 category: writing
 hotkey: w
 priority: 50
-default_provider: kimi
-fallback_provider: gemini
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

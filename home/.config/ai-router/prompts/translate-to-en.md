@@ -5,8 +5,8 @@ description: 中文翻译成英文，保留技术术语和代码
 category: writing
 hotkey: "y"
 priority: 110
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

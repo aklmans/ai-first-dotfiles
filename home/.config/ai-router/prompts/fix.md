@@ -5,8 +5,8 @@ description: 修复文本、格式或小范围代码问题
 category: editing
 hotkey: f
 priority: 60
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

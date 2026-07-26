@@ -5,8 +5,8 @@ description: 中英互译，保留技术术语、代码、命令和路径
 category: writing
 hotkey: t
 priority: 30
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

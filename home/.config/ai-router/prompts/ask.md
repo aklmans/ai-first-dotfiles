@@ -5,8 +5,8 @@ description: 通用问答入口，优先澄清意图并给可执行结论
 category: general
 hotkey: a
 priority: 10
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

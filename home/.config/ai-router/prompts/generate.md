@@ -5,8 +5,8 @@ description: 基于需求生成可直接使用的文本、结构或步骤
 category: writing
 hotkey: g
 priority: 90
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

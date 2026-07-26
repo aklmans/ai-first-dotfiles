@@ -5,8 +5,8 @@ description: 解释文本、代码、配置或报错，并给出下一步
 category: reading
 hotkey: e
 priority: 40
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

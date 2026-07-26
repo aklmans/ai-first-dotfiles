@@ -4,8 +4,8 @@ title: Generate PR Description
 description: 根据改动生成 PR 描述、测试说明和风险
 category: coding
 priority: 240
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

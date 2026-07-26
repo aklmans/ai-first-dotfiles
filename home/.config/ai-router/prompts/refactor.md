@@ -4,8 +4,8 @@ title: Refactor Code
 description: 重构代码，保持行为不变但提升可维护性
 category: coding
 priority: 250
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

@@ -1,58 +1,58 @@
 {
-  "version": 2,
-  "name": "AI Workflow Router",
-  "default_behavior": "intent_first_provider_second",
-  "hyper_output": "control+option+command+shift",
-  "privacy": {
-    "log_full_selection": false,
-    "log_full_output": false,
-    "auto_replace_selection": false
-  },
+  "version": 3,
   "providers": {
-    "text": ["kimi", "gemini"],
-    "coding_agents": ["codex", "claude", "junie", "warp-agent"],
-    "research": ["browser", "perplexity-placeholder"]
+    "default": ["claude", "codex"]
+  },
+  "terminal": {
+    "app": "Warp"
+  },
+  "privacy": {
+    "log_events": true,
+    "debug_full_error_log": false
+  },
+  "hotkeys": {
+    "hyper": "ctrl+alt+cmd+shift"
   },
   "agents": {
     "codex": {
       "label": "Codex CLI",
       "command": "codex --disable apps",
-      "behavior": "paste_in_new_warp_tab",
+      "behavior": "paste_in_terminal",
       "priority": 501,
       "aliases": ["codex", "openai", "代码代理"]
     },
     "claude": {
       "label": "Claude Code",
       "command": "claude",
-      "behavior": "paste_in_new_warp_tab",
+      "behavior": "paste_in_terminal",
       "priority": 502,
       "aliases": ["claude", "anthropic", "代码代理"]
     },
     "junie": {
       "label": "Junie",
       "command": "junie",
-      "behavior": "paste_in_new_warp_tab",
+      "behavior": "paste_in_terminal",
       "priority": 503,
       "aliases": ["junie", "jetbrains", "代码代理"]
     },
     "kimi": {
       "label": "Kimi CLI",
       "command": "kimi",
-      "behavior": "paste_in_new_warp_tab",
+      "behavior": "paste_in_terminal",
       "priority": 504,
       "aliases": ["kimi", "moonshot", "月之暗面"]
     },
     "gemini": {
       "label": "Gemini CLI",
       "command": "gemini",
-      "behavior": "paste_in_new_warp_tab",
+      "behavior": "paste_in_terminal",
       "priority": 505,
       "aliases": ["gemini", "google"]
     },
     "warp-agent": {
       "label": "Warp Agent",
       "command": "# Open Warp Agent in this tab",
-      "behavior": "paste_in_new_warp_tab",
+      "behavior": "paste_in_terminal",
       "priority": 506,
       "aliases": ["warp", "terminal-agent"]
     },

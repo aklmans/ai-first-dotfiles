@@ -4,8 +4,8 @@ title: Generate Commit Message
 description: 根据改动生成简洁英文 commit message
 category: coding
 priority: 220
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

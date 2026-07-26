@@ -317,18 +317,34 @@ def plugin_catalog(home: pathlib.Path):
     return result
 
 
+def terminal_app(config: dict) -> str:
+    value = config_lookup(config, "terminal.app")
+    return str(value).strip() if value else "Warp"
+
+
+# "paste_in_new_warp_tab" is the pre-2.4.0 spelling and still works: an
+# existing config.json is not rewritten by a deploy.
+PASTE_BEHAVIORS = {"paste_in_terminal", "paste_in_new_warp_tab"}
+
+
+def agent_description(config: dict, agent: dict) -> str:
+    label = agent.get("label") or ""
+    behavior = agent.get("behavior") or ""
+    command = agent.get("command") or ""
+    if behavior == "open_app":
+        return f"打开 {label}"
+    if behavior in PASTE_BEHAVIORS:
+        return f"在 {terminal_app(config)} 新开标签页并粘贴 {command}"
+    return command
+
+
 def agent_catalog(config: dict):
     result = []
     for index, (name, agent) in enumerate((config.get("agents") or {}).items()):
         label = agent.get("label") or name
         behavior = agent.get("behavior") or ""
         command = agent.get("command") or ""
-        if behavior == "open_app":
-            desc = f"打开 {label}"
-        elif behavior == "paste_in_new_warp_tab":
-            desc = f"新开 Warp tab 并粘贴 {command}"
-        else:
-            desc = command
+        desc = agent_description(config, agent)
         result.append(
             {
                 "name": name,
@@ -350,7 +366,7 @@ def tool_catalog():
     tools = [
         ("last-output", "Open Last Output", "打开 cache/last-output.md"),
         ("last-error", "Open Last Error", "打开最近一次错误日志"),
-        ("provider-status", "Provider Status", "查看 Kimi/Gemini/Codex/Claude/Junie 状态"),
+        ("provider-status", "Provider Status", "查看 providers/ 下每个 provider 的状态"),
         ("config", "Open AI Router Config", "打开 ~/.config/ai-router"),
         ("prompts", "Open Prompt Folder", "打开 prompts 目录"),
         ("snippets", "Open Snippet Folder", "打开 snippets 目录"),
@@ -414,7 +430,10 @@ def index(args):
     config = pathlib.Path(args[0])
     config_data = load_config(config / "config.json")
     home = pathlib.Path.home()
-    catalogs = config / "catalogs"
+    # The caller passes the runtime state directory. Without it this wrote the
+    # catalogs back into ~/.config on every run, undoing the migration that had
+    # just moved them out and leaving two copies that drifted apart.
+    catalogs = pathlib.Path(args[1]) if len(args) > 1 else config / "catalogs"
     catalogs.mkdir(parents=True, exist_ok=True)
     prompts = md_catalog(config / "prompts", "prompt")
     snippets = snippet_catalog(config / "snippets")
@@ -684,7 +703,133 @@ def run_provider(args):
 def load_config(path: pathlib.Path):
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        # A broken config.json must not take the whole router down: every
+        # caller has a documented default to fall back to.
+        print(f"ai-router: ignoring unreadable config: {path}", file=sys.stderr)
+        return {}
+
+
+def ensure_dirs(args):
+    """mkdir -p + chmod for callers that cannot rely on coreutils being on PATH.
+
+    The shell fast path is still `mkdir -p`; this exists so the router keeps
+    working with a minimal PATH (containers, CI, `env PATH=...` sandboxes),
+    where python3 is the only dependency the router actually requires.
+    """
+    if not args:
+        print("Usage: router_tools.py ensure-dirs <octal-mode|-> <dir>...", file=sys.stderr)
+        return 64
+
+    mode = None
+    if args[0] != "-":
+        try:
+            mode = int(args[0], 8)
+        except ValueError:
+            print(f"invalid mode: {args[0]}", file=sys.stderr)
+            return 64
+
+    for raw in args[1:]:
+        path = pathlib.Path(raw)
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            if mode is not None:
+                path.chmod(mode)
+        except OSError as error:
+            print(str(error), file=sys.stderr)
+            return 73
+    return 0
+
+
+def config_lookup(config: dict, dotted: str):
+    node = config
+    for part in dotted.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def config_value(args):
+    """config-value <config.json> <dotted.key> [default] -> one line on stdout."""
+    if len(args) < 2:
+        print("Usage: router_tools.py config-value <config.json> <dotted.key> [default]", file=sys.stderr)
+        return 64
+
+    value = config_lookup(load_config(pathlib.Path(args[0])), args[1])
+    default = args[2] if len(args) > 2 else ""
+
+    if value is None or value == "":
+        print(default)
+        return 0
+    if isinstance(value, bool):
+        print("true" if value else "false")
+        return 0
+    if isinstance(value, list):
+        print(",".join(str(item) for item in value if str(item)))
+        return 0
+    if isinstance(value, dict):
+        print(json.dumps(value, ensure_ascii=False))
+        return 0
+    print(value)
+    return 0
+
+
+# Shipped fallback chain. Both CLIs are installable today and both are covered
+# by an adapter in providers/. Changing this list is a product decision, so it
+# lives in exactly one place.
+DEFAULT_PROVIDER_CHAIN = ["claude", "codex"]
+
+
+def provider_chain(config: dict):
+    value = config_lookup(config, "providers.default")
+    if isinstance(value, str):
+        chain = [part.strip() for part in re.split(r"[,;]", value)]
+    elif isinstance(value, list):
+        chain = [str(part).strip() for part in value]
+    else:
+        chain = []
+    return [part for part in chain if part] or list(DEFAULT_PROVIDER_CHAIN)
+
+
+def config_providers(args):
+    """config-providers <config.json> -> comma separated default chain."""
+    if len(args) != 1:
+        print("Usage: router_tools.py config-providers <config.json>", file=sys.stderr)
+        return 64
+
+    print(",".join(provider_chain(load_config(pathlib.Path(args[0])))))
+    return 0
+
+
+def config_bool(config: dict, dotted: str, default: bool) -> str:
+    value = config_lookup(config, dotted)
+    if value is None:
+        return "1" if default else "0"
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    return "0" if str(value).strip().lower() in {"0", "false", "no", "off", ""} else "1"
+
+
+def config_runtime(args):
+    """Every config-driven runtime setting in one call.
+
+    The shell reads this once per invocation instead of spawning python3 per
+    field, which keeps the render hot path (the one bound to a hotkey) cheap.
+    """
+    if len(args) != 1:
+        print("Usage: router_tools.py config-runtime <config.json>", file=sys.stderr)
+        return 64
+
+    config = load_config(pathlib.Path(args[0]))
+    terminal = config_lookup(config, "terminal.app")
+    print(f"terminal_app={str(terminal).strip() if terminal else 'Warp'}")
+    print(f"provider_chain={','.join(provider_chain(config))}")
+    print(f"log_events={config_bool(config, 'privacy.log_events', True)}")
+    print(f"debug_full_error_log={config_bool(config, 'privacy.debug_full_error_log', False)}")
+    return 0
 
 
 def load_json(path: pathlib.Path, default):
@@ -843,15 +988,7 @@ def config_agent_menu(args):
     agents = config.get("agents") or {}
     for name, agent in agents.items():
         label = agent.get("label") or name
-        behavior = agent.get("behavior") or ""
-        command = agent.get("command") or ""
-        if behavior == "open_app":
-            desc = f"打开 {label}"
-        elif behavior == "paste_in_new_warp_tab":
-            desc = f"新开 Warp tab 并粘贴 {command}"
-        else:
-            desc = command
-        print(f"agent:{name}\t{label}\t{desc}\tagent\t{name}")
+        print(f"agent:{name}\t{label}\t{agent_description(config, agent)}\tagent\t{name}")
 
 
 COMMANDS = {
@@ -869,6 +1006,10 @@ COMMANDS = {
     "run-provider": run_provider,
     "config-agent-field": config_agent_field,
     "config-agent-menu": config_agent_menu,
+    "config-value": config_value,
+    "config-providers": config_providers,
+    "config-runtime": config_runtime,
+    "ensure-dirs": ensure_dirs,
     "state-record": state_record_usage,
     "state-favorite": state_favorite,
 }
@@ -876,7 +1017,7 @@ COMMANDS = {
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
-        print("Usage: router_tools.py <field|body|render|log-event|plugin-row|index|now-ms|sanitize> ...", file=sys.stderr)
+        print(f"Usage: router_tools.py <{'|'.join(sorted(COMMANDS))}> ...", file=sys.stderr)
         return 64
     result = COMMANDS[sys.argv[1]](sys.argv[2:])
     return int(result or 0)

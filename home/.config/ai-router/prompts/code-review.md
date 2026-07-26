@@ -4,8 +4,8 @@ title: Code Review
 description: 以代码评审方式检查改动、风险和测试缺口
 category: coding
 priority: 210
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

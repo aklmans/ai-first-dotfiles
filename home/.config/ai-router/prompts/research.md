@@ -5,8 +5,8 @@ description: 把问题拆成可执行的研究任务和验证清单
 category: research
 hotkey: r
 priority: 80
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

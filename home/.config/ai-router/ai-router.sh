@@ -1,23 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="2.3.5"
+VERSION="2.4.0"
 
 # Configuration
 home_dir="${HOME}"
-config_dir="${AI_ROUTER_HOME:-$home_dir/.config/ai-router}"
+
+# Which tree are we? In order: an explicit AI_ROUTER_HOME, the directory this
+# script lives in (so a git checkout can be run in place, before install), then
+# the installed location. Resolved without dirname/readlink so the router still
+# starts with a minimal PATH.
+script_dir=""
+case "${BASH_SOURCE[0]}" in
+  */*) script_dir="${BASH_SOURCE[0]%/*}" ;;
+  *) script_dir="." ;;
+esac
+script_dir="$(cd "$script_dir" 2>/dev/null && pwd -P || printf '%s' '')"
+
+if [ -n "${AI_ROUTER_HOME:-}" ]; then
+  config_dir="$AI_ROUTER_HOME"
+elif [ -n "$script_dir" ] && [ -f "$script_dir/lib/router_tools.py" ] && [ -d "$script_dir/prompts" ]; then
+  config_dir="$script_dir"
+else
+  config_dir="$home_dir/.config/ai-router"
+fi
+
 config_json="$config_dir/config.json"
 prompts_dir="$config_dir/prompts"
 snippets_dir="$config_dir/snippets"
 providers_dir="$config_dir/providers"
-catalogs_dir="$config_dir/catalogs"
 exports_dir="$config_dir/exports"
-cache_dir="$config_dir/cache"
-state_dir="$config_dir/state"
-logs_dir="$config_dir/logs"
-errors_dir="$logs_dir/errors"
 lib_dir="$config_dir/lib"
 router_tools="$lib_dir/router_tools.py"
+
+# Runtime output (generated catalogs, caches, usage state, logs) is not
+# configuration and does not belong in ~/.config. It lives under the XDG state
+# directory instead. An explicit AI_ROUTER_HOME keeps everything in one tree so
+# a sandbox or test copy stays self-contained and never writes to the real one.
+if [ -n "${AI_ROUTER_STATE_HOME:-}" ]; then
+  state_root="$AI_ROUTER_STATE_HOME"
+elif [ -n "${AI_ROUTER_HOME:-}" ]; then
+  state_root="$config_dir"
+else
+  state_root="${XDG_STATE_HOME:-$home_dir/.local/state}/ai-router"
+fi
+
+catalogs_dir="$state_root/catalogs"
+cache_dir="$state_root/cache"
+state_dir="$state_root/state"
+logs_dir="$state_root/logs"
+errors_dir="$logs_dir/errors"
 last_output="$cache_dir/last-output.md"
 last_error="$errors_dir/latest.log"
 selection_cache="$cache_dir/selection.txt"
@@ -41,24 +73,141 @@ provider_health_cache_ttl="${AI_ROUTER_PROVIDER_HEALTH_CACHE_TTL:-60}"
 provider_timeout_seconds="${AI_ROUTER_PROVIDER_TIMEOUT_SECONDS:-60}"
 debug_full_log="${AI_ROUTER_DEBUG_FULL_LOG:-0}"
 
+# Absolute by default so a hostile PATH cannot shadow it. The override exists
+# so tests can observe what would have been sent to AppleScript.
+osascript_bin="${AI_ROUTER_OSASCRIPT:-/usr/bin/osascript}"
+
+# Where the input for this invocation comes from: auto (stdin when piped, else
+# the GUI selection), or a forced source. GUI callers pass --from selection so
+# they never block on a stdin pipe they did not write to.
+input_pref="${AI_ROUTER_INPUT_SOURCE:-auto}"
+
+# Desktop-gesture invocation (hotkey, chooser, agent launcher) until proven
+# otherwise. Piped or scripted input flips it off: that is a CLI run, where
+# stdout is the feedback channel and AppleScript has no business firing.
+gui_mode=1
+
+has_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+is_macos() {
+  case "${OSTYPE:-}" in
+    darwin*) return 0 ;;
+  esac
+  return 1
+}
+
+# macOS selection/clipboard/notification support. Gated on PATH lookups even
+# though the helpers below call absolute /usr/bin paths, so a caller can prove
+# the CLI works without them by removing them from PATH.
+macos_gui_ready=0
+if is_macos && has_cmd osascript && has_cmd pbcopy && has_cmd pbpaste; then
+  macos_gui_ready=1
+fi
+
 ensure_dirs() {
-  mkdir -p "$prompts_dir" "$snippets_dir" "$providers_dir" "$catalogs_dir" "$exports_dir" "$cache_dir" "$state_dir" "$logs_dir" "$errors_dir" "$lib_dir"
-  chmod 700 "$cache_dir" "$state_dir" "$logs_dir" "$errors_dir"
+  [ "${runtime_dirs_ready:-0}" = "1" ] && return 0
+  runtime_dirs_ready=1
+
+  if has_cmd mkdir; then
+    mkdir -p "$prompts_dir" "$snippets_dir" "$providers_dir" "$exports_dir" "$lib_dir" 2>/dev/null || true
+    mkdir -p "$catalogs_dir" "$cache_dir" "$state_dir" "$logs_dir" "$errors_dir" 2>/dev/null || true
+    if has_cmd chmod; then
+      chmod 700 "$cache_dir" "$state_dir" "$logs_dir" "$errors_dir" 2>/dev/null || true
+    fi
+  else
+    # No coreutils on PATH; python3 is a hard dependency anyway.
+    python3 "$router_tools" ensure-dirs - "$prompts_dir" "$snippets_dir" "$providers_dir" "$exports_dir" "$lib_dir" >/dev/null 2>&1 || true
+    python3 "$router_tools" ensure-dirs 700 "$catalogs_dir" "$cache_dir" "$state_dir" "$logs_dir" "$errors_dir" >/dev/null 2>&1 || true
+  fi
+}
+
+# 2.4.0 moved catalogs/cache/state/logs out of the config directory. Carry an
+# existing installation across once so favorites and usage history survive the
+# upgrade instead of silently resetting.
+#
+# File by file, never overwriting: the new location may already hold data (a
+# repo checkout run before the installed copy was updated, say), and losing a
+# favorites list to a directory rename is not an acceptable upgrade.
+migrate_legacy_runtime() {
+  [ "$state_root" = "$config_dir" ] && return 0
+  has_cmd mv || return 0
+  has_cmd find || return 0
+
+  local dir_name legacy entry relative target target_parent moved=0
+  for dir_name in catalogs cache state logs; do
+    legacy="$config_dir/$dir_name"
+    [ -d "$legacy" ] || continue
+    [ -L "$legacy" ] && continue
+
+    ensure_dirs
+    while IFS= read -r entry; do
+      [ -n "$entry" ] || continue
+      relative="${entry#$legacy/}"
+      target="$state_root/$dir_name/$relative"
+      [ -e "$target" ] && continue
+      target_parent="${target%/*}"
+      if has_cmd mkdir; then
+        mkdir -p "$target_parent" 2>/dev/null || true
+      fi
+      mv "$entry" "$target" 2>/dev/null && moved=1
+    done < <(find "$legacy" -type f 2>/dev/null || true)
+
+    find "$legacy" -depth -type d -exec rmdir {} \; >/dev/null 2>&1 || true
+  done
+
+  [ "$moved" -eq 1 ] && printf 'AI Router: runtime data moved to %s\n' "$state_root" >&2
+  return 0
 }
 
 check_dependencies() {
-  local missing=()
-  for cmd in python3 osascript pbcopy pbpaste; do
-    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
-  done
-  if [ ${#missing[@]} -gt 0 ]; then
-    printf 'AI Router: missing dependencies: %s\n' "${missing[*]}" >&2
+  if ! has_cmd python3; then
+    printf 'AI Router: missing dependency: python3\n' >&2
     exit 69
   fi
   if [ ! -f "$router_tools" ]; then
     printf 'AI Router: missing router_tools.py at %s\n' "$router_tools" >&2
     exit 69
   fi
+}
+
+# Only the selection path needs the macOS GUI tools. On macOS their absence is
+# a real broken install and says so; elsewhere there is simply no selection to
+# read and the caller falls back to stdin, clipboard or an empty input.
+require_selection_tools() {
+  is_macos || return 1
+  [ "$macos_gui_ready" = "1" ] && return 0
+
+  local missing="" cmd
+  for cmd in osascript pbcopy pbpaste; do
+    has_cmd "$cmd" || missing="$missing $cmd"
+  done
+  printf 'AI Router: selection needs these macOS tools on PATH:%s\n' "$missing" >&2
+  return 1
+}
+
+# config.json values used at runtime, read once per invocation.
+cfg_terminal_app="Warp"
+cfg_provider_chain=""
+cfg_log_events="1"
+
+load_runtime_config() {
+  [ "${runtime_config_loaded:-0}" = "1" ] && return 0
+  runtime_config_loaded=1
+
+  local key value
+  while IFS='=' read -r key value; do
+    case "$key" in
+      terminal_app) [ -n "$value" ] && cfg_terminal_app="$value" ;;
+      provider_chain) cfg_provider_chain="$value" ;;
+      log_events) cfg_log_events="$value" ;;
+      debug_full_error_log)
+        # AI_ROUTER_DEBUG_FULL_LOG stays the override; config is the default.
+        [ -z "${AI_ROUTER_DEBUG_FULL_LOG:-}" ] && debug_full_log="$value"
+        ;;
+    esac
+  done < <(python3 "$router_tools" config-runtime "$config_json" 2>/dev/null || true)
 }
 
 sanitize_error_text() {
@@ -87,13 +236,16 @@ rotate_logs() {
 
 usage() {
   printf '%s\n' "AI Router v$VERSION"
+  printf '%s\n' ""
   printf '%s\n' "Usage:"
-  printf '%s\n' "  ai-router.sh render <action>"
-  printf '%s\n' "  ai-router.sh run <action>"
+  printf '%s\n' "  ai-router.sh run <action> [--from auto|stdin|selection|clipboard]"
+  printf '%s\n' "  ai-router.sh render <action> [--from auto|stdin|selection|clipboard]"
+  printf '%s\n' "  ai-router.sh show <name>"
+  printf '%s\n' "  ai-router.sh doctor"
   printf '%s\n' "  ai-router.sh palette"
   printf '%s\n' "  ai-router.sh agent-menu"
-  printf '%s\n' "  ai-router.sh agent codex|claude|junie|gemini|kimi|warp-agent"
-  printf '%s\n' "  ai-router.sh agent-run codex|claude"
+  printf '%s\n' "  ai-router.sh agent <name>"
+  printf '%s\n' "  ai-router.sh agent-run <name>"
   printf '%s\n' "  ai-router.sh list prompts|snippets|skills|plugins|providers|agents"
   printf '%s\n' "  ai-router.sh index"
   printf '%s\n' "  ai-router.sh export-snippets raycast|generic|all"
@@ -103,6 +255,11 @@ usage() {
   printf '%s\n' "  ai-router.sh favorite list|add|remove|toggle <kind> <value> [title]"
   printf '%s\n' "  ai-router.sh tool index|provider-status|last-output|last-error|config|prompts|snippets|logs"
   printf '%s\n' "  ai-router.sh version"
+  printf '%s\n' ""
+  printf '%s\n' "Input: piped stdin, else \$AI_ROUTER_INPUT, else the macOS selection."
+  printf '%s\n' "  git diff --staged | ai-router.sh run commit-message"
+  printf '%s\n' ""
+  printf '%s\n' "doctor exits 1 when no provider is ready, 0 otherwise."
 }
 
 now_ms() {
@@ -128,10 +285,23 @@ selection_meta_field() {
   awk -F= -v key="$field" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$selection_meta" 2>/dev/null || true
 }
 
+# Desktop notifications are the feedback channel for hotkey invocations. A CLI
+# run prints to stdout instead, so it stays quiet unless asked.
+#   AI_ROUTER_NOTIFY=1  always notify      AI_ROUTER_NOTIFY=0  never notify
+notifications_enabled() {
+  [ "$macos_gui_ready" = "1" ] || return 1
+  case "${AI_ROUTER_NOTIFY:-auto}" in
+    1|true|yes|always) return 0 ;;
+    0|false|no|never) return 1 ;;
+  esac
+  [ "$gui_mode" = "1" ]
+}
+
 notify() {
+  notifications_enabled || return 0
   local title="$1"
   local message="$2"
-  /usr/bin/osascript - "$title" "$message" <<'APPLESCRIPT' >/dev/null 2>&1 || true
+  "$osascript_bin" - "$title" "$message" <<'APPLESCRIPT' >/dev/null 2>&1 || true
 on run argv
   display notification (item 2 of argv) with title (item 1 of argv)
 end run
@@ -139,11 +309,13 @@ APPLESCRIPT
 }
 
 frontmost_app() {
-  /usr/bin/osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true' 2>/dev/null || true
+  [ "$macos_gui_ready" = "1" ] || return 0
+  "$osascript_bin" -e 'tell application "System Events" to get name of first application process whose frontmost is true' 2>/dev/null || true
 }
 
 window_title() {
-  /usr/bin/osascript <<'APPLESCRIPT' 2>/dev/null || true
+  [ "$macos_gui_ready" = "1" ] || return 0
+  "$osascript_bin" <<'APPLESCRIPT' 2>/dev/null || true
 tell application "System Events"
   set frontApp to first application process whose frontmost is true
   try
@@ -156,21 +328,24 @@ APPLESCRIPT
 }
 
 clipboard_copy() {
+  [ "$macos_gui_ready" = "1" ] || return 1
   LC_ALL= LC_CTYPE=en_US.UTF-8 LANG=en_US.UTF-8 /usr/bin/pbcopy
 }
 
 clipboard_paste() {
+  [ "$macos_gui_ready" = "1" ] || return 1
   LC_ALL= LC_CTYPE=en_US.UTF-8 LANG=en_US.UTF-8 /usr/bin/pbpaste
 }
 
 copy_text_to_clipboard() {
   local text="$1"
+  [ "$macos_gui_ready" = "1" ] || return 1
 
   if printf '%s' "$text" | clipboard_copy 2>/dev/null; then
     return 0
   fi
 
-  AI_ROUTER_CLIPBOARD_TEXT="$text" /usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1 && return 0
+  AI_ROUTER_CLIPBOARD_TEXT="$text" "$osascript_bin" <<'APPLESCRIPT' >/dev/null 2>&1 && return 0
 set the clipboard to (system attribute "AI_ROUTER_CLIPBOARD_TEXT")
 APPLESCRIPT
 
@@ -178,7 +353,7 @@ APPLESCRIPT
 }
 
 read_selection_applescript() {
-  /usr/bin/osascript - "$selection_attempts" "$selection_poll_count" "$selection_poll_interval" "$selection_copy_delay" "$selection_verify_delay" "$selection_polling" <<'APPLESCRIPT'
+  "$osascript_bin" - "$selection_attempts" "$selection_poll_count" "$selection_poll_interval" "$selection_copy_delay" "$selection_verify_delay" "$selection_polling" <<'APPLESCRIPT'
 on run argv
   set maxAttempts to item 1 of argv as integer
   set pollCount to item 2 of argv as integer
@@ -245,6 +420,11 @@ read_selection() {
     return
   fi
 
+  if ! require_selection_tools; then
+    write_selection_meta "unsupported" "0" "0" "fallback"
+    return
+  fi
+
   local saved_clipboard selected sentinel attempt poll start_ms end_ms duration_ms attempts_used raw
   start_ms="$(now_ms)"
 
@@ -274,7 +454,7 @@ read_selection() {
   for ((attempt = 1; attempt <= selection_attempts; attempt++)); do
     attempts_used="$attempt"
     printf '%s' "$sentinel" | clipboard_copy 2>/dev/null || true
-    /usr/bin/osascript -e 'tell application "System Events" to keystroke "c" using {command down}' >/dev/null 2>&1 || true
+    "$osascript_bin" -e 'tell application "System Events" to keystroke "c" using {command down}' >/dev/null 2>&1 || true
 
     if [ "$selection_polling" = "1" ]; then
       for ((poll = 1; poll <= selection_poll_count; poll++)); do
@@ -312,6 +492,88 @@ read_selection() {
   fi
 
   printf '%s' "$selected"
+}
+
+read_stdin_text() {
+  if has_cmd cat; then
+    cat
+    return 0
+  fi
+
+  local line first=1
+  while IFS= read -r line || [ -n "$line" ]; do
+    [ "$first" = "1" ] || printf '\n'
+    first=0
+    printf '%s' "$line"
+  done
+}
+
+# Sets the globals input_text / input_source / gui_mode. Not a subshell helper
+# on purpose: the source has to survive the call.
+#
+# Priority: $AI_ROUTER_INPUT -> piped stdin -> the macOS selection -> clipboard.
+# Callers that own a GUI gesture pass --from selection, so they never read a
+# stdin pipe their launcher happened to open and never block on it.
+read_input() {
+  input_text=""
+  input_source="empty"
+
+  if [ -n "${AI_ROUTER_INPUT:-}" ]; then
+    input_text="$AI_ROUTER_INPUT"
+    input_source="env"
+    gui_mode=0
+    write_selection_meta "env" "0" "0" "ok"
+    return 0
+  fi
+
+  case "$input_pref" in
+    stdin)
+      input_text="$(read_stdin_text)"
+      input_source="stdin"
+      gui_mode=0
+      write_selection_meta "stdin" "0" "0" "ok"
+      return 0
+      ;;
+    selection|clipboard)
+      ;;
+    *)
+      if [ ! -t 0 ]; then
+        input_text="$(read_stdin_text)"
+        if [ -n "$input_text" ]; then
+          input_source="stdin"
+          gui_mode=0
+          write_selection_meta "stdin" "0" "0" "ok"
+          return 0
+        fi
+      fi
+      ;;
+  esac
+
+  # A scripted AI_ROUTER_SELECTION is still a CLI run, not a desktop gesture.
+  [ -n "${AI_ROUTER_SELECTION:-}" ] && gui_mode=0
+  [ "$macos_gui_ready" = "1" ] || gui_mode=0
+
+  if [ "$input_pref" != "clipboard" ]; then
+    input_text="$(read_selection)"
+    if [ -n "$input_text" ]; then
+      input_source="selection"
+      return 0
+    fi
+  fi
+
+  # Selection came back empty (or was skipped): fall back to the clipboard,
+  # which is also what makes the router usable from apps that refuse Cmd+C.
+  if [ "$macos_gui_ready" = "1" ]; then
+    input_text="$(clipboard_paste 2>/dev/null || true)"
+    if [ -n "$input_text" ]; then
+      input_source="clipboard"
+      return 0
+    fi
+  fi
+
+  input_text=""
+  input_source="empty"
+  return 0
 }
 
 parse_frontmatter_field() {
@@ -375,6 +637,12 @@ log_event() {
   local error="${7:-}"
   local request_id="${8:-$(new_request_id)}"
   local selection_source selection_ms selection_attempt_count
+
+  load_runtime_config
+  # privacy.log_events: false stops the router writing events.jsonl at all.
+  # Events never contain the selection, prompt or output - only sizes - but
+  # "which prompt at what time" is still a record, so it is switchable.
+  [ "$cfg_log_events" = "0" ] && return 0
 
   ensure_dirs
   selection_source="$(selection_meta_field source)"
@@ -462,15 +730,23 @@ write_error_log() {
 
 short_error() {
   local error="$1"
-  printf '%s' "$error" | tr '\r\n' ' ' | cut -c 1-180
+  error="${error//$'\n'/ }"
+  error="${error//$'\r'/ }"
+  printf '%s' "${error:0:180}"
 }
 
+# A provider is any executable adapter in providers/. Names starting with "_"
+# are templates and scaffolding, never routing targets.
 provider_names() {
   local path name
   for path in "$providers_dir"/*.sh; do
     [ -x "$path" ] || continue
     name="${path##*/}"
-    printf '%s\n' "${name%.sh}"
+    name="${name%.sh}"
+    case "$name" in
+      _*) continue ;;
+    esac
+    printf '%s\n' "$name"
   done
 }
 
@@ -525,7 +801,7 @@ choose_provider() {
 
 append_provider_candidate() {
   local candidate="$1"
-  candidate="$(printf '%s' "$candidate" | tr -d '[:space:]')"
+  candidate="${candidate//[[:space:]]/}"
   [ -n "$candidate" ] || return 0
   validate_id "$candidate" "provider" >/dev/null || return 0
 
@@ -559,6 +835,43 @@ write_last_output() {
   printf '%s' "$text" > "$last_output"
 }
 
+# Shared by run and render. Sets input_text, input_source, input_note and the
+# template context (clipboard_text, app_name, title). GUI context is only
+# collected in GUI mode: for a piped run it is both meaningless and two
+# AppleScript round trips the caller should not pay for.
+resolve_prompt_input() {
+  read_input
+
+  clipboard_text=""
+  app_name=""
+  title=""
+
+  if [ "$gui_mode" = "1" ]; then
+    clipboard_text="$(clipboard_paste 2>/dev/null || true)"
+    app_name="$(frontmost_app)"
+    title="$(window_title)"
+    printf '%s' "$input_text" > "$selection_cache" 2>/dev/null || true
+  fi
+
+  input_note=""
+  case "$input_source" in
+    stdin) input_note=" (stdin input)" ;;
+    env) input_note=" (env input)" ;;
+    clipboard) input_note=" (clipboard input)" ;;
+    empty) input_note=" (empty input)" ;;
+  esac
+}
+
+# AI_ROUTER_SELECTION_STRICT=1 means "only act on a real selection". Piped and
+# env input are explicit, so they are never a strict failure.
+input_is_strict_failure() {
+  [ "$selection_strict" = "1" ] || return 1
+  case "$input_source" in
+    selection|stdin|env) return 1 ;;
+  esac
+  return 0
+}
+
 run_action() {
   ensure_dirs
   local action="$1"
@@ -571,7 +884,7 @@ run_action() {
     return 66
   fi
 
-  local start_ms end_ms duration_ms selection clipboard app_name title input_text input_source input_note rendered
+  local start_ms end_ms duration_ms clipboard_text app_name title input_text input_source input_note rendered
   local primary fallback fallback_providers provider output_mode output status output_chars input_chars error
   local prompt_title
   local request_id error_path error_summary sanitized_error
@@ -579,55 +892,37 @@ run_action() {
   local provider_candidates candidates_from_csv
   request_id="$(new_request_id)"
   start_ms="$(now_ms)"
-  selection="$(read_selection)"
-  clipboard="$(clipboard_paste 2>/dev/null || true)"
-  app_name="$(frontmost_app)"
-  title="$(window_title)"
 
-  input_source="selection"
-  input_text="$selection"
-  if [ -z "$input_text" ]; then
-    if [ "$selection_strict" = "1" ]; then
-      input_source="empty"
-      end_ms="$(now_ms)"
-      duration_ms=$((end_ms - start_ms))
-      write_last_output "No selected text for action: $action"
-      log_event "$action" "input" "0" "0" "$duration_ms" "failed" "no selected text" "$request_id"
-      notify "AI Router" "No selected text for $action"
-      printf 'no selected text for action: %s\n' "$action" >&2
-      return 66
-    fi
-    input_source="clipboard"
-    input_text="$clipboard"
-  fi
-  if [ -z "$input_text" ]; then
-    input_source="empty"
+  resolve_prompt_input
+
+  if input_is_strict_failure; then
+    end_ms="$(now_ms)"
+    duration_ms=$((end_ms - start_ms))
+    write_last_output "No input for action: $action"
+    log_event "$action" "input" "0" "0" "$duration_ms" "failed" "no input" "$request_id"
+    notify "AI Router" "No selected text for $action"
+    printf 'no input for action: %s\n' "$action" >&2
+    return 66
   fi
 
-  input_note=""
-  if [ "$input_source" = "clipboard" ]; then
-    input_note=" (clipboard input)"
-  elif [ "$input_source" = "empty" ]; then
-    input_note=" (empty input)"
-  fi
-
-  printf '%s' "$selection" > "$selection_cache"
-
-  rendered="$(render_template "$path" "$action" "$input_text" "$clipboard" "$app_name" "$title")"
+  rendered="$(render_template "$path" "$action" "$input_text" "$clipboard_text" "$app_name" "$title")"
   primary="$(parse_frontmatter_field "$path" default_provider)"
   fallback="$(parse_frontmatter_field "$path" fallback_provider)"
   fallback_providers="$(parse_frontmatter_field "$path" fallback_providers)"
   output_mode="$(parse_frontmatter_field "$path" output)"
   prompt_title="$(parse_frontmatter_field "$path" title)"
-  [ -n "$primary" ] || primary="kimi"
-  [ -n "$fallback" ] || fallback="gemini"
   [ -n "$output_mode" ] || output_mode="clipboard"
   [ -n "$prompt_title" ] || prompt_title="$action"
 
+  # A prompt may pin its preferred providers; providers.default from
+  # config.json is always appended, so a machine that only has one CLI
+  # installed still routes somewhere instead of failing on a pinned name.
+  load_runtime_config
   provider_candidates=()
   append_provider_candidate "$primary"
   append_provider_candidates_csv "$fallback_providers"
   append_provider_candidate "$fallback"
+  append_provider_candidates_csv "$cfg_provider_chain"
 
   input_chars="${#input_text}"
 
@@ -728,44 +1023,24 @@ render_prompt() {
     return 66
   fi
 
-  local start_ms end_ms duration_ms selection clipboard app_name title input_text input_source input_note rendered input_chars prompt_title
+  local start_ms end_ms duration_ms clipboard_text app_name title input_text input_source input_note rendered input_chars prompt_title
   local request_id
   request_id="$(new_request_id)"
   start_ms="$(now_ms)"
-  selection="$(read_selection)"
-  clipboard="$(clipboard_paste 2>/dev/null || true)"
-  app_name="$(frontmost_app)"
-  title="$(window_title)"
 
-  input_source="selection"
-  input_text="$selection"
-  if [ -z "$input_text" ]; then
-    if [ "$selection_strict" = "1" ]; then
-      input_source="empty"
-      end_ms="$(now_ms)"
-      duration_ms=$((end_ms - start_ms))
-      write_last_output "No selected text for action: $action"
-      log_event "$action" "render" "0" "0" "$duration_ms" "failed" "no selected text" "$request_id"
-      notify "AI Router" "No selected text for $action"
-      printf 'no selected text for action: %s\n' "$action" >&2
-      return 66
-    fi
-    input_source="clipboard"
-    input_text="$clipboard"
-  fi
-  if [ -z "$input_text" ]; then
-    input_source="empty"
+  resolve_prompt_input
+
+  if input_is_strict_failure; then
+    end_ms="$(now_ms)"
+    duration_ms=$((end_ms - start_ms))
+    write_last_output "No input for action: $action"
+    log_event "$action" "render" "0" "0" "$duration_ms" "failed" "no input" "$request_id"
+    notify "AI Router" "No selected text for $action"
+    printf 'no input for action: %s\n' "$action" >&2
+    return 66
   fi
 
-  input_note=""
-  if [ "$input_source" = "clipboard" ]; then
-    input_note=" (clipboard input)"
-  elif [ "$input_source" = "empty" ]; then
-    input_note=" (empty input)"
-  fi
-
-  printf '%s' "$selection" > "$selection_cache"
-  rendered="$(render_template "$path" "$action" "$input_text" "$clipboard" "$app_name" "$title")"
+  rendered="$(render_template "$path" "$action" "$input_text" "$clipboard_text" "$app_name" "$title")"
   prompt_title="$(parse_frontmatter_field "$path" title)"
   [ -n "$prompt_title" ] || prompt_title="$action"
   write_last_output "$rendered"
@@ -908,12 +1183,9 @@ copy_rendered_snippet() {
     return 66
   fi
 
-  local selection clipboard app_name title rendered
-  selection="$(read_selection)"
-  clipboard="$(clipboard_paste 2>/dev/null || true)"
-  app_name="$(frontmost_app)"
-  title="$(window_title)"
-  rendered="$(render_template "$path" "$name" "$selection" "$clipboard" "$app_name" "$title")"
+  local clipboard_text app_name title input_text input_source input_note rendered
+  resolve_prompt_input
+  rendered="$(render_template "$path" "$name" "$input_text" "$clipboard_text" "$app_name" "$title")"
   copy_text_to_clipboard "$rendered" || true
   record_usage "snippet" "$name" "$name"
   notify "AI Router" "Snippet copied: $name"
@@ -947,21 +1219,26 @@ copy_plugin() {
   printf '%s\n' "$text"
 }
 
-launch_in_warp() {
-  local command_text="$1"
-  local execute="${2:-0}"
+# Open a new tab in $app and paste the command, optionally running it. Works
+# for any terminal with a Cmd+T "new tab" binding, which is why it is the
+# default strategy - a terminal this repository has never heard of still works.
+paste_into_terminal_app() {
+  local app="$1"
+  local command_text="$2"
+  local execute="${3:-0}"
 
-  /usr/bin/osascript - "$command_text" "$execute" <<'APPLESCRIPT'
+  "$osascript_bin" - "$app" "$command_text" "$execute" <<'APPLESCRIPT'
 on run argv
-  set commandText to item 1 of argv
-  set shouldExecute to item 2 of argv
+  set appName to item 1 of argv
+  set commandText to item 2 of argv
+  set shouldExecute to item 3 of argv
   set savedClipboard to missing value
 
   try
     set savedClipboard to the clipboard
   end try
 
-  tell application "Warp" to activate
+  tell application appName to activate
   delay 0.12
 
   tell application "System Events"
@@ -983,6 +1260,101 @@ on run argv
   end if
 end run
 APPLESCRIPT
+}
+
+# Terminal.app and iTerm2 can be driven through their own scripting APIs, which
+# does not need Accessibility permission and does not touch the clipboard.
+run_via_terminal_app_api() {
+  local command_text="$1"
+
+  "$osascript_bin" - "$command_text" <<'APPLESCRIPT'
+on run argv
+  tell application "Terminal"
+    activate
+    do script (item 1 of argv)
+  end tell
+end run
+APPLESCRIPT
+}
+
+run_via_iterm_api() {
+  local command_text="$1"
+
+  "$osascript_bin" - "$command_text" <<'APPLESCRIPT'
+on run argv
+  tell application "iTerm"
+    activate
+    set newWindow to (create window with default profile)
+    tell current session of newWindow to write text (item 1 of argv)
+  end tell
+end run
+APPLESCRIPT
+}
+
+# No terminal we can drive: hand the command back instead of doing nothing.
+offer_command_via_clipboard() {
+  local command_text="$1"
+  local reason="$2"
+
+  if copy_text_to_clipboard "$command_text"; then
+    notify "AI Router" "Command copied to clipboard ($reason)"
+    printf 'AI Router: %s. Command copied to clipboard:\n%s\n' "$reason" "$command_text" >&2
+  else
+    printf 'AI Router: %s. Run this yourself:\n%s\n' "$reason" "$command_text" >&2
+  fi
+  printf '%s\n' "$command_text"
+}
+
+# terminal.app in config.json decides where agents open. AI_ROUTER_TERMINAL
+# overrides it for a single call.
+launch_in_terminal() {
+  local command_text="$1"
+  local execute="${2:-0}"
+  local app
+
+  load_runtime_config
+  app="${AI_ROUTER_TERMINAL:-$cfg_terminal_app}"
+
+  if [ "$macos_gui_ready" != "1" ]; then
+    offer_command_via_clipboard "$command_text" "no macOS terminal automation available"
+    return 0
+  fi
+
+  case "$app" in
+    ""|none|clipboard)
+      offer_command_via_clipboard "$command_text" "terminal.app is set to '$app'"
+      ;;
+    Terminal|Terminal.app|terminal)
+      if [ "$execute" = "1" ]; then
+        run_via_terminal_app_api "$command_text"
+      else
+        paste_into_terminal_app "Terminal" "$command_text" "0"
+      fi
+      ;;
+    iTerm|iTerm2|iterm|iterm2)
+      if [ "$execute" = "1" ]; then
+        run_via_iterm_api "$command_text"
+      else
+        paste_into_terminal_app "iTerm" "$command_text" "0"
+      fi
+      ;;
+    Ghostty|ghostty)
+      paste_into_terminal_app "Ghostty" "$command_text" "$execute"
+      ;;
+    Kaku|kaku)
+      paste_into_terminal_app "Kaku" "$command_text" "$execute"
+      ;;
+    Warp|warp)
+      paste_into_terminal_app "Warp" "$command_text" "$execute"
+      ;;
+    *)
+      # Unknown terminal: try the generic strategy, fall back to the clipboard
+      # so an unrecognised name never silently swallows the command.
+      if ! paste_into_terminal_app "$app" "$command_text" "$execute" >/dev/null 2>&1; then
+        offer_command_via_clipboard "$command_text" "could not drive terminal '$app'"
+      fi
+      ;;
+  esac
 }
 
 agent_field() {
@@ -1026,7 +1398,7 @@ run_agent() {
       notify "AI Router" "Opening ${label:-$agent}"
       ;;
     *)
-      launch_in_warp "$command_text"
+      launch_in_terminal "$command_text"
       record_usage "agent" "$agent" "${label:-$agent}"
       notify "AI Router" "Agent command pasted: $agent"
       ;;
@@ -1055,7 +1427,7 @@ run_agent_execute() {
       notify "AI Router" "Opening ${label:-$agent}"
       ;;
     *)
-      launch_in_warp "$command_text" "1"
+      launch_in_terminal "$command_text" "1"
       record_usage "agent" "$agent" "${label:-$agent}"
       notify "AI Router" "Agent started: $agent"
       ;;
@@ -1087,7 +1459,7 @@ palette_data_dynamic() {
   done < <(list_plugin_rows)
 
   printf 'tool:index\tTool: Rebuild Catalog Index\t生成 prompts/snippets/skills/plugins 索引\ttool\tindex\n'
-  printf 'tool:provider-status\tTool: Show Provider Status\t检测 Kimi/Gemini/Codex/Claude/Junie\ttool\tprovider-status\n'
+  printf 'tool:provider-status\tTool: Show Provider Status\t检测 providers/ 下的每个 provider\ttool\tprovider-status\n'
   printf 'tool:last-output\tTool: Open Last Output\t打开 cache/last-output.md\ttool\tlast-output\n'
   printf 'tool:last-error\tTool: Open Last Error\t打开最近一次错误日志\ttool\tlast-error\n'
   printf 'tool:config\tTool: Open AI Router Config\t打开 ~/.config/ai-router\ttool\tconfig\n'
@@ -1126,6 +1498,133 @@ provider_status_text() {
 
   if [ "$found" -eq 0 ]; then
     printf -- '- no executable adapters found in %s\n' "$providers_dir"
+  fi
+}
+
+# Optional part of the provider contract: a one-line "how do I get this?".
+provider_install_hint() {
+  local provider="$1"
+  "$providers_dir/$provider.sh" --install-hint 2>/dev/null | head -n 1 || true
+}
+
+count_files() {
+  local dir="$1"
+  local path count=0
+  for path in "$dir"/*.md; do
+    [ -f "$path" ] || continue
+    count=$((count + 1))
+  done
+  printf '%s' "$count"
+}
+
+# The first command a new install should run, and the first thing to run when
+# something stops working. Says what is wired up, what is missing, and the
+# exact command that fixes each missing piece.
+doctor() {
+  local provider hint ready=0 total=0
+  local example_prompt="summarize"
+
+  load_runtime_config
+
+  printf 'AI Router %s\n\n' "$VERSION"
+
+  printf 'Paths\n'
+  printf '  config      %s\n' "$config_dir"
+  printf '  state       %s\n' "$state_root"
+  printf '  providers   %s\n' "$providers_dir"
+  printf '\n'
+
+  printf 'Runtime\n'
+  printf '  bash        %s\n' "${BASH_VERSION:-unknown}"
+  if has_cmd python3; then
+    printf '  python3     %s\n' "$(python3 -c 'import platform,sys; sys.stdout.write(platform.python_version())' 2>/dev/null || printf 'present')"
+  else
+    printf '  python3     MISSING - the router cannot run without it\n'
+  fi
+  if is_macos; then
+    if [ "$macos_gui_ready" = "1" ]; then
+      printf '  selection   available (osascript, pbcopy, pbpaste)\n'
+    else
+      printf '  selection   unavailable - hotkey capture is off, piped input still works\n'
+    fi
+    printf '  terminal    %s (terminal.app in config.json)\n' "$cfg_terminal_app"
+  else
+    printf '  selection   not applicable on this platform, use piped input\n'
+  fi
+  printf '\n'
+
+  printf 'Content\n'
+  printf '  prompts     %s\n' "$(count_files "$prompts_dir")"
+  printf '  snippets    %s\n' "$(count_files "$snippets_dir")"
+  printf '\n'
+
+  printf 'Providers (default chain: %s)\n' "${cfg_provider_chain//,/ -> }"
+  while IFS= read -r provider; do
+    [ -n "$provider" ] || continue
+    total=$((total + 1))
+    if "$providers_dir/$provider.sh" --health-check >/dev/null 2>&1; then
+      ready=$((ready + 1))
+      printf '  [ready]     %s\n' "$provider"
+    else
+      hint="$(provider_install_hint "$provider")"
+      case "$hint" in
+        install:*)
+          printf '  [missing]   %-12s %s\n' "$provider" "$hint"
+          ;;
+        "")
+          printf '  [missing]   %-12s no install hint; see %s.sh\n' "$provider" "$provider"
+          ;;
+        *)
+          # An adapter that is not an installable text provider at all.
+          total=$((total - 1))
+          printf '  [helper]    %-12s %s\n' "$provider" "$hint"
+          ;;
+      esac
+    fi
+  done < <(provider_names)
+
+  if [ "$total" -eq 0 ]; then
+    printf '  no executable adapters in %s\n' "$providers_dir"
+  fi
+  printf '\n'
+
+  if [ "$ready" -eq 0 ]; then
+    printf 'No provider is ready. Install one of the CLIs above, then run:\n'
+    printf '  %s doctor\n\n' "$0"
+  fi
+
+  printf 'Try it now:\n'
+  printf "  printf 'hello world' | %s run %s\n" "$0" "$example_prompt"
+  printf '  %s show %s\n' "$0" "$example_prompt"
+
+  [ "$ready" -gt 0 ]
+}
+
+# Print a prompt or snippet exactly as it will be read. The point is trust:
+# anyone can see the full text that would be sent to a model before sending it.
+show_entry() {
+  local name="$1"
+  validate_id "$name" "prompt id" || return
+  local path="$prompts_dir/$name.md"
+
+  if [ ! -f "$path" ]; then
+    path="$snippets_dir/$name.md"
+  fi
+
+  if [ ! -f "$path" ]; then
+    printf 'prompt not found: %s\n' "$name" >&2
+    printf 'available prompts:\n' >&2
+    list_prompt_rows | awk -F'\t' '{ printf "  %s\n", $1 }' >&2
+    return 66
+  fi
+
+  printf '%s\n' "$path" >&2
+  if has_cmd cat; then
+    cat "$path"
+  else
+    while IFS= read -r line || [ -n "$line" ]; do
+      printf '%s\n' "$line"
+    done < "$path"
   fi
 }
 
@@ -1176,7 +1675,7 @@ run_tool() {
 
 index_catalogs() {
   ensure_dirs
-  python3 "$router_tools" index "$config_dir"
+  python3 "$router_tools" index "$config_dir" "$catalogs_dir"
 }
 
 export_snippets() {
@@ -1215,13 +1714,48 @@ list_plain() {
   esac
 }
 
-ensure_dirs
-
 check_dependencies
+migrate_legacy_runtime
+ensure_dirs
 rotate_logs
 
 command="${1:-}"
 shift || true
+
+# --from <source> forces where the input comes from. GUI callers pass
+# "selection" so a hotkey never reads (or blocks on) a stdin pipe its launcher
+# happened to open. --quiet hands notification duty to the caller, which is how
+# Hammerspoon shows one "running", then one result, for a single run.
+parse_input_flags() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --quiet|-q)
+        AI_ROUTER_NOTIFY=0
+        ;;
+      --from)
+        shift
+        case "${1:-}" in
+          auto|stdin|selection|clipboard) input_pref="$1" ;;
+          *)
+            printf 'unknown input source: %s\n' "${1:-}" >&2
+            exit 64
+            ;;
+        esac
+        ;;
+      --from=*)
+        input_pref="${1#--from=}"
+        case "$input_pref" in
+          auto|stdin|selection|clipboard) ;;
+          *)
+            printf 'unknown input source: %s\n' "$input_pref" >&2
+            exit 64
+            ;;
+        esac
+        ;;
+    esac
+    shift || true
+  done
+}
 
 case "$command" in
   version|--version|-v)
@@ -1230,17 +1764,31 @@ case "$command" in
   render)
     action="${1:-}"
     [ -n "$action" ] || { usage; exit 64; }
+    shift || true
+    parse_input_flags "$@"
     render_prompt "$action"
     ;;
   run)
     action="${1:-}"
     [ -n "$action" ] || { usage; exit 64; }
+    shift || true
+    parse_input_flags "$@"
     run_action "$action"
     ;;
   prompt)
     action="${1:-}"
     [ -n "$action" ] || { usage; exit 64; }
+    shift || true
+    parse_input_flags "$@"
     run_action "$action"
+    ;;
+  show|cat)
+    name="${1:-}"
+    [ -n "$name" ] || { usage; exit 64; }
+    show_entry "$name"
+    ;;
+  doctor)
+    doctor
     ;;
   palette|palette-data)
     palette_data
@@ -1261,6 +1809,8 @@ case "$command" in
   snippet)
     name="${1:-}"
     [ -n "$name" ] || { usage; exit 64; }
+    shift || true
+    parse_input_flags "$@"
     copy_rendered_snippet "$name"
     ;;
   skill)

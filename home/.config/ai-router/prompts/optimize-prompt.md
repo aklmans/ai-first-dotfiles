@@ -5,8 +5,8 @@ description: 优化 AI prompt，提升清晰度、约束性和输出稳定性
 category: prompt-engineering
 hotkey: "="
 priority: 120
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false

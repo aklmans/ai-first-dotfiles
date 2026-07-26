@@ -23,10 +23,17 @@ Karabiner 不在本层修改。
 | CapsLock + Y | 渲染 `translate-to-en` Prompt，把中文选区翻译成英文 |
 | CapsLock + = | 渲染 `optimize-prompt` Prompt，增强选中的提示词 |
 | CapsLock + C | Coding Agent 菜单 |
+| CapsLock + Shift + 同一个字母 | 同一个 Prompt 走 `run`，真的调用 provider，答案直接出现在通知里并复制到剪贴板 |
 
-Agent 菜单会新开 Warp tab 并粘贴命令，不自动执行。
+Agent 菜单会在 `config.json` 里 `terminal.app` 指定的终端新开标签页并粘贴命令，不自动执行。
 
-Provider 直跑热键已移除。需要调用 Provider 时，用命令行或后续外部 UI 显式触发，例如 `~/.config/ai-router/ai-router.sh run summarize`。
+Provider 直跑是显式的第二个手势，不是默认行为：
+
+- `CapsLock + 字母` 永远只渲染 prompt 到剪贴板，快、可预期、不花钱。
+- `CapsLock + Shift + 字母` 才调用 provider。按下的瞬间弹 "Running ..." 通知，结束后通知里直接显示答案，失败则显示失败原因。
+- Palette 里 `Enter` 是复制，`Shift + Enter` 是调用。
+
+判定方式：Karabiner 的 Hyper 输出的是**右侧**四个修饰键，所以只要再按住一个**左侧**修饰键，就是一个 Hyper 自己发不出来的信号。左 Shift 和左 Cmd 都可以（左手拇指按左 Cmd 通常最顺手）。读不到修饰键状态时一律按 `render` 处理——绝不会因为判断不出来就替你花一次模型调用。
 
 ## Direct Launch 层
 
@@ -55,33 +62,46 @@ Provider 直跑热键已移除。需要调用 Provider 时，用命令行或后�
 
 ## 目录结构
 
+配置和运行时数据是分开的。配置可以进版本库，运行时数据不行。
+
 ```text
-~/.config/ai-router/
+~/.config/ai-router/            # 配置，可以进 git
   config.json
   ai-router.sh
-  lib/
-    router_tools.py
+  lib/router_tools.py
   prompts/
   snippets/
   providers/
-  catalogs/
   exports/
   tests/
+
+${XDG_STATE_HOME:-~/.local/state}/ai-router/   # 运行时数据，随时可删
+  catalogs/
+    prompts.json  hotkeys.json  palette.json  agents.json
   cache/
-    selection.txt
-    selection-meta.env
-    last-output.md
+    selection.txt  selection-meta.env  last-output.md
   state/
-    usage.json
-    favorites.json
+    usage.json  favorites.json
   logs/
-    events.jsonl
-    errors/
+    events.jsonl  errors/
 ```
+
+2.4.0 之前这四个目录在 `~/.config/ai-router/` 下。升级后第一次运行会自动搬家，favorites 和 usage 记录不会丢。
+
+`AI_ROUTER_HOME` 指定的目录（测试、沙箱）里运行时数据仍然留在同一棵树下，保证互不污染。
 
 ## 常用命令
 
 ```bash
+# 管道输入：不需要任何 macOS 权限，也不需要图形界面
+git diff --staged | ~/.config/ai-router/ai-router.sh run commit-message
+
+# 装完先跑这个：谁能用、缺的怎么装
+~/.config/ai-router/ai-router.sh doctor
+
+# 看清楚到底什么内容会被发给模型
+~/.config/ai-router/ai-router.sh show summarize
+
 ~/.config/ai-router/ai-router.sh render summarize
 ~/.config/ai-router/ai-router.sh run summarize
 ~/.config/ai-router/ai-router.sh run translate
@@ -108,8 +128,8 @@ description: 这个 prompt 的用途
 category: writing
 hotkey: z
 priority: 300
-default_provider: kimi
-fallback_provider: gemini
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false
@@ -136,6 +156,7 @@ tags:
 
 `index` 会生成：
 
+- `catalogs/` 在状态目录下（见上面的目录结构）。
 - `catalogs/prompts.json`: prompt 元数据、别名、keywords、标签、provider 设置。
 - `catalogs/hotkeys.json`: Hammerspoon 直接热键绑定数据。
 - `catalogs/palette.json`: Hammerspoon chooser 和未来外部 App 的搜索数据。
@@ -149,8 +170,8 @@ Hammerspoon 会优先读取这些缓存；缓存不存在时才回退到内置�
 
 Chooser 排序由两个本地状态文件控制：
 
-- `state/usage.json`: 自动记录使用次数和最近使用时间，只记录 `kind/value/title/count/time`，不记录 selection、prompt 或 output。
-- `state/favorites.json`: 手动收藏项，收藏项会显示在 chooser 顶部。
+- `state/usage.json`（状态目录下）: 自动记录使用次数和最近使用时间，只记录 `kind/value/title/count/time`，不记录 selection、prompt 或 output。
+- `state/favorites.json`（状态目录下）: 手动收藏项，收藏项会显示在 chooser 顶部。
 
 使用方式：
 
@@ -218,26 +239,41 @@ tags:
 
 ## 新增 Provider
 
-在 `providers/` 下新增可执行脚本。约定：
+Provider 就是 `providers/` 下一个可执行脚本，没有白名单。复制模板即可：
 
-- 从 stdin 接收完整 prompt。
-- 向 stdout 输出结果。
-- 失败时写 stderr 并返回非 0。
+```bash
+cp ~/.config/ai-router/providers/_template.sh ~/.config/ai-router/providers/my-provider.sh
+chmod +x ~/.config/ai-router/providers/my-provider.sh
+~/.config/ai-router/ai-router.sh doctor
+```
 
-当前可用文本 Provider：
+约定：
 
-- `kimi`: `kimi --quiet --prompt`
-- `gemini`: `gemini --prompt --output-format text`
+- 从 stdin 接收完整 prompt，向 stdout 输出结果，失败时写 stderr 并返回非 0。
+- `--health-check`：能用就退出 0。不能用（CLI 没装、模型没拉、缺 key）就退出非 0，router 会跳到下一个 provider。
+- `--install-hint`：一行安装说明。以 `install:` 开头表示"装上就能用"，`doctor` 会原样打印给用户。
+- 文件名以 `_` 开头的不会被当成 provider，所以模板本身不会被路由到。
 
-当前占位或谨慎启用：
+随仓库提供的 adapter：
 
-- `codex`: 默认禁用 text provider，建议从 Coding Agent 菜单进入。
-- `junie`: 默认禁用 text provider，建议从 Coding Agent 菜单进入。
-- `warp-agent`: 占位。
+- `claude`: `claude --print`
+- `codex`: `codex exec`，read-only sandbox、不落 session 文件、只输出最终回答
+- `ollama`: 本地模型，用 `AI_ROUTER_OLLAMA_MODEL` 选模型，没拉到模型时 health check 直接失败
+- `gemini` / `kimi`: 需要各自的 CLI 和 key
+- `junie`: 默认禁用 text provider，建议从 Coding Agent 菜单进入
+- `warp-agent` / `app-opener`: 不是文本 provider，`doctor` 里标记为 `[helper]`
+
+默认调用顺序来自 `config.json`：
+
+```json
+"providers": { "default": ["claude", "codex"] }
+```
+
+prompt frontmatter 里的 `default_provider` / `fallback_provider` 是这条链之前的偏好；`providers.default` 永远追加在最后，所以只装了一个 CLI 的机器也能路由到它。
 
 ## 输出和日志
 
-- 所有运行结果保存到 `cache/last-output.md`。
+- 所有运行结果保存到状态目录的 `cache/last-output.md`。
 - `output: clipboard` 的 prompt 会把结果复制到剪贴板。
 - `output: preview` 的 prompt 只保存结果并通知，可从 palette 的 `Tool: Open Last Output` 打开。
 - 日志写入 `logs/events.jsonl`，新事件带 `request_id`、`input_source`、`selection_source`、`selection_ms` 等元信息。
@@ -245,6 +281,7 @@ tags:
 - 如需调试原始 provider 错误，显式设置 `AI_ROUTER_DEBUG_FULL_LOG=1`，原始错误会写入 `logs/errors/<request_id>.raw.log`。
 - 最近一次错误会复制到 `logs/errors/latest.log`，可从 palette 的 `Tool: Open Last Error` 打开。
 - 日志只记录元信息，不记录完整 selection、prompt 或 output。
+- `config.json` 里 `privacy.log_events: false` 可以彻底关掉 `logs/events.jsonl`；`privacy.debug_full_error_log: true` 等价于默认打开 `AI_ROUTER_DEBUG_FULL_LOG=1`。这两个开关是真的接在代码上的。
 
 Agent 菜单数据来自 `config.json` 的 `agents` 字段。Hammerspoon chooser 会优先读取 `ai-router.sh agent-menu`，读取失败时才使用内置 fallback。
 
@@ -263,6 +300,17 @@ AI_ROUTER_SELECTION_POLL_COUNT=10
 AI_ROUTER_SELECTION_STRICT=0
 AI_ROUTER_PROVIDER_TIMEOUT_SECONDS=60
 ```
+
+输入来源本身也可以指定：
+
+```bash
+AI_ROUTER_INPUT='要处理的文本' ~/.config/ai-router/ai-router.sh run summarize
+printf 'text' | ~/.config/ai-router/ai-router.sh run summarize
+~/.config/ai-router/ai-router.sh run summarize --from selection   # 忽略 stdin，读选区
+~/.config/ai-router/ai-router.sh run summarize --quiet            # 不发系统通知，由调用方负责反馈
+```
+
+优先级：`AI_ROUTER_INPUT` > 管道 stdin > 选区 > 剪贴板。Hammerspoon 一律显式传 `--from selection`，所以热键永远不会去读一个不属于它的管道。
 
 默认最多重试 2 次，每次轮询 10 次、间隔 `0.03s`。如果关闭轮询，则回退到 `AI_ROUTER_SELECTION_COPY_DELAY=0.28` 的固定等待。`AI_ROUTER_SELECTION_STRICT=1` 时，如果读不到选区会直接失败并通知，不会静默使用剪贴板。
 

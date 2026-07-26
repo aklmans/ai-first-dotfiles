@@ -5,8 +5,8 @@ description: 总结选中文本，区分事实、推断和建议
 category: reading
 hotkey: s
 priority: 20
-default_provider: kimi
-fallback_provider: gemini
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

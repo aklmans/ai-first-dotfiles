@@ -28,15 +28,15 @@ Working behavior:
 - `CapsLock + C` opens the coding agent chooser.
 - `CapsLock + Space` opens the AI Router palette, but the experience is still slower than direct hotkeys.
 - Agent chooser can open Warp and paste Codex, Claude, Kimi, Gemini, Junie commands.
-- Provider execution is available through explicit commands such as `ai-router.sh run summarize`, not through direct hotkeys.
+- Provider execution is available through `ai-router.sh run <prompt>`, through a pipe (`git diff | ai-router.sh run commit-message`), and through the explicit `Hyper + Shift` gesture. The plain `Hyper + letter` gesture still only renders.
 - Prompt files live in `~/.config/ai-router/prompts/`.
 - Providers live in `~/.config/ai-router/providers/`.
-- Catalogs are generated under `~/.config/ai-router/catalogs/`, including `hotkeys.json`, `palette.json`, `prompts.json`, and `agents.json`.
+- Catalogs are generated under `${XDG_STATE_HOME:-~/.local/state}/ai-router/catalogs/`, including `hotkeys.json`, `palette.json`, `prompts.json`, and `agents.json`.
 - `ai-router.sh palette` reads `catalogs/palette.json`; dynamic scanning is now only a cache-miss fallback.
 - `ai-router.sh export-snippets all` exports static prompt/snippet packs for Raycast and future external UIs.
 - Raycast snippet export uses short `;` + 2-3 letter keywords such as `;sm`, `;tr`, `;ex`, `;mt`.
 - Hammerspoon chooser now presents grouped titles, recent/pinned status, wider rows, and condensed metadata preview.
-- Logs are under `~/.config/ai-router/logs/`, with cache under `~/.config/ai-router/cache/`.
+- Logs and cache are under `${XDG_STATE_HOME:-~/.local/state}/ai-router/`. Only configuration lives in `~/.config/ai-router/`.
 
 Important implementation facts:
 
@@ -52,7 +52,7 @@ Important implementation facts:
 Keep these invariants unless the user explicitly decides otherwise:
 
 1. `CapsLock + letter` should be fast and should render a prompt to clipboard, not call a slow provider.
-2. Do not add hidden provider execution hotkeys back without a separate product decision. Direct provider calls feel opaque without history, preview, and retry UX.
+2. Provider execution is bound to an explicit second gesture, never to the default one. Decided in 2.4.0: holding a left-side modifier on top of Hyper (Karabiner emits Hyper on the right side, so `Hyper + left Shift` or `Hyper + left Cmd` is a signal Hyper cannot produce by itself) runs the prompt through a provider; `Shift + Enter` does the same from the palette. Both announce "Running ...", then show the answer or the failure. The original concern still stands - a provider call with no feedback is opaque - so a run that cannot say what it is doing does not ship, and any ambiguity in the modifier state must fall back to render. Do not make provider execution the default gesture, and do not add a third one without deciding it here first.
 3. Karabiner must not call AI APIs or run complex logic.
 4. Do not auto-replace selected text by default. Replacement must be explicit and guarded.
 5. Do not log full selection, full prompt, full clipboard, or full output.
@@ -76,19 +76,21 @@ Resolved or mostly resolved:
 - Prompt/snippet retrieval: aliases, keywords, favorites, recent usage, cached palette data.
 - Static reuse path: Raycast snippet export with short `;` keywords.
 - Backup hygiene: long-lived local backup piles under `~/.config` were removed.
+- Terminal abstraction: agent launching reads `terminal.app` from `config.json`, with native paths for Terminal.app and iTerm2, a generic new-tab path for Warp/Ghostty/Kaku, and a clipboard fallback when no terminal can be driven.
+- Usable without the desktop: piped stdin, `--from`, `doctor`, `show`, and conditional macOS dependencies, so the CLI runs over SSH and on Linux.
+- Runtime data lives in the XDG state directory instead of `~/.config`.
 
 Still worth improving:
 
 - Template expressiveness: defaults, simple conditionals, and optional includes.
 - Runtime context: browser URL/title, repo/project path, and active file path, with strict privacy limits.
-- Terminal abstraction: move agent launching from Warp-specific AppleScript toward configurable terminal targets.
 - Modularization: split context/provider/terminal/export code once behavior stabilizes.
 - External UI: evaluate Raycast snippets first; design a dedicated Mac App only after the data model is proven.
 
 No longer recommended:
 
 - Do not invest heavily in Hammerspoon chooser as a Raycast replacement.
-- Do not restore hidden `CapsLock + Cmd + letter` provider execution.
+- Do not restore *hidden* provider execution. The 2.4.0 `Hyper + Shift` gesture is the opposite: documented, announced while it runs, and it reports its result.
 - Do not make provider output replace selected text by default.
 
 ## Roadmap

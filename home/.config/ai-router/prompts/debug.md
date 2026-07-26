@@ -4,8 +4,8 @@ title: Debug Issue
 description: 系统化分析 bug，给出排查路径和验证方法
 category: coding
 priority: 230
-default_provider: gemini
-fallback_provider: kimi
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

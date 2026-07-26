@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "${1:-}" = "--install-hint" ]; then
+  printf '%s\n' "install: JetBrains Junie CLI, then AI_ROUTER_ENABLE_JUNIE_PROVIDER=1"
+  exit 0
+fi
+
 if [ "${1:-}" = "--health-check" ]; then
   [ "${AI_ROUTER_ENABLE_JUNIE_PROVIDER:-0}" = "1" ] && command -v junie >/dev/null 2>&1 && junie --version >/dev/null 2>&1
   exit

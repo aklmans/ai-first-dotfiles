@@ -5,8 +5,8 @@ description: 从输入中提取结论、待办、实体、风险和下一步
 category: reading
 hotkey: x
 priority: 70
-default_provider: kimi
-fallback_provider: gemini
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: preview
 allow_replace: false

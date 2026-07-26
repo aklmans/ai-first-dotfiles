@@ -5,8 +5,8 @@ description: 根据材料起草邮件、IM、文档、评论或计划
 category: writing
 hotkey: d
 priority: 100
-default_provider: kimi
-fallback_provider: gemini
+default_provider: claude
+fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false
