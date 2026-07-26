@@ -1,0 +1,115 @@
+name: Bug report
+description: Something installed but does not work, or the installer itself failed.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: most "installed but nothing happens" reports are a missing
+        macOS permission, not a bug. The
+        [troubleshooting page](https://github.com/aklmans/ai-first-dotfiles/blob/main/docs/troubleshooting.md)
+        opens with a symptom table that covers the common ones.
+
+        Never paste API keys, tokens, or your real `/Users/<name>` paths.
+
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: "`sw_vers -productVersion`, e.g. 14.6.1"
+      placeholder: "14.6.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: chip
+    attributes:
+      label: Chip
+      options:
+        - Apple Silicon (M-series)
+        - Intel
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Which module?
+      description: Pick the one closest to the failure. Choose "setup.sh itself" if the run never reached a module.
+      options:
+        - setup.sh itself (orchestration, preflight, dry-run)
+        - uninstall.sh
+        - deploy engine (backups, skipped paths, kept local changes)
+        - aerospace
+        - sketchybar / borders
+        - karabiner
+        - hammerspoon
+        - ai-router
+        - zsh / starship
+        - kaku / warp / yazi
+        - gui-path
+        - sublime
+        - ideavim
+        - mpv
+        - bettertouchtool
+        - brew.sh / app-store.sh
+        - docs
+        - other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+      placeholder: |
+        Expected: Ctrl+3 switches to workspace 3.
+        Actual: nothing happens. The bar highlights workspace 1 the whole time.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dry-run
+    attributes:
+      label: "`--dry-run` output"
+      description: |
+        Run `./bootstrap/setup.sh <module> --dry-run` for the module you picked
+        above and paste the whole thing. It executes nothing. This is the single
+        most useful thing in a report — it shows which paths the run targets on
+        your machine.
+      render: shell
+      placeholder: "$ ./bootstrap/setup.sh desktop --dry-run"
+    validations:
+      required: true
+
+  - type: textarea
+    id: failure-output
+    attributes:
+      label: Failure output
+      description: The actual error, if the install or a command failed. Skip if nothing errored.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: permissions
+    attributes:
+      label: macOS permissions
+      description: Check the ones you have granted. Leave unchecked what you have not.
+      options:
+        - label: Accessibility for AeroSpace
+        - label: Accessibility for Hammerspoon
+        - label: Karabiner driver extension approved, and Input Monitoring granted
+        - label: The "CapsLock AI Lite (ai-first-dotfiles)" rule is enabled in Complex Modifications
+        - label: Not applicable to this module
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I read the symptom table in docs/troubleshooting.md
+          required: true
+        - label: I removed any real paths, tokens, and account names from the output above
+          required: true

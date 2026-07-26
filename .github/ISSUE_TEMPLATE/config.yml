@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installed but nothing happens
+    url: https://github.com/aklmans/ai-first-dotfiles/blob/main/docs/troubleshooting.md
+    about: Symptom table for the common cases — almost always a missing macOS permission.
+  - name: A shortcut does nothing, or does the wrong thing
+    url: https://github.com/aklmans/ai-first-dotfiles#shortcuts-that-fight-macos
+    about: Ctrl+arrows, Ctrl+1..9 and CapsLock collide with macOS defaults. Check these first.
+  - name: Question or idea
+    url: https://github.com/aklmans/ai-first-dotfiles/discussions
+    about: For anything that is not a reproducible defect.
