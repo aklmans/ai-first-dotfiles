@@ -119,6 +119,8 @@ require_file home/.config/mpv/input.conf
 require_file bootstrap/brew.sh
 require_file bootstrap/setup.sh
 require_file bootstrap/app-store.sh
+require_file bootstrap/uninstall.sh
+require_file bootstrap/lib/common.sh
 
 require_file bootstrap/install/ai-router.sh
 require_file bootstrap/install/borders.sh
@@ -148,6 +150,7 @@ require_file tests/smoke/install_script_syntax_smoke.sh
 require_file tests/smoke/install_script_side_effects_smoke.sh
 require_file tests/smoke/install_deploy_smoke.sh
 require_file tests/smoke/privacy_scan_smoke.sh
+require_file tests/smoke/deploy_engine_smoke.sh
 
 require_absent bootstrap/macos
 require_absent examples/macos-defaults/disk.sh
