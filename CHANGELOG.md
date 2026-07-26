@@ -115,6 +115,46 @@ module failed, and had no tests. This release is that gap closed, in nine passes
   `manifests/app-store/mas-default.txt` now ships empty and `app-store.sh` asks before
   installing anything.
 
+### Upgrading from an earlier checkout
+
+A fresh install needs none of this. If you deployed a previous version of this repo,
+redeploying is safe — every replaced file is backed up and recorded in
+`~/.local/state/ai-first-dotfiles/backups.tsv`, and `./bootstrap/uninstall.sh` reads
+that ledger — but five things need a decision from you.
+
+1. **The shell layer is no longer part of `all`.** `./bootstrap/setup.sh all` installs
+   no shell, terminal or file-manager tooling. Run `./bootstrap/setup.sh shell`
+   explicitly if you want it.
+
+2. **`~/.zshenv` now asks before taking over.** On a machine where it already points
+   `ZDOTDIR` at this repo nothing is asked and nothing changes. On any other machine
+   the module explains what redirecting `ZDOTDIR` does to an existing `~/.zshrc`,
+   copies that file to `$ZDOTDIR/.zshrc.pre-dotfiles`, and stops unless you agree or
+   pass `--force`.
+
+3. **Vendor blocks left `.zprofile`.** Shell integrations installed by other tools
+   (Amazon Q, Kiro CLI, and the like) were removed from the tracked `.zprofile`.
+   Move yours into `~/.config/zsh/private.zprofile`, which is sourced and never
+   tracked. `private.zsh.example` shows the shape. Until you do, those integrations
+   stop loading.
+
+4. **Karabiner no longer deploys `karabiner.json`.** The CapsLock rules install as a
+   complex-modification asset, which appears under *Complex Modifications → Add rule*
+   and changes nothing until you enable it. **If your profile already contains those
+   rules inline, do not enable the new one** — you would get every mapping twice.
+   Either ignore the entry, or delete the inline rules first and then enable it.
+
+5. **AeroSpace resolves displays from a config file.** `~/.config/aerospace/displays.conf`
+   ships empty, which means "use whatever is connected". Put your monitor names in it
+   and run `~/.config/aerospace/render-layout.sh` (or just redeploy) to pin workspaces
+   to specific screens the way the old hard-coded config did.
+
+Two things happen on their own: the AI router moves its generated catalogs, caches and
+usage history from `~/.config/ai-router` to `~/.local/state/ai-router` on first run,
+file by file and never overwriting; and the LaunchAgent that puts Homebrew on the GUI
+`PATH` now prepends rather than replacing it, so entries added by other tools survive.
+An agent installed under the older label keeps running until you remove it.
+
 ### Known limitations
 
 - **Apple Silicon only.** The AeroSpace, Hammerspoon and SketchyBar layers name the
