@@ -44,10 +44,13 @@ install_infra() {
 
 install_desktop() {
   # Desktop status bar, borders, and audio helpers.
+  # BetterTouchTool is deliberately not here: it is free for 45 days and paid
+  # afterwards, so it lives in the optional `apps` profile and is installed by
+  # `setup.sh extras` rather than by the recommended bootstrap.
   ensure_brew_tap felixkratz/formulae
   ensure_brew_tap nikitabobko/tap
   brew_install felixkratz/formulae/borders felixkratz/formulae/sketchybar nowplaying-cli switchaudio-osx
-  brew_install_cask nikitabobko/tap/aerospace hammerspoon bettertouchtool
+  brew_install_cask nikitabobko/tap/aerospace hammerspoon
 }
 
 install_fonts() {
@@ -63,7 +66,7 @@ install_apps() {
 
   # Optional terminal, utility, and desktop apps currently installed on this machine.
   brew_install tw93/tap/kakuku
-  brew_install_cask adguard alt-tab karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast
+  brew_install_cask adguard alt-tab bettertouchtool karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast
 
   # Optional AI, developer, and workflow GUI tools currently installed on this machine.
   brew_install_cask apifox cc-switch chatgpt claude claude-code codex steipete/tap/codexbar cursor openclaw postman visual-studio-code

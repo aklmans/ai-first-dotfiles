@@ -13,8 +13,12 @@ if should_deploy; then
   deploy_repo_path "$repo_root" "home/.hammerspoon" "$HOME/.hammerspoon" "$stamp"
 fi
 
-if should_install || should_deploy; then
-  open -a Hammerspoon
+# Launching an app is an install step. --deploy-only writes config and nothing
+# else, so deploying into a fresh checkout never opens a window.
+if should_install; then
+  if ! open -a Hammerspoon 2>/dev/null; then
+    printf 'Hammerspoon is not installed yet; skipping its launch. Start it yourself once it is.\n'
+  fi
 fi
 
 cat <<'EOF'

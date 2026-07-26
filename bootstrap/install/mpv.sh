@@ -7,7 +7,11 @@ repo_root="$(repo_root_dir)"
 stamp="$(date +%Y%m%d_%H%M%S)"
 parse_install_args "$@"
 
-brew_install_cask mpv
+# The formula, not the cask. bootstrap/install/yazi.sh already installs the mpv
+# formula as a preview dependency, and Homebrew disables the mpv cask on
+# 2026-09-01; having both in one `setup.sh all` run meant the deprecated cask
+# fighting the formula over the same `mpv` binary.
+brew_install mpv
 
 install_osc_font() {
   should_brew || return 0
