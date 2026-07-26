@@ -1,6 +1,6 @@
 # AI-First macOS Dotfiles
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/aklmans/ai-first-dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/aklmans/ai-first-dotfiles/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A practical macOS dotfiles setup for keyboard-driven workspaces, a compact desktop UI, terminal tools, and local AI prompt/agent workflows.
 

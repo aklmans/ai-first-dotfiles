@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke tests (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        # The smoke tests hard-fail without rg rather than passing vacuously.
+        # Nothing else is installed here: the install scripts are exercised
+        # against stubs, so CI never runs a real `brew install` of the 73
+        # packages in bootstrap/brew.sh.
+        run: brew list ripgrep >/dev/null 2>&1 || brew install ripgrep
+
+      - name: Report toolchain
+        run: |
+          /bin/bash --version | head -n 1
+          rg --version | head -n 1
+          python3 --version
+          sw_vers
+
+      - name: Run smoke tests
+        run: |
+          set -euo pipefail
+          status=0
+          for test_script in tests/smoke/*.sh; do
+            printf '\n==> %s\n' "$test_script"
+            if ! bash "$test_script"; then
+              printf '::error file=%s::smoke test failed\n' "$test_script"
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Run AI router tests
+        run: bash home/.config/ai-router/tests/run.sh
