@@ -15,37 +15,81 @@ usage() {
 Usage: ./bootstrap/setup.sh [profile...] [options]
 
 Profiles:
-  all           Recommended bootstrap: packages, shell, desktop, ai, media
+  all           Recommended bootstrap: packages, GUI PATH, Sublime, desktop, ai, media
   packages      Homebrew packages required by the recommended setup
   packages-all  Every Homebrew profile in bootstrap/brew.sh
   gui-path      Make Homebrew tools visible to GUI-launched apps
-  shell         zsh, Starship, Kaku, Warp, Yazi, IdeaVim
+  shell         zsh, Starship, Kaku, Yazi, IdeaVim
   sublime       Sublime Text Terminal package integration
-  desktop       Karabiner, AeroSpace, SketchyBar, Borders, BTT, Hammerspoon
+  desktop       Karabiner, AeroSpace, SketchyBar, Borders, Hammerspoon
+  extras        BetterTouchTool, Warp
   ai            AI Workflow Router
   media         mpv
   app-store     App Store apps from manifests/app-store
   gbrain        Optional local GBrain setup
   deploy        Deploy all tracked config without package installation
 
+Deliberately not part of "all":
+  shell     Installing it points ~/.zshenv at this repo, which is the most
+            invasive thing in here and the hardest to undo by hand. Everything
+            else works without it. Ask for it: ./bootstrap/setup.sh shell
+  extras    BetterTouchTool is free for 45 days and paid after that; Warp is
+            closed source and asks you to sign in. Nothing else here depends on
+            either: ./bootstrap/setup.sh extras
+
 Options:
   --no-brew       Skip Homebrew commands where possible.
-  --deploy-only   Deploy config only.
+  --deploy-only   Deploy config only. Installs nothing, starts nothing, and
+                  changes no macOS settings.
   --install-only  Install packages/external dependencies only.
-  --dry-run       Print commands without running them.
+  --dry-run       Print what would run, including the paths under $HOME that
+                  would be written. Nothing is executed.
   -h, --help      Show this help.
 
 Environment:
   DOTFILES_SKIP_PREFLIGHT=1  Skip the brew/git/Xcode CLT prerequisite check.
+  DOTFILES_FORCE=1           Replace symlinked targets and local changes,
+                             backing up whatever is replaced.
+
+Exit status:
+  0  every step ran, or some paths were left untouched (reported at the end)
+  1  at least one step failed. The rest of the run still happened and the
+     failures are listed at the end.
 EOF
 }
 
-# Exit code 3 from a module means "some paths were skipped, nothing was
-# overwritten" — a symlinked target another tool owns. That is a report, not a
-# failure, and it must not stop the remaining modules: the users who symlink
-# their dotfiles are exactly the ones who would otherwise get a half install.
-# General module-failure tolerance is a separate concern and still pending.
+# ---------------------------------------------------------------------------
+# Step results
+#
+# A profile is a list of independent steps, and this script used to stop at the
+# first one that returned non-zero. A single brew hiccup inside sketchybar
+# therefore ended the whole run: borders, BetterTouchTool, Hammerspoon, the AI
+# router and mpv were never reached, and all the user saw was one error from the
+# middle of the list with no idea what had and had not been installed.
+#
+# So every step's exit code is captured here and the run always continues to the
+# end. Two kinds of non-zero are kept apart, because they mean opposite things:
+#
+#   3      The deploy engine refused to touch paths another tool manages
+#          (see deploy_report_skips in lib/common.sh). Nothing was overwritten
+#          and nothing is broken, so the run still exits 0.
+#   other  A real failure. It is collected, named at the end, and makes the run
+#          exit non-zero so nothing automated mistakes a partial install for a
+#          complete one.
+# ---------------------------------------------------------------------------
 skipped_modules=0
+failed_steps=()
+
+step_label() {
+  local label="${1#"$repo_root/"}"
+  local arg
+  shift || true
+
+  printf '%s' "$label"
+  for arg in "$@"; do
+    printf ' %s' "$arg"
+  done
+}
 
 run_cmd() {
   printf '+'
@@ -53,24 +97,183 @@ run_cmd() {
   printf '\n'
 
   if [[ "$dry_run" -eq 1 ]]; then
+    # --install-only writes nothing under $HOME, so listing deploy targets there
+    # would promise something the real run does not do.
+    if [[ "$install_only" -eq 0 ]]; then
+      preview_deploy_targets "$1"
+    fi
     return 0
   fi
 
   local status=0
   "$@" || status=$?
 
-  if [[ "$status" -eq 3 ]]; then
-    skipped_modules=$((skipped_modules + 1))
-    return 0
-  fi
+  case "$status" in
+    0)
+      return 0
+      ;;
+    3)
+      skipped_modules=$((skipped_modules + 1))
+      return 0
+      ;;
+    130|131|143)
+      # Killed by SIGINT, SIGQUIT or SIGTERM. That is somebody stopping this
+      # run, not a step that failed, and carrying on would install another dozen
+      # things after they asked for none. `cmd || status=$?` swallows the signal
+      # that used to end the script, so it has to be honoured explicitly.
+      printf '\nStopped: %s was interrupted (exit %s).\n' "$(step_label "$@")" "$status" >&2
+      report_skipped_modules
+      report_failed_steps || true
+      exit "$status"
+      ;;
+  esac
 
-  return "$status"
+  failed_steps+=("$(step_label "$@") (exit $status)")
+  printf '\nStep failed (exit %s): %s\n' "$status" "$(step_label "$@")" >&2
+  printf 'Continuing with the rest of this run; the failures are listed at the end.\n\n' >&2
+  return 0
+}
+
+# Plain-string assignments seen so far in the module being previewed, framed in
+# newlines so a lookup can anchor on whole lines without forking. Same shape as
+# the deploy manifest in lib/common.sh.
+preview_vars=""
+
+preview_lookup_var() {
+  local name="$1"
+  local rest
+
+  [[ -n "$preview_vars" ]] || return 1
+
+  rest="${preview_vars#*$'\n'"$name"$'\t'}"
+  [[ "$rest" != "$preview_vars" ]] || return 1
+
+  printf '%s' "${rest%%$'\n'*}"
+}
+
+# Modules spell their targets either inline ("$HOME/.config/borders") or through
+# a variable set at the top of the script ("$plist", "$target_path"). Resolve a
+# leading reference of either form so the preview shows a real path instead of
+# the name of a shell variable the reader cannot see.
+preview_expand_path() {
+  local value="$1"
+  local guard=0
+  local name rest resolved
+
+  while [[ "$value" == \$* && "$guard" -lt 5 ]]; do
+    guard=$((guard + 1))
+    name="${value#\$}"
+    rest=""
+
+    case "$name" in
+      \{*\}*)
+        rest="${name#*\}}"
+        name="${name#\{}"
+        name="${name%%\}*}"
+        ;;
+      */*)
+        rest="/${name#*/}"
+        name="${name%%/*}"
+        ;;
+    esac
+
+    if [[ "$name" == "HOME" ]]; then
+      resolved="$HOME"
+    else
+      resolved="$(preview_lookup_var "$name")" || break
+    fi
+
+    value="$resolved$rest"
+  done
+
+  printf '%s' "$value"
+}
+
+# --dry-run used to print sixteen module invocations and nothing else, which is
+# almost no information. The one thing a stranger needs before running this is
+# which paths under their own $HOME it would write to, and the module scripts
+# are the source of truth for that, so their deploy_repo_path calls are read out
+# of them here. Read, not run: a preview must never execute a module.
+preview_deploy_targets() {
+  local script="$1"
+  local line logical source_rel source_path target files count
+  local pattern='deploy_repo_path[[:space:]]+"([^"]*)"[[:space:]]+"([^"]*)"[[:space:]]+"([^"]*)"'
+  local assignment='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)="([^"`]*)"[[:space:]]*$'
+
+  [[ -f "$script" ]] || return 0
+
+  preview_vars=$'\n'
+  logical=""
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    # Long deploy calls are wrapped across several lines; rejoin them first.
+    if [[ "$line" == *\\ ]]; then
+      logical="$logical${line%\\} "
+      continue
+    fi
+    logical="$logical$line"
+
+    # Remember plain assignments so a target named through one can be resolved.
+    # Anything with a command substitution in it is a value only running the
+    # module could know, and a preview does not run anything.
+    if [[ "$logical" =~ $assignment ]]; then
+      case "${BASH_REMATCH[2]}" in
+        *'$('*)
+          ;;
+        *)
+          preview_vars="${preview_vars}${BASH_REMATCH[1]}"$'\t'"${BASH_REMATCH[2]}"$'\n'
+          ;;
+      esac
+    fi
+
+    if [[ "$logical" =~ $pattern ]]; then
+      source_rel="${BASH_REMATCH[2]}"
+      target="$(preview_expand_path "${BASH_REMATCH[3]}")"
+      source_path="$repo_root/$source_rel"
+
+      count=1
+      if [[ -d "$source_path" ]]; then
+        count="$(find "$source_path" -type f 2>/dev/null | wc -l | tr -d ' ')"
+      fi
+      if [[ "$count" == "1" ]]; then
+        files='1 file'
+      else
+        files="$count files"
+      fi
+
+      if [[ -L "$target" ]]; then
+        printf '    %s (symlink; would be left untouched)\n' "$target"
+      elif [[ -e "$target" ]]; then
+        printf '    %s (exists; %s from %s, whatever is replaced is backed up first)\n' \
+          "$target" "$files" "$source_rel"
+      else
+        printf '    %s (new; %s from %s)\n' "$target" "$files" "$source_rel"
+      fi
+    fi
+
+    logical=""
+  done <"$script"
 }
 
 report_skipped_modules() {
   [[ "$skipped_modules" -gt 0 ]] || return 0
   printf '\n%s module(s) left some paths untouched; see the notes above.\n' "$skipped_modules" >&2
-  printf 'Nothing there was overwritten. Re-run with DOTFILES_FORCE=1 to replace them.\n' >&2
+  printf 'Nothing there was overwritten and nothing there failed. Re-run with\n' >&2
+  printf 'DOTFILES_FORCE=1 to replace them.\n' >&2
+}
+
+report_failed_steps() {
+  local entry
+
+  [[ "${#failed_steps[@]}" -gt 0 ]] || return 0
+
+  printf '\n%s step(s) failed:\n\n' "${#failed_steps[@]}" >&2
+  for entry in ${failed_steps[@]+"${failed_steps[@]}"}; do
+    printf '  - %s\n' "$entry" >&2
+  done
+  printf '\nEverything else was still attempted, so this is a partial install rather\n' >&2
+  printf 'than a broken one. Fix the causes above and re-run the same profile:\n' >&2
+  printf 'every step here is safe to run again.\n' >&2
+  return 1
 }
 
 module_flags() {
@@ -128,11 +331,11 @@ profile_gui_path() {
   run_module gui-path
 }
 
+# Not in profile_all: zsh.sh repoints ~/.zshenv at this repo. That is opt-in.
 profile_shell() {
   run_module zsh
   run_module starship
   run_module kaku
-  run_module warp
   run_module yazi
   run_module ideavim
 }
@@ -146,8 +349,17 @@ profile_desktop() {
   run_module aerospace
   run_module sketchybar
   run_module borders
-  run_module bettertouchtool
   run_module hammerspoon
+}
+
+# Apps README has always called optional, and which are optional in a way a
+# package manager cannot undo: BetterTouchTool stops working after 45 days
+# unless you buy it, and Warp is closed source and wants an account. Installing
+# either behind `setup.sh all` was the documentation and the behaviour
+# disagreeing, so they moved here.
+profile_extras() {
+  run_module bettertouchtool
+  run_module warp
 }
 
 profile_ai() {
@@ -174,6 +386,9 @@ profile_gbrain() {
   run_cmd "$repo_root/bootstrap/install/gbrain.sh"
 }
 
+# Deploying installs nothing, so this covers every tracked config including the
+# layers "all" leaves out. Somebody who opted into the shell layer or the extras
+# still gets their config refreshed by a plain `setup.sh deploy`.
 profile_deploy() {
   local previous_deploy_only="$deploy_only"
   deploy_only=1
@@ -181,6 +396,7 @@ profile_deploy() {
   profile_shell
   profile_sublime
   profile_desktop
+  profile_extras
   profile_ai
   profile_media
   deploy_only="$previous_deploy_only"
@@ -189,7 +405,6 @@ profile_deploy() {
 profile_all() {
   profile_packages
   profile_gui_path
-  profile_shell
   profile_sublime
   profile_desktop
   profile_ai
@@ -265,6 +480,9 @@ for profile in "${profiles[@]}"; do
     desktop)
       profile_desktop
       ;;
+    extras)
+      profile_extras
+      ;;
     ai)
       profile_ai
       ;;
@@ -289,3 +507,7 @@ for profile in "${profiles[@]}"; do
 done
 
 report_skipped_modules
+
+if ! report_failed_steps; then
+  exit 1
+fi
