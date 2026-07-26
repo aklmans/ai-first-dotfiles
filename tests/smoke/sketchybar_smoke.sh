@@ -562,12 +562,32 @@ cp "$repo_root"/home/.config/aerospace/*.conf "$solo_root/home/.config/aerospace
 cp -R "$repo_root/home/.config/aerospace/lib" "$solo_root/home/.config/aerospace/" 2>/dev/null || true
 cp "$repo_root/home/.aerospace.toml" "$solo_root/home/.aerospace.toml"
 
-solo_status=0
-solo_output="$(env -i "HOME=$solo_root/home" PATH=/usr/bin:/bin /bin/bash \
-  "$solo_root/home/.config/aerospace/toggle-sketchybar-space.sh" apply 2>&1)" || solo_status=$?
+# AeroSpace present, SketchyBar absent. AEROSPACE_BIN defaults to an absolute
+# /opt/homebrew path, so without an explicit stub this test would silently use
+# whatever the developer has installed and behave differently on a clean runner.
+mkdir -p "$solo_root/bin"
+cat >"$solo_root/bin/aerospace" <<'STUB'
+#!/bin/sh
+case "$1" in
+  list-monitors) [ "$2" = "--count" ] && printf '1\n' || printf '1\tBuilt-in Retina Display\n' ;;
+  list-workspaces) printf '1\n2\n3\n' ;;
+esac
+exit 0
+STUB
+chmod +x "$solo_root/bin/aerospace"
 
-assert_equal 0 "$solo_status" \
-  "toggle-sketchybar-space.sh must succeed with no SketchyBar installed"
+solo_status=0
+solo_output="$(env -i "HOME=$solo_root/home" PATH=/usr/bin:/bin \
+  "AEROSPACE_BIN=$solo_root/bin/aerospace" "AEROSPACE=$solo_root/bin/aerospace" \
+  /bin/bash "$solo_root/home/.config/aerospace/toggle-sketchybar-space.sh" apply 2>&1)" || solo_status=$?
+
+if [[ "$solo_status" -eq 0 ]]; then
+  pass
+else
+  fail "toggle-sketchybar-space.sh must succeed with no SketchyBar installed" \
+    "exit $solo_status
+$solo_output"
+fi
 assert_not_contains "$solo_output" "display-resolver.sh: No such file" \
   "a missing SketchyBar resolver must degrade, not fail the source"
 rm -rf "$solo_root"
