@@ -1,14 +1,47 @@
 local configDir = os.getenv("HOME") .. "/.config/ai-router"
 local router = configDir .. "/ai-router.sh"
-local catalogsDir = configDir .. "/catalogs"
-local stateDir = configDir .. "/state"
-local hyper = { "ctrl", "alt", "cmd", "shift" }
+
+-- Runtime data moved out of ~/.config in router 2.4.0. Prefer the new location
+-- and fall back to the old one so a Hammerspoon reload before the first router
+-- run still finds the catalogs.
+local function stateRoot()
+  local override = os.getenv("AI_ROUTER_STATE_HOME")
+  if override and override ~= "" then
+    return override
+  end
+
+  local xdg = os.getenv("XDG_STATE_HOME")
+  if xdg and xdg ~= "" then
+    return xdg .. "/ai-router"
+  end
+
+  return os.getenv("HOME") .. "/.local/state/ai-router"
+end
+
+-- Resolved per call, not once at load: a Hammerspoon session that started
+-- before the router first ran should still find the data afterwards.
+local function runtimeDir(name)
+  local candidate = stateRoot() .. "/" .. name
+  if hs.fs.attributes(candidate, "mode") == "directory" then
+    return candidate
+  end
+  return configDir .. "/" .. name
+end
+
+local function catalogPath(name)
+  return runtimeDir("catalogs") .. "/" .. name
+end
+
+local function statePath(name)
+  return runtimeDir("state") .. "/" .. name
+end
+
 local paletteChooser = nil
 local agentChooser = nil
 local suppressAgentChooserUntil = 0
 local modifierReleaseWatcher = nil
 local modifierReleaseTimeout = nil
-local pendingRouterArgs = nil
+local pendingRouterCall = nil
 
 -- Keep the short suppression window because CapsLock+C shares a physical key
 -- path with prompt shortcuts while Karabiner modifiers are still up.
@@ -16,6 +49,43 @@ local agentChooserSuppressSeconds = 0.8
 local modifierReleaseFallbackSeconds = 0.9
 local chooserWidth = 60
 local chooserRows = 14
+local runPreviewChars = 140
+
+-- hotkeys.hyper in config.json, so the modifier set is not hard-coded in two
+-- places. Falls back to the Karabiner default this repository ships.
+local defaultHyper = { "ctrl", "alt", "cmd", "shift" }
+local modifierAliases = {
+  ctrl = "ctrl",
+  control = "ctrl",
+  alt = "alt",
+  opt = "alt",
+  option = "alt",
+  cmd = "cmd",
+  command = "cmd",
+  shift = "shift",
+  fn = "fn",
+}
+
+local function parseHyper(spec)
+  if type(spec) ~= "string" or spec == "" then
+    return nil
+  end
+
+  local modifiers = {}
+  for part in spec:gmatch("[^%+%s]+") do
+    local name = modifierAliases[part:lower()]
+    if not name then
+      return nil
+    end
+    modifiers[#modifiers + 1] = name
+  end
+
+  if #modifiers == 0 then
+    return nil
+  end
+
+  return modifiers
+end
 
 local kindLabels = {
   prompt = "Prompt",
@@ -39,6 +109,7 @@ local function notify(title, message)
   hs.notify.new({ title = title, informativeText = message }):send()
 end
 
+-- Decodes any JSON file (arrays and objects alike).
 local function readJsonArray(path)
   local file = io.open(path, "r")
   if not file then
@@ -58,6 +129,23 @@ local function readJsonArray(path)
   end
 
   return decoded
+end
+
+local function loadConfig()
+  local config = readJsonArray(configDir .. "/config.json")
+  if type(config) ~= "table" then
+    return {}
+  end
+  return config
+end
+
+local hyper = defaultHyper
+do
+  local config = loadConfig()
+  local hotkeys = config.hotkeys
+  if type(hotkeys) == "table" then
+    hyper = parseHyper(hotkeys.hyper) or defaultHyper
+  end
 end
 
 local function compactText(text)
@@ -149,7 +237,9 @@ local function choiceFromRecord(record)
   }
 end
 
-local function runRouter(args)
+local function runRouter(args, options)
+  options = options or {}
+
   if hs.fs.attributes(router, "mode") ~= "file" then
     notify("AI Router", "Missing router: " .. router)
     return
@@ -161,9 +251,88 @@ local function runRouter(args)
       if not message or message == "" then
         message = stdout or "Unknown error"
       end
-      notify("AI Router failed", message)
+      notify(options.failTitle or "AI Router failed", truncateText(message, 240))
+      return
+    end
+
+    if options.doneTitle then
+      local preview = truncateText(stdout or "", runPreviewChars)
+      if preview == "" then
+        preview = options.doneMessage or "Done"
+      end
+      notify(options.doneTitle, preview)
     end
   end, args):start()
+end
+
+-- CapsLock is one physical key, so "the same shortcut, but actually call the
+-- model" has to be a second modifier held on top of it. Karabiner emits Hyper
+-- as the four right-side modifiers, so any modifier on the *left* side is a
+-- key the user pressed deliberately and Hyper did not send. That is the run
+-- gesture: Hyper + (left) Shift, or left Cmd, whichever the hand reaches.
+--
+-- checkKeyboardModifiers only names the device-independent modifiers, so the
+-- left/right split has to be decoded from the raw flag word. Plain arithmetic
+-- rather than Lua 5.3 bitwise operators: a syntax error here would take the
+-- whole file - every AI hotkey - down on an older runtime.
+--
+-- Everything fails towards render. Unreadable flags, an unknown mask table, or
+-- an ambiguous modifier state all mean "copy the prompt", never "spend a model
+-- call the user did not ask for".
+local hyperSideFlags = {
+  right = { "deviceRightCommand", "deviceRightControl", "deviceRightAlternate", "deviceRightShift" },
+  left = { "deviceLeftCommand", "deviceLeftControl", "deviceLeftAlternate", "deviceLeftShift" },
+}
+
+local function rawFlagHeld(raw, name)
+  if type(raw) ~= "number" then
+    return false
+  end
+
+  local masks = hs.eventtap.event.rawFlagMasks
+  if type(masks) ~= "table" then
+    return false
+  end
+
+  local mask = masks[name]
+  if type(mask) ~= "number" or mask < 1 then
+    return false
+  end
+
+  return math.floor(raw / mask) % 2 == 1
+end
+
+local function hyperSideHeld(raw, side)
+  return rawFlagHeld(raw, side[1]) and rawFlagHeld(raw, side[2]) and rawFlagHeld(raw, side[3])
+end
+
+local function runGestureHeld()
+  local ok, mods = pcall(hs.eventtap.checkKeyboardModifiers, true)
+  if not ok or type(mods) ~= "table" then
+    return false
+  end
+
+  local raw = mods._raw
+  local rightHyper = hyperSideHeld(raw, hyperSideFlags.right)
+  local leftHyper = hyperSideHeld(raw, hyperSideFlags.left)
+
+  if rightHyper == leftHyper then
+    -- Neither side is holding a Hyper: this is the chooser, where a plain
+    -- Shift+Enter is the alternate action. Both sides at once is ambiguous.
+    if rightHyper or mods.cmd or mods.ctrl or mods.alt then
+      return false
+    end
+    return mods.shift == true
+  end
+
+  local extras = leftHyper and hyperSideFlags.right or hyperSideFlags.left
+  for _, name in ipairs(extras) do
+    if rawFlagHeld(raw, name) then
+      return true
+    end
+  end
+
+  return false
 end
 
 local function hotkeyModifiersReleased()
@@ -184,17 +353,17 @@ local function stopModifierReleaseWatcher()
 end
 
 local function flushPendingRouterArgs()
-  local args = pendingRouterArgs
-  pendingRouterArgs = nil
+  local call = pendingRouterCall
+  pendingRouterCall = nil
   stopModifierReleaseWatcher()
 
-  if args then
-    runRouter(args)
+  if call then
+    runRouter(call.args, call.options)
   end
 end
 
-local function runRouterAfterModifiersReleased(args)
-  pendingRouterArgs = args
+local function runRouterAfterModifiersReleased(args, options)
+  pendingRouterCall = { args = args, options = options }
   suppressAgentChooserUntil = hs.timer.secondsSinceEpoch() + agentChooserSuppressSeconds
 
   if hotkeyModifiersReleased() then
@@ -232,20 +401,22 @@ local fallbackPromptBindings = {
   { key = "=", prompt = "optimize-prompt", title = "Optimize Prompt", desc = "复制提示词增强 prompt" },
 }
 
+-- Only used when catalogs/agents.json is missing; the real list comes from
+-- config.json, including which terminal the command is pasted into.
 local fallbackAgentChoices = {
-  { text = "Codex CLI", subText = "新开 Warp tab 并粘贴 codex --disable apps", kind = "agent", value = "codex" },
-  { text = "Claude Code", subText = "新开 Warp tab 并粘贴 claude", kind = "agent", value = "claude" },
-  { text = "Junie", subText = "新开 Warp tab 并粘贴 junie", kind = "agent", value = "junie" },
-  { text = "Gemini CLI", subText = "新开 Warp tab 并粘贴 gemini", kind = "agent", value = "gemini" },
-  { text = "Kimi CLI", subText = "新开 Warp tab 并粘贴 kimi", kind = "agent", value = "kimi" },
-  { text = "Warp Agent", subText = "新开 Warp tab 并放置 Warp Agent 占位命令", kind = "agent", value = "warp-agent" },
+  { text = "Codex CLI", subText = "新开终端标签页并粘贴 codex --disable apps", kind = "agent", value = "codex" },
+  { text = "Claude Code", subText = "新开终端标签页并粘贴 claude", kind = "agent", value = "claude" },
+  { text = "Junie", subText = "新开终端标签页并粘贴 junie", kind = "agent", value = "junie" },
+  { text = "Gemini CLI", subText = "新开终端标签页并粘贴 gemini", kind = "agent", value = "gemini" },
+  { text = "Kimi CLI", subText = "新开终端标签页并粘贴 kimi", kind = "agent", value = "kimi" },
+  { text = "Warp Agent", subText = "新开终端标签页并放置 Warp Agent 占位命令", kind = "agent", value = "warp-agent" },
   { text = "Codex App", subText = "打开 Codex App", kind = "agent", value = "codex-app" },
 }
 
 local toolChoices = {
   { text = "Open Last Output", subText = "打开 cache/last-output.md", kind = "tool", value = "last-output" },
   { text = "Open Last Error", subText = "打开最近一次错误日志", kind = "tool", value = "last-error" },
-  { text = "Provider Status", subText = "查看 Kimi/Gemini/Codex/Claude/Junie 状态", kind = "tool", value = "provider-status" },
+  { text = "Provider Status", subText = "查看 providers/ 下每个 provider 的状态", kind = "tool", value = "provider-status" },
   { text = "Open AI Router Config", subText = "打开 ~/.config/ai-router", kind = "tool", value = "config" },
   { text = "Open Prompt Folder", subText = "打开 prompts 目录", kind = "tool", value = "prompts" },
   { text = "Open Logs", subText = "打开 logs 目录", kind = "tool", value = "logs" },
@@ -257,7 +428,7 @@ local function stateKey(kind, value)
 end
 
 local function loadUsageItems()
-  local data = readJsonArray(stateDir .. "/usage.json")
+  local data = readJsonArray(statePath("usage.json"))
   if not data or type(data.items) ~= "table" then
     return {}
   end
@@ -265,7 +436,7 @@ local function loadUsageItems()
 end
 
 local function loadFavoriteSet()
-  local data = readJsonArray(stateDir .. "/favorites.json")
+  local data = readJsonArray(statePath("favorites.json"))
   local set = {}
   if not data or type(data.items) ~= "table" then
     return set
@@ -355,7 +526,7 @@ local function rankChoices(choices)
 end
 
 local function loadPromptBindings()
-  local records = readJsonArray(catalogsDir .. "/hotkeys.json")
+  local records = readJsonArray(catalogPath("hotkeys.json"))
   if not records then
     return fallbackPromptBindings
   end
@@ -395,7 +566,7 @@ local function promptChoices()
 end
 
 local function loadAgentChoicesFromCatalog()
-  local records = readJsonArray(catalogsDir .. "/agents.json")
+  local records = readJsonArray(catalogPath("agents.json"))
   if not records then
     return nil
   end
@@ -437,7 +608,7 @@ local function loadAgentChoices()
 end
 
 local function loadPaletteChoices()
-  local records = readJsonArray(catalogsDir .. "/palette.json")
+  local records = readJsonArray(catalogPath("palette.json"))
   if not records then
     return nil
   end
@@ -486,15 +657,33 @@ local function toggleFavorite(choice)
   runRouter({ "favorite", "toggle", choice.kind, choice.value, title })
 end
 
+-- render: instant, the result is the clipboard, the router notifies.
+-- run: seconds long and spends a model call, so this side owns the whole
+-- story - "Running ..." now, the answer (or the failure) when it lands. The
+-- router is told to stay quiet so there is exactly one notification per state.
+local function startPromptRun(prompt, title)
+  title = stripCatalogPrefix(title or prompt)
+  notify("AI Router", "Running " .. title .. " ...")
+  runRouterAfterModifiersReleased({ "run", prompt, "--from", "selection", "--quiet" }, {
+    doneTitle = "AI Router · " .. title,
+    doneMessage = "Done, copied to clipboard",
+    failTitle = "AI Router failed · " .. title,
+  })
+end
+
 local function executeChoice(choice)
   if not choice then
     return
   end
 
   if choice.kind == "prompt" then
-    runRouterAfterModifiersReleased({ "render", choice.value })
+    if runGestureHeld() then
+      startPromptRun(choice.value, choice.title or choice.text)
+    else
+      runRouterAfterModifiersReleased({ "render", choice.value, "--from", "selection" })
+    end
   elseif choice.kind == "snippet" then
-    runRouterAfterModifiersReleased({ "snippet", choice.value })
+    runRouterAfterModifiersReleased({ "snippet", choice.value, "--from", "selection" })
   elseif choice.kind == "skill" then
     runRouterAfterModifiersReleased({ "skill", choice.value })
   elseif choice.kind == "plugin" then
@@ -508,7 +697,7 @@ end
 
 local function showPalette()
   paletteChooser = hs.chooser.new(executeChoice)
-  paletteChooser:placeholderText("AI Router")
+  paletteChooser:placeholderText("AI Router - Enter copies the prompt, Shift+Enter runs it")
   paletteChooser:searchSubText(true)
   pcall(function() paletteChooser:width(chooserWidth) end)
   pcall(function() paletteChooser:rows(chooserRows) end)
@@ -535,9 +724,16 @@ end
 for _, binding in ipairs(loadPromptBindings()) do
   local key = binding.key
   local prompt = binding.prompt
+  local title = binding.title or binding.prompt
 
   hs.hotkey.bind(hyper, key, function()
-    runRouterAfterModifiersReleased({ "render", prompt })
+    -- Hyper + key       -> render the prompt to the clipboard (unchanged).
+    -- Hyper + Shift + key -> send it to a provider and notify with the answer.
+    if runGestureHeld() then
+      startPromptRun(prompt, title)
+    else
+      runRouterAfterModifiersReleased({ "render", prompt, "--from", "selection" })
+    end
   end)
 end
 
