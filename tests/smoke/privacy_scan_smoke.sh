@@ -2,6 +2,14 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Without ripgrep every assert_no_matches below exits 127, which used to fall
+# through as "no matches" and pass the whole secret scan vacuously.
+if ! command -v rg >/dev/null 2>&1; then
+  printf 'ripgrep (rg) is required by this scan: brew install ripgrep\n' >&2
+  exit 1
+fi
+
 python_cache_dir="$(mktemp -d)"
 tmp_scan_root="$(mktemp -d)"
 abs_path_matches_file="$tmp_scan_root/absolute-path-matches.txt"
@@ -25,14 +33,16 @@ assert_no_matches() {
 
   local output status=0
   output="$(rg -n -P --hidden --glob '!.git/*' -e "$pattern" "$@" 2>&1)" || status=$?
-  if [[ "$status" -eq 2 ]]; then
-    printf '%s\n' "$output" >&2
-    printf 'Failed to run privacy scan command for pattern.\n' >&2
-    return 1
-  fi
   if [[ "$status" -eq 0 ]]; then
     printf '%s\n' "$output" >&2
     printf '%s\n' "$message" >&2
+    return 1
+  fi
+  # Only 1 means "searched successfully, found nothing". Anything else (2 for a
+  # bad pattern, 127 for a missing rg) must fail loudly rather than pass as clean.
+  if [[ "$status" -ne 1 ]]; then
+    printf '%s\n' "$output" >&2
+    printf 'Privacy scan command failed with status %s; treating as a failure.\n' "$status" >&2
     return 1
   fi
 }

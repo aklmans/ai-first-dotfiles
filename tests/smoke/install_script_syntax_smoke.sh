@@ -3,6 +3,12 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# A missing rg makes the assertions below pass vacuously instead of failing.
+if ! command -v rg >/dev/null 2>&1; then
+  printf 'ripgrep (rg) is required by this smoke test: brew install ripgrep\n' >&2
+  exit 1
+fi
+
 check_script() {
   local script="$1"
   bash -n "$script"
