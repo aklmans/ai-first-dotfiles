@@ -3,23 +3,21 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 
-export AI_PROVIDER="claude"
-export AI_MODEL="sonnet"
-
+# Package-manager mirrors (Go, pub/Flutter, npm, rustup, PyPI) are deliberately
+# not set here. Redirecting where somebody else's toolchain downloads from is
+# not a default a dotfiles repo gets to pick for them: it is invisible, it
+# changes what code lands on the machine, and outside the one region it was
+# chosen for it is slower, not faster. Set yours in private.zsh instead;
+# private.zsh.example has the ones this repo used to hard-code.
 export GO111MODULE=on
-export GOPROXY="https://goproxy.cn"
 export GOPATH="$HOME/.local/share/go"
 export GOBIN="$GOPATH/bin"
 unset GOSRC GOPKG
 
-# export RUSTUP_DIST_SERVER="https://rsproxy.cn/rustup"
-# export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
 export RUSTUP_DIST_SERVER="https://static.rust-lang.org"
 export RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup"
 
 export BUN_INSTALL="$HOME/.bun"
-export PUB_HOSTED_URL="https://pub.flutter-io.cn"
-export FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
 
 export EDITOR="nvim"
 export VISUAL="nvim"
@@ -57,5 +55,6 @@ path=(${path:#$HOME/.nvm/versions/node/*/bin})
 
 export PATH
 
-# Local/private overrides and secrets.
-[[ -f "$ZDOTDIR/private.zsh" ]] && source "$ZDOTDIR/private.zsh"
+# private.zsh used to be sourced from here. It is now the last thing .zshrc
+# does, so an override in it wins over every file this repo ships rather than
+# being undone by the aliases and functions loaded after this one.

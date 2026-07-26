@@ -1,0 +1,64 @@
+# Machine-local zsh overrides: copy this file to private.zsh and edit it.
+#
+#     cp ~/.config/zsh/private.zsh.example ~/.config/zsh/private.zsh
+#
+# private.zsh is git-ignored and never deployed, so nothing here is published
+# and no update of this repo can overwrite it. It is sourced as the last line of
+# .zshrc, after env.zsh, plugins, aliases and functions, so anything set here
+# wins over everything this repo ships.
+#
+# Most of what follows used to be hard-coded in the deployed config. It was
+# moved here because it is true for one machine, not for everyone who clones
+# this repo. Uncomment what you actually want.
+
+# --- proxy ------------------------------------------------------------------
+# Used by the proxy/unproxy helpers in aliases.zsh. 7890 is the local port
+# Clash and Mihomo listen on by default; yours may differ.
+# export PROXY_URL="http://127.0.0.1:7890"
+# export PROXY_SOCKS_URL="socks5://127.0.0.1:7890"
+
+# --- package-manager mirrors ------------------------------------------------
+# Mirrors are deliberately absent from the deployed config: they silently change
+# where a toolchain downloads code from, which is not a default this repo may
+# pick for a stranger. These are the China mirrors it used to set for everyone.
+# export GOPROXY="https://goproxy.cn,direct"
+# export PUB_HOSTED_URL="https://pub.flutter-io.cn"
+# export FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
+# export RUSTUP_DIST_SERVER="https://rsproxy.cn"
+# export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+# export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+
+# --- where this repo is checked out -----------------------------------------
+# The `dotfiles` helper cds here. The default is $HOME/Workspace/Projects/
+# ai-first-dotfiles; set this if your clone lives somewhere else.
+# export DOTFILES_DIR="$HOME/code/ai-first-dotfiles"
+
+# --- workspace roots --------------------------------------------------------
+# aliases.zsh derives workspace/projects/workflow from these.
+# export WORKFLOW_WORKSPACE_DIR="$HOME/Workspace"
+# export WORKFLOW_PROJECTS_DIR="$WORKFLOW_WORKSPACE_DIR/Projects"
+# export WORKFLOW_DIR="$WORKFLOW_PROJECTS_DIR/workflow"
+
+# --- JetBrains launcher shortcuts -------------------------------------------
+# These call scripts in ~/.jetbrains that this repo does not ship. Generate them
+# from JetBrains Toolbox (Settings -> Shell scripts) before uncommenting.
+# alias gl="$HOME/.jetbrains/gl"
+# alias wb="$HOME/.jetbrains/web"
+# alias ide="$HOME/.jetbrains/idea"
+# alias it="$HOME/.jetbrains/idea"
+# alias ph="$HOME/.jetbrains/ps"
+# alias rr="$HOME/.jetbrains/rr"
+
+# --- secrets ----------------------------------------------------------------
+# Tokens belong here rather than in any tracked file.
+# export SOME_API_KEY="..."
+
+# --- login-shell blocks (put these in private.zprofile, not here) ------------
+# Vendor CLIs that patch your login shell write into ~/.config/zsh/.zprofile,
+# which this repo deploys and can therefore replace. Move such blocks to
+# ~/.config/zsh/private.zprofile, which .zprofile sources and nothing overwrites:
+#
+#   [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zprofile.pre.zsh" ]] \
+#     && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zprofile.pre.zsh"
+#   [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zprofile.post.zsh" ]] \
+#     && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zprofile.post.zsh"

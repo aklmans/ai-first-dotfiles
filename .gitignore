@@ -62,6 +62,11 @@ home/.config/ai-router/logs/
 **/logs/
 **/state/
 home/.config/zsh/private.zsh
+home/.config/zsh/private.zprofile
+# personal.zsh was shipped empty and deployed, so every update overwrote
+# whatever had been written into it. It is no longer tracked or deployed;
+# private.zsh is the file that survives updates.
+home/.config/zsh/personal.zsh
 !templates/gbrain/.env.local.example
 !templates/gbrain/*.example.toml
 **/__pycache__/
