@@ -15,6 +15,7 @@ tmp_scan_root="$(mktemp -d)"
 abs_path_matches_file="$tmp_scan_root/absolute-path-matches.txt"
 sensitive_file_names_file="$tmp_scan_root/sensitive-file-names.txt"
 runtime_dir_matches_file="$tmp_scan_root/runtime-dirs.txt"
+karabiner_lint_file="$tmp_scan_root/karabiner.json.lint"
 trap 'rm -rf "$python_cache_dir" "$tmp_scan_root"' EXIT
 scan_targets=(
   "$repo_root/home"
@@ -139,7 +140,7 @@ if [ -s "$runtime_dir_matches_file" ]; then
 fi
 
 # JSON/Python sanity checks
-python3 -m json.tool "$repo_root/home/.config/karabiner/karabiner.json" >/tmp/karabiner.json.lint
+python3 -m json.tool "$repo_root/home/.config/karabiner/karabiner.json" >"$karabiner_lint_file"
 PYTHONDONTWRITEBYTECODE=1 \
 PYTHONPYCACHEPREFIX="$python_cache_dir" \
 python3 -m py_compile "$repo_root/home/.config/ai-router/lib/router_tools.py"

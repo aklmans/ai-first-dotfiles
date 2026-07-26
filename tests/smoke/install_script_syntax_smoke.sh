@@ -22,7 +22,10 @@ check_script() {
 }
 
 check_readme_install_scripts_executable() {
-  local tmp_file="/tmp/readme_install_scripts.$$"
+  # mktemp, not a predictable /tmp name: a shared machine could pre-create or
+  # symlink the fixed path and steer what this check reads.
+  local tmp_file
+  tmp_file="$(mktemp "${TMPDIR:-/tmp}/readme-install-scripts.XXXXXX")"
   local script_path
 
   rg -o '\./bootstrap/[A-Za-z0-9._/-]+\.sh' "$repo_root/README.md" | sort -u > "$tmp_file" || true
