@@ -77,8 +77,8 @@ require_file home/.config/zsh/env.zsh
 require_file home/.config/zsh/plugins.zsh
 require_file home/.config/zsh/aliases.zsh
 require_file home/.config/zsh/functions.zsh
-require_file home/.config/zsh/personal.zsh
 require_file home/.config/zsh/codex-widget.zsh
+require_file home/.config/zsh/private.zsh.example
 require_file home/.config/zsh/completions/_openclaw
 
 require_file home/.config/ai-router/ai-router.sh
@@ -151,8 +151,11 @@ require_file tests/smoke/install_script_side_effects_smoke.sh
 require_file tests/smoke/install_deploy_smoke.sh
 require_file tests/smoke/privacy_scan_smoke.sh
 require_file tests/smoke/deploy_engine_smoke.sh
+require_file tests/smoke/orchestration_smoke.sh
+require_file tests/smoke/shell_layer_smoke.sh
 
 require_absent bootstrap/macos
+require_absent home/.config/zsh/personal.zsh
 require_absent examples/macos-defaults/disk.sh
 require_absent examples/macos-defaults/launch_services.sh
 require_absent home/.config/skhd
