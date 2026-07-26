@@ -40,6 +40,13 @@ Environment:
 EOF
 }
 
+# Exit code 3 from a module means "some paths were skipped, nothing was
+# overwritten" — a symlinked target another tool owns. That is a report, not a
+# failure, and it must not stop the remaining modules: the users who symlink
+# their dotfiles are exactly the ones who would otherwise get a half install.
+# General module-failure tolerance is a separate concern and still pending.
+skipped_modules=0
+
 run_cmd() {
   printf '+'
   printf ' %q' "$@"
@@ -49,7 +56,21 @@ run_cmd() {
     return 0
   fi
 
-  "$@"
+  local status=0
+  "$@" || status=$?
+
+  if [[ "$status" -eq 3 ]]; then
+    skipped_modules=$((skipped_modules + 1))
+    return 0
+  fi
+
+  return "$status"
+}
+
+report_skipped_modules() {
+  [[ "$skipped_modules" -gt 0 ]] || return 0
+  printf '\n%s module(s) left some paths untouched; see the notes above.\n' "$skipped_modules" >&2
+  printf 'Nothing there was overwritten. Re-run with DOTFILES_FORCE=1 to replace them.\n' >&2
 }
 
 module_flags() {
@@ -266,3 +287,5 @@ for profile in "${profiles[@]}"; do
       ;;
   esac
 done
+
+report_skipped_modules
