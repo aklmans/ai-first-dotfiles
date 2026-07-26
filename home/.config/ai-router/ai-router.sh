@@ -465,22 +465,22 @@ short_error() {
   printf '%s' "$error" | tr '\r\n' ' ' | cut -c 1-180
 }
 
-provider_command_name() {
-  case "$1" in
-    kimi) printf '%s\n' kimi ;;
-    gemini) printf '%s\n' gemini ;;
-    claude) printf '%s\n' claude ;;
-    codex) printf '%s\n' codex ;;
-    junie) printf '%s\n' junie ;;
-    *) return 1 ;;
-  esac
+provider_names() {
+  local path name
+  for path in "$providers_dir"/*.sh; do
+    [ -x "$path" ] || continue
+    name="${path##*/}"
+    printf '%s\n' "${name%.sh}"
+  done
 }
 
+# A provider is whatever has an executable adapter in providers/. Whether the
+# underlying CLI exists is the adapter's own business, reported via
+# --health-check (see provider_healthy). Do not reintroduce a name whitelist
+# here: it would make dropping in a new provider script impossible.
 provider_available() {
   local provider="$1"
-  local command_name
-  command_name="$(provider_command_name "$provider" 2>/dev/null || true)"
-  [ -n "$command_name" ] && command -v "$command_name" >/dev/null 2>&1 && [ -x "$providers_dir/$provider.sh" ]
+  [ -n "$provider" ] && [ -x "$providers_dir/$provider.sh" ]
 }
 
 provider_healthy() {
@@ -1111,22 +1111,22 @@ palette_data() {
 }
 
 provider_status_text() {
-  local provider command_name status script_status
+  local provider status found=0
   printf '# AI Router Provider Status\n\n'
-  for provider in kimi gemini codex claude junie; do
-    command_name="$(provider_command_name "$provider" 2>/dev/null || true)"
-    if [ -n "$command_name" ] && command -v "$command_name" >/dev/null 2>&1; then
-      status="$(command -v "$command_name")"
+  while IFS= read -r provider; do
+    [ -n "$provider" ] || continue
+    found=1
+    if "$providers_dir/$provider.sh" --health-check >/dev/null 2>&1; then
+      status="ready"
     else
-      status="missing"
+      status="unavailable (CLI missing or health check failed)"
     fi
-    if [ -x "$providers_dir/$provider.sh" ]; then
-      script_status="adapter: yes"
-    else
-      script_status="adapter: missing"
-    fi
-    printf -- '- %s: %s (%s)\n' "$provider" "$status" "$script_status"
-  done
+    printf -- '- %s: %s\n' "$provider" "$status"
+  done < <(provider_names)
+
+  if [ "$found" -eq 0 ]; then
+    printf -- '- no executable adapters found in %s\n' "$providers_dir"
+  fi
 }
 
 run_tool() {
