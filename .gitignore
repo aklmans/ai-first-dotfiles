@@ -65,6 +65,11 @@ home/.config/zsh/private.zsh
 !templates/gbrain/.env.local.example
 !templates/gbrain/*.example.toml
 **/__pycache__/
+*.pyc
+
+# macOS writes bytecode and app caches here. The patterns above do not catch it:
+# they match lowercase "cache", not Apple's "Caches".
+home/Library/Caches/
 
 ### Obsolete modules / local tool state
 home/.config/skhd/
