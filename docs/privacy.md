@@ -37,10 +37,10 @@ The following directories are excluded by design and are not tracked:
 Use private overrides:
 
 - `home/.config/zsh/private.zsh` (private local shell vars, if needed)
-- `templates/gbrain/.env.local.example` and `templates/gbrain/codex-config.example.toml` as templates only
+- `home/.config/ai-router/.env.local.example` as a template only
 
-`templates/gbrain/.env.local.example` and `templates/gbrain/codex-config.example.toml` are placeholders.
-Copy and fill them to your private local location; never commit filled versions.
+Every `*.example` file here is a placeholder.
+Copy and fill it at your private local location; never commit a filled version.
 
 ## Excluded legacy and deprecated modules
 
@@ -52,6 +52,24 @@ The following are excluded from this repository by design:
 - `home/.config/oh-my-posh`
 - `bootstrap/install/warp-launch-agent.sh`
 - `home/.config/aerospace/warp-launch-agent.sh`
+- `bootstrap/install/gbrain.sh` and `templates/gbrain/` — cloned a private
+  repository and required a toolchain nothing else here uses, so it could never
+  have run for anyone outside that account
+
+## Personal inventories
+
+App Store manifests are the easiest place for a machine snapshot to survive a
+review, because a bundle id does not look like personal data until you read the
+list. `manifests/app-store/mas-default.txt` therefore ships empty, and
+`bootstrap/app-store.sh` prints what it is about to install and asks first.
+`manifests/app-store/mas-personal.example.txt` is one person's list, kept as a
+format example and never read by any script.
+
+Karabiner configuration deserves the same care in the other direction:
+`home/.config/karabiner/karabiner.json` carries `vendor_id`/`product_id` pairs
+identifying the exact keyboards a person owns. The tracked copy has none, and
+the install module deploys a complex-modifications asset rather than the
+profile. `tests/smoke/privacy_scan_smoke.sh` asserts both.
 
 ## Screenshot safety
 

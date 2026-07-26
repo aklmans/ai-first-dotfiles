@@ -7,6 +7,17 @@ repo_root_dir() {
   printf '%s\n' "$script_dir"
 }
 
+# Apple Silicon, including a shell running under Rosetta. `uname -m` alone reports
+# x86_64 there, which would reject a supported machine for the sake of how one
+# terminal happens to be launched, so the hardware flag is asked first.
+is_apple_silicon() {
+  if [[ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" == "1" ]]; then
+    return 0
+  fi
+
+  [[ "$(uname -m 2>/dev/null || true)" == "arm64" ]]
+}
+
 # Fail fast on a missing toolchain. Without this the first module script to need
 # Homebrew dies with a bare `command not found`, several screens into an install
 # the user cannot tell apart from a real bug.
@@ -23,6 +34,17 @@ require_prerequisites() {
   local -a problems
   local problem
   problems=()
+
+  # First, because it is the one problem on this list that cannot be fixed by
+  # installing something. 48 paths across the desktop layer - AeroSpace's
+  # exec-and-forget, Hammerspoon's module search path, the SketchyBar plugins -
+  # name /opt/homebrew directly, and Intel Homebrew lives at /usr/local. On an
+  # Intel Mac the install therefore succeeds, reports nothing, and leaves a
+  # desktop layer where nothing is wired to anything. Refusing up front is the
+  # honest version of that.
+  if ! is_apple_silicon; then
+    problems+=('This setup supports Apple Silicon only. It hard-codes the /opt/homebrew prefix in the AeroSpace, Hammerspoon and SketchyBar layers, which would silently do nothing on an Intel Mac.')
+  fi
 
   if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
     problems+=('Xcode Command Line Tools are missing. Install them: xcode-select --install')
@@ -41,9 +63,9 @@ require_prerequisites() {
   fi
 
   if [[ "$mode" == "warn" ]]; then
-    printf 'Note: prerequisites are missing. This preview still works, but installing will not.\n\n' >&2
+    printf 'Note: this machine does not meet the prerequisites. This preview still works, but installing will not.\n\n' >&2
   else
-    printf 'Cannot bootstrap: missing prerequisites.\n\n' >&2
+    printf 'Cannot bootstrap: this machine does not meet the prerequisites.\n\n' >&2
   fi
 
   for problem in ${problems[@]+"${problems[@]}"}; do

@@ -1,0 +1,39 @@
+# Example App Store manifest.
+#
+# This is the maintainer's own list, kept as a worked example of the format.
+# Nothing here is installed by anything in this repository: bootstrap/app-store.sh
+# only ever reads mas-default.txt and mas-large.txt.
+#
+# To use it as a starting point:
+#
+#   cp manifests/app-store/mas-personal.example.txt manifests/app-store/mas-default.txt
+#   $EDITOR manifests/app-store/mas-default.txt
+#
+# Then delete the lines you do not want. Most of these are paid apps, several are
+# region-specific, and one is printer software. Read the list before you copy it.
+#
+# Format: <bundle id><TAB><display name>. Lines starting with # are ignored.
+# Find the bundle id of an app you already have with: mas list
+
+QReader.MarginStudy.easy	MarginNote 4
+app.spokenly	Spokenly
+cn.better365.AutoSwitchInputPro	AutoSwitchInput Pro
+cn.better365.iRightMousePro	iRightMouse Pro
+cn.better365.iShotPro	iShot Pro
+com.bandisoft.mac.bandizip	Bandizip
+com.criminalbird.typeface	Typeface
+com.culturedcode.ThingsMac	Things3
+com.hp.SmartMac	HP Smart
+com.kingsoft.wpsoffice.mac	WPS Office
+com.linnk.Linnk	Cubox
+com.lukilabs.lukiapp	Craft
+com.mac.utility.screen.recorder	OmniRecorder
+com.mac.utility.video.player.PotPlayerX	PotPlayerX
+com.nara.gifCreator	GIFfun
+com.renfei.SnippetsLab	SnippetsLab
+com.tinyapp.TablePlus	TablePlus
+com.zykloid.Posterino4	Posterino
+cool.eagle.extension	Eagle for Safari
+de.ixeau.CursorPro	Cursor Pro
+mobi.musicparadise.AudioEditorMac	Audio Editor
+org.zrey.metion	Metion

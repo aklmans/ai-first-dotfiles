@@ -26,7 +26,6 @@ Profiles:
   ai            AI Workflow Router
   media         mpv
   app-store     App Store apps from manifests/app-store
-  gbrain        Optional local GBrain setup
   deploy        Deploy all tracked config without package installation
 
 Deliberately not part of "all":
@@ -36,6 +35,9 @@ Deliberately not part of "all":
   extras    BetterTouchTool is free for 45 days and paid after that; Warp is
             closed source and asks you to sign in. Nothing else here depends on
             either: ./bootstrap/setup.sh extras
+  app-store Nothing here needs an App Store app, and the manifests ship empty.
+            Fill in manifests/app-store/mas-default.txt first, then ask for it:
+            ./bootstrap/setup.sh app-store
 
 Options:
   --no-brew       Skip Homebrew commands where possible.
@@ -46,8 +48,14 @@ Options:
                   would be written. Nothing is executed.
   -h, --help      Show this help.
 
+Requires an Apple Silicon Mac. The desktop layer hard-codes the /opt/homebrew
+prefix, so an Intel install would finish without an error and leave nothing
+wired up; this refuses before it writes anything instead. --dry-run still
+previews on any machine.
+
 Environment:
-  DOTFILES_SKIP_PREFLIGHT=1  Skip the brew/git/Xcode CLT prerequisite check.
+  DOTFILES_SKIP_PREFLIGHT=1  Skip the Apple Silicon, brew, git and Xcode CLT
+                             prerequisite checks.
   DOTFILES_FORCE=1           Replace symlinked targets and local changes,
                              backing up whatever is replaced.
 
@@ -378,14 +386,6 @@ profile_app_store() {
   run_cmd "$repo_root/bootstrap/app-store.sh"
 }
 
-profile_gbrain() {
-  if [[ "$deploy_only" -eq 1 ]]; then
-    printf 'Skipping GBrain profile in deploy-only mode.\n'
-    return 0
-  fi
-  run_cmd "$repo_root/bootstrap/install/gbrain.sh"
-}
-
 # Deploying installs nothing, so this covers every tracked config including the
 # layers "all" leaves out. Somebody who opted into the shell layer or the extras
 # still gets their config refreshed by a plain `setup.sh deploy`.
@@ -491,9 +491,6 @@ for profile in "${profiles[@]}"; do
       ;;
     app-store)
       profile_app_store
-      ;;
-    gbrain)
-      profile_gbrain
       ;;
     deploy)
       profile_deploy

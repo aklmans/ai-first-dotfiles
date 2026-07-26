@@ -23,21 +23,34 @@
 - Shifter 符号转换
 - 大量应用启动器
 
-## 备份
+## 安装方式
 
-备份文件：
+这套键位以 complex modification 规则包的形式发布，安装是**追加**，不覆盖你现有的
+Karabiner 配置：
 
-`$HOME/.config/karabiner/karabiner.json.backup-ai-lite-<timestamp>`
+```text
+~/.config/karabiner/assets/complex_modifications/capslock-ai-lite.json
+```
 
-## Profile
+`./bootstrap/install/karabiner.sh` 只写这一个文件。你的 `karabiner.json`
+（profile、设备设置、已启用的规则）不会被读写。
 
-新增 profile：
+启用：
 
-`CapsLock AI Lite`
+```text
+Karabiner-Elements -> Complex Modifications -> Add rule
+-> "CapsLock AI Lite (ai-first-dotfiles)" -> Enable All
+```
 
-原 `Default profile` 已保留。当前配置已将 `CapsLock AI Lite` 设为 selected。
+规则默认**不自动启用**。启用某条规则会重写 Karabiner 正在运行的 profile，
+那是键盘驱动的活配置，只能由你自己在 GUI 里确认。
 
-如果需要回滚，打开 Karabiner-Elements -> Profiles，切回 `Default profile`。
+## 回滚
+
+在同一个界面里 Remove 掉对应规则即可，你原来的 profile 一直没被动过。
+
+仓库里的 `home/.config/karabiner/karabiner.json` 是这套规则生成的 profile 的
+**参考副本**，不参与部署。它不含任何设备 id，因此对所有键盘生效。
 
 ## Hyper 定义
 

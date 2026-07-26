@@ -289,7 +289,7 @@ undo_gui_path() {
   fi
 
   uid="$(id -u)"
-  label="com.aklman.gui-path"
+  label="com.ai-first-dotfiles.gui-path"
   plist="$HOME/Library/LaunchAgents/$label.plist"
 
   if [[ -f "$plist" ]]; then

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Makes Homebrew binaries visible to GUI apps launched from Dock, Spotlight or
+  Finder, which inherit launchd's minimal PATH rather than an interactive shell.
+
+  The command reads the session PATH and prepends to it rather than replacing
+  it, so anything else that manages the GUI PATH keeps working, and it exits
+  early when Homebrew is already on it, so re-running is a no-op instead of
+  stacking duplicates.
+
+  Apple Silicon prefix. bootstrap/setup.sh refuses to install on Intel; see
+  require_prerequisites in bootstrap/lib/common.sh.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ai-first-dotfiles.gui-path</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>p="$(/bin/launchctl getenv PATH)"; case ":${p}:" in *:/opt/homebrew/bin:*) exit 0 ;; esac; /bin/launchctl setenv PATH "/opt/homebrew/bin:/opt/homebrew/sbin:${p:-/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin}"</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>

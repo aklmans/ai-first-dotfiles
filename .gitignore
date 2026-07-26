@@ -67,8 +67,7 @@ home/.config/zsh/private.zprofile
 # whatever had been written into it. It is no longer tracked or deployed;
 # private.zsh is the file that survives updates.
 home/.config/zsh/personal.zsh
-!templates/gbrain/.env.local.example
-!templates/gbrain/*.example.toml
+!home/.config/ai-router/.env.local.example
 **/__pycache__/
 *.pyc
 

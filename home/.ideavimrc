@@ -1,5 +1,5 @@
-""" Aklman 的 IdeaVim 配置 -------------------------
-""" https://github.com/aklmans/dotfiles
+""" IdeaVim 配置 -------------------------
+""" 来自 ai-first-dotfiles，随 ./bootstrap/install/ideavim.sh 部署。
 """
 
 

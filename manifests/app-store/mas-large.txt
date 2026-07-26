@@ -1,1 +1,3 @@
+# Large App Store downloads, asked for separately because they are measured in
+# gigabytes rather than megabytes. Same format as mas-default.txt.
 com.apple.dt.Xcode	Xcode

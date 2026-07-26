@@ -69,7 +69,6 @@ Designed for developers who want fast keyboard workflows, predictable multi-disp
 ├── bootstrap/      # Installers and bootstrap scripts
 │   └── install/    # Per-module install scripts
 ├── manifests/      # Package lists for optional App Store tooling
-├── templates/      # Credential/config templates (no secrets)
 ├── examples/       # Reference material that setup.sh never runs
 ├── tests/smoke/    # Repo-wide validation and privacy checks
 └── docs/           # Public documentation
@@ -161,7 +160,6 @@ Manual order, if you do not want to use `setup.sh`:
 
 ```bash
 ./bootstrap/install/mpv.sh        # optional
-./bootstrap/install/gbrain.sh     # optional (local-only template-based setup)
 ```
 
 #### 6. Validate
@@ -262,8 +260,7 @@ Full shortcut reference: [docs/shortcuts.md](docs/shortcuts.md)
 - This is a clean public snapshot rebuilt from a private configuration history.
 - Private runtime artifacts, history, and secrets are excluded via `.gitignore` and the public safety policy.
 - AI provider credentials are template-only placeholders — no real keys are tracked:
-  - `templates/gbrain/.env.local.example`
-  - `templates/gbrain/codex-config.example.toml`
+  - `home/.config/ai-router/.env.local.example`
 - Legacy modules intentionally dropped: `skhd`, `yabai`, `wezterm`, `oh-my-posh`.
 
 ---
