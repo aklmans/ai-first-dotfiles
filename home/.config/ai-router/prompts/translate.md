@@ -1,7 +1,7 @@
 ---
 id: translate
 title: Translate Selection
-description: 中英互译，保留技术术语、代码、命令和路径
+description: Two-way translation between English and Chinese, preserving technical terms, code, commands and paths
 category: writing
 hotkey: t
 priority: 30
@@ -16,36 +16,35 @@ aliases:
   - trans
   - bilingual
   - cn-en
-  - 翻译
-  - 中英互译
-  - 英译中
+  - en-zh
+  - zh-en
 keywords:
   - chinese
   - english
   - terminology
   - localization
-  - 技术翻译
-  - 术语
-  - 本地化
+  - technical-translation
+  - glossary
+  - bidirectional
 tags:
   - writing
   - translation
 ---
 
-请翻译下面内容。
+Translate the content below.
 
-要求：
+Requirements:
 
-1. 如果原文是英文，翻译为自然、准确的中文。
-2. 如果原文是中文，翻译为自然、专业的英文。
-3. 保留代码、命令、路径、变量名、专有名词。
-4. 技术术语处理：
-   - API、CLI、SDK、HTTP、JSON 等缩写保持英文
-   - 首次出现的术语用"中文（English）"格式
-   - 后续保持一致（全用中文或全用英文）
-5. 不要解释，只输出翻译结果。
+1. If the input is English, translate it into natural, professional Chinese.
+2. If the input is in any other language, translate it into natural, accurate English.
+3. Preserve code, commands, paths, variable names and proper nouns exactly as written.
+4. Terminology:
+   - Keep acronyms such as API, CLI, SDK, HTTP and JSON in English.
+   - On first use of a translated technical term, give it as `translation (Original)`.
+   - Stay consistent afterwards - do not alternate between the two forms.
+5. Output the translation only. No commentary.
 
-内容：
+Content:
 
 ```text
 {{selection}}

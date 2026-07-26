@@ -1,7 +1,7 @@
 ---
 id: terminal-error
 title: Terminal Error Analysis
-description: 分析终端错误并给出最小修复步骤
+description: Diagnose a terminal error and give the smallest fix that resolves it
 category: debugging
 priority: 260
 default_provider: claude
@@ -15,60 +15,58 @@ aliases:
   - shell-error
   - cli-error
   - command-error
-  - 终端错误
-  - 报错
-  - 命令报错
+  - stacktrace
+  - command-failed
 keywords:
   - stderr
   - exit-code
   - command-output
   - shell
   - minimal-fix
-  - 错误输出
-  - 退出码
-  - 最小修复
+  - destructive-command
+  - verification
 tags:
   - terminal
   - debugging
 ---
 
-请分析这个终端错误，并给出最小修复步骤。
+Diagnose this terminal error and give me the smallest fix that resolves it.
 
-系统信息：
-- 前台应用：{{frontmost_app}}
-- 日期：{{date}}
+System context:
+- Frontmost app: {{frontmost_app}}
+- Date: {{date}}
 
-要求：
+Requirements:
 
-1. 判断最可能根因（如果错误信息提到路径/命令，说明它们的作用）。
-2. 给出最小验证命令（用于确认根因）。
-3. 给出最小修复步骤。
-4. 明确哪些操作有破坏性（如 `rm -rf`、`--force`），标记为 ⚠️。
-5. 给出如何确认修复成功。
+1. Identify the most likely root cause. If the error names a path or a command, say what it is for.
+2. Give the smallest command that confirms the root cause.
+3. Give the smallest fix.
+4. Mark any destructive step (`rm -rf`, `--force`, anything that overwrites) with a warning sign.
+5. Say how I confirm the fix worked.
 
-输出格式：
+Output format:
 
-## 根因
-最可能原因
+## Root cause
+The most likely explanation
 
-## 验证
+## Verify
 ```bash
-# 运行这个命令确认根因
+# run this to confirm the root cause
 command
 ```
 
-## 修复
+## Fix
 ```bash
-# 步骤 1
+# step 1
 command
-# 步骤 2（⚠️ 破坏性操作）
+# step 2 (destructive - review before running)
 command
 ```
 
-## 确认成功
-重新运行原命令，预期输出：...
+## Confirm
+Re-run the original command. Expected output: ...
 
-命令和输出：
+Command and output:
 
 ```text
 {{selection}}

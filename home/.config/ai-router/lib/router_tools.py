@@ -332,9 +332,9 @@ def agent_description(config: dict, agent: dict) -> str:
     behavior = agent.get("behavior") or ""
     command = agent.get("command") or ""
     if behavior == "open_app":
-        return f"打开 {label}"
+        return f"Open {label}"
     if behavior in PASTE_BEHAVIORS:
-        return f"在 {terminal_app(config)} 新开标签页并粘贴 {command}"
+        return f"Open a new {terminal_app(config)} tab and paste {command}"
     return command
 
 
@@ -364,14 +364,14 @@ def agent_catalog(config: dict):
 
 def tool_catalog():
     tools = [
-        ("last-output", "Open Last Output", "打开 cache/last-output.md"),
-        ("last-error", "Open Last Error", "打开最近一次错误日志"),
-        ("provider-status", "Provider Status", "查看 providers/ 下每个 provider 的状态"),
-        ("config", "Open AI Router Config", "打开 ~/.config/ai-router"),
-        ("prompts", "Open Prompt Folder", "打开 prompts 目录"),
-        ("snippets", "Open Snippet Folder", "打开 snippets 目录"),
-        ("logs", "Open Logs", "打开 logs 目录"),
-        ("index", "Rebuild Catalog Index", "重新生成 catalogs/*.json"),
+        ("last-output", "Open Last Output", "Open cache/last-output.md"),
+        ("last-error", "Open Last Error", "Open the most recent error log"),
+        ("provider-status", "Provider Status", "Report the status of every adapter in providers/"),
+        ("config", "Open AI Router Config", "Open ~/.config/ai-router"),
+        ("prompts", "Open Prompt Folder", "Open the prompts directory"),
+        ("snippets", "Open Snippet Folder", "Open the snippets directory"),
+        ("logs", "Open Logs", "Open the logs directory"),
+        ("index", "Rebuild Catalog Index", "Regenerate catalogs/*.json"),
     ]
     return [
         {

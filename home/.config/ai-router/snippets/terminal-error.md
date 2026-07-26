@@ -1,24 +1,23 @@
 ---
 id: terminal-error
 title: Terminal Error
-description: 终端错误分析模板，输出根因、修复命令和验证方式
+description: Terminal error template - root cause, fix command and how to verify it
 category: debugging
 priority: 390
 aliases:
   - terminal
   - shell-error
   - cli-error
-  - 终端错误
-  - 命令报错
+  - command-error
+  - stacktrace
 keywords:
   - stderr
   - exit-code
   - command
   - minimal-fix
   - verification
-  - 错误输出
-  - 退出码
-  - 最小修复
+  - destructive-command
+  - shell
 tags:
   - snippet
   - terminal
@@ -27,17 +26,17 @@ tags:
 
 # Terminal Error
 
-请分析这个终端错误，并给出最小修复步骤。
+Diagnose this terminal error and give me the smallest fix that resolves it.
 
-## 命令和输出
+## Command and output
 
 ```text
 {{selection}}
 ```
 
-## 请按这个格式回答
+## Answer in this format
 
-1. 根因判断。
-2. 最可能的修复命令。
-3. 需要避免的破坏性操作。
-4. 如何验证修复成功。
+1. Root cause.
+2. The most likely fix command.
+3. Destructive operations to avoid.
+4. How to confirm the fix worked.

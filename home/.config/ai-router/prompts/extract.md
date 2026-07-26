@@ -1,7 +1,7 @@
 ---
 id: extract
 title: Extract Key Points
-description: 从输入中提取结论、待办、实体、风险和下一步
+description: Pull conclusions, todos, entities, risks and next steps out of the input
 category: reading
 hotkey: x
 priority: 70
@@ -16,52 +16,50 @@ aliases:
   - structure
   - parse
   - entities
-  - 提取
-  - 结构化
-  - 要点
+  - triage
+  - itemize
 keywords:
   - todo
   - action-items
   - risks
   - links
   - files
-  - 关键信息
-  - 待办事项
-  - 风险
+  - owners
+  - deadlines
 tags:
   - extraction
   - structure
 ---
 
-请从下面内容中提取结构化信息。
+Extract structured information from the content below.
 
-输出格式：
+Output format:
 
-## 关键结论
-- （1 行总结每个结论）
+## Key conclusions
+- (one line per conclusion)
 
-## 待办事项
-- [ ] 任务描述（负责人，截止时间）
+## Action items
+- [ ] Task description (owner, due date)
 
-## 涉及的人 / 项目 / 文件 / 链接
-- 人：@name
-- 项目：project-name
-- 文件：`path/to/file`
-- 链接：https://...
+## People / projects / files / links
+- Person: @name
+- Project: project-name
+- File: `path/to/file`
+- Link: https://...
 
-## 风险或不确定点
-- 风险描述（影响范围）
+## Risks and open questions
+- Risk description (what it affects)
 
-## 建议下一步
-- 具体可执行的操作
+## Suggested next steps
+- A concrete, executable action
 
-要求：
+Requirements:
 
-1. **不要编造**。如果某类信息不存在，写”未提及”。
-2. **保留重要数字、路径、命令、错误信息**。
-3. 待办事项用 `[ ]` 标记，方便复制到任务管理工具。
+1. **Do not invent anything.** If a section has no source material, write "Not mentioned".
+2. **Preserve important numbers, paths, commands and error messages** verbatim.
+3. Mark action items with `[ ]` so they paste straight into a task tracker.
 
-内容：
+Content:
 
 ```text
 {{selection}}

@@ -1,24 +1,23 @@
 ---
 id: sql-debug
 title: SQL Debug
-description: SQL 或数据库问题分析模板，关注意图、性能风险和最小修复
+description: SQL and database analysis template - intent, performance risk and the smallest fix
 category: debugging
 priority: 380
 aliases:
   - sql
   - database
   - db-debug
-  - SQL排查
-  - 数据库问题
+  - query-debug
+  - slow-query
 keywords:
   - query
   - performance
   - explain-plan
   - index
   - correctness
-  - 查询
-  - 性能
-  - 索引
+  - locking
+  - cardinality
 tags:
   - snippet
   - database
@@ -27,18 +26,18 @@ tags:
 
 # SQL Debug
 
-请分析下面 SQL 或数据库问题。
+Analyze the SQL or database problem below.
 
-## SQL / 报错
+## SQL / error
 
 ```sql
 {{selection}}
 ```
 
-## 请输出
+## Please output
 
-1. SQL 意图。
-2. 可能问题。
-3. 性能风险。
-4. 最小修复。
-5. 如何验证结果正确。
+1. What the SQL is trying to do.
+2. What could be wrong.
+3. Performance risks.
+4. The smallest fix.
+5. How to confirm the result is correct.

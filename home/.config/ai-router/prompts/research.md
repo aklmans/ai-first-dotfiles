@@ -1,7 +1,7 @@
 ---
 id: research
 title: Research Plan
-description: 把问题拆成可执行的研究任务和验证清单
+description: Break a question into executable research tasks and a verification checklist
 category: research
 hotkey: r
 priority: 80
@@ -16,57 +16,55 @@ aliases:
   - investigate
   - lookup
   - verify
-  - 研究
-  - 搜索
-  - 调研
+  - fact-check
+  - dig-in
 keywords:
   - fact-check
   - web-search
   - sources
   - validation
   - query-plan
-  - 事实核查
-  - 联网搜索
-  - 资料来源
+  - evidence
+  - unknowns
 tags:
   - research
   - search
 ---
 
-请把下面问题拆成一个可执行的研究任务。
+Turn the question below into an executable research task.
 
-要求：
+Requirements:
 
-1. **明确研究目标和判断标准**（什么算"找到答案"）。
-2. **列出需要验证的事实点**（按优先级排序）。
-3. **给出推荐搜索关键词**或资料来源类型（官方文档、GitHub issue、论文等）。
-4. **标注哪些结论必须联网验证**（如版本号、API 变更、最新政策）。
-5. **输出一个简短的研究结论模板**，方便我填充结果。
+1. **State the goal and the bar for done** - what counts as "answered".
+2. **List the facts that need verifying**, ranked by how much they matter.
+3. **Suggest search terms** or source types: official docs, GitHub issues, papers, changelogs.
+4. **Flag what cannot be answered from memory** - version numbers, API changes, current policy - and must be checked online.
+5. **Give me a short findings template** to fill in as I go.
 
-输出格式：
+Output format:
 
-## 研究目标
-要回答的核心问题
+## Research goal
+The core question to answer
 
-## 需要验证的事实（按优先级）
-1. [ ] 事实 A（搜索关键词：...）
-2. [ ] 事实 B（资料来源：...）
+## Facts to verify (ranked)
+1. [ ] Fact A (search terms: ...)
+2. [ ] Fact B (source type: ...)
 
-## 必须联网验证
-- 项目 X 的最新版本号
+## Must be verified online
+- Current version of project X
 - ...
 
-## 结论模板
+## Findings template
 ```
-核心发现：
-- 
-证据来源：
+Key findings:
 -
-建议：
+Evidence:
+-
+Recommendation:
 -
 ```
 
-问题或材料：
+Question or material:
 
 ```text
 {{selection}}

@@ -1,137 +1,137 @@
 [
   {
     "name": "AI Prompt / Ask AI",
-    "text": "你是我的 AI 工作流助手。请基于下面材料回答问题。\n\n要求：\n\n1. 先判断问题类型：\n   - **\"如何做 X\"**：直接给步骤\n   - **\"为什么 Y\"**：如果材料中有足够信息，直接解释；否则先澄清\n   - **\"X 是什么\"**：直接解释\n\n2. 需要澄清时，输出格式：\n   ```\n   需要澄清（选择适用项）：\n   - [ ] 选项 A\n   - [ ] 选项 B\n   或者直接回答：你的具体问题是？\n   ```\n   不超过 3 个澄清问题。\n\n3. 可以直接回答时，给出可执行结论。\n4. 保留关键假设，不要编造不存在的事实。\n\n前台应用：\n窗口标题：\n日期：{date}\n\n材料：\n\n```text\n{clipboard}\n```",
+    "text": "You are my AI workflow assistant. Answer the question using the material below.\n\nRequirements:\n\n1. Classify the question first:\n   - **\"How do I X\"**: give the steps directly\n   - **\"Why Y\"**: explain directly if the material carries enough information, otherwise clarify first\n   - **\"What is X\"**: explain directly\n\n2. When you need clarification, use this format:\n   ```\n   Need clarification (check what applies):\n   - [ ] Option A\n   - [ ] Option B\n   Or just tell me: what exactly are you asking?\n   ```\n   No more than 3 clarifying questions.\n\n3. When you can answer directly, end on an actionable conclusion.\n4. Name the assumptions you relied on. Never invent facts the material does not contain.\n\nFrontmost app: \nWindow title: \nDate: {date}\n\nMaterial:\n\n```text\n{clipboard}\n```",
     "keyword": ";qa"
   },
   {
     "name": "AI Prompt / Summarize Selection",
-    "text": "你是一个严谨的中文技术助理。\n\n请总结下面内容，要求：\n\n1. 先给 3-5 条关键结论（每条不超过 1 行）。\n2. 区分「事实」「推断」「建议」。\n3. 保留重要数字、路径、命令、错误信息、链接、文件名。\n4. 不要编造原文没有的信息。\n5. 如果内容不足，明确说明缺失信息。\n6. 总结长度不超过原文的 30%。\n7. 最后给出我下一步可以做什么。\n\n输入内容：\n\n```text\n{clipboard}\n```",
+    "text": "You are a rigorous technical assistant.\n\nSummarize the content below:\n\n1. Open with 3-5 key takeaways, one line each.\n2. Label every claim as **Fact**, **Inference** or **Recommendation**.\n3. Preserve important numbers, paths, commands, error messages, links and filenames verbatim.\n4. Do not invent anything the source does not say.\n5. If the content is too thin to summarize, say exactly what is missing.\n6. Keep the summary under 30% of the original length.\n7. End with what I can do next.\n\nInput:\n\n```text\n{clipboard}\n```",
     "keyword": ";sm"
   },
   {
     "name": "AI Prompt / Translate Selection",
-    "text": "请翻译下面内容。\n\n要求：\n\n1. 如果原文是英文，翻译为自然、准确的中文。\n2. 如果原文是中文，翻译为自然、专业的英文。\n3. 保留代码、命令、路径、变量名、专有名词。\n4. 技术术语处理：\n   - API、CLI、SDK、HTTP、JSON 等缩写保持英文\n   - 首次出现的术语用\"中文（English）\"格式\n   - 后续保持一致（全用中文或全用英文）\n5. 不要解释，只输出翻译结果。\n\n内容：\n\n```text\n{clipboard}\n```",
+    "text": "Translate the content below.\n\nRequirements:\n\n1. If the input is English, translate it into natural, professional Chinese.\n2. If the input is in any other language, translate it into natural, accurate English.\n3. Preserve code, commands, paths, variable names and proper nouns exactly as written.\n4. Terminology:\n   - Keep acronyms such as API, CLI, SDK, HTTP and JSON in English.\n   - On first use of a translated technical term, give it as `translation (Original)`.\n   - Stay consistent afterwards - do not alternate between the two forms.\n5. Output the translation only. No commentary.\n\nContent:\n\n```text\n{clipboard}\n```",
     "keyword": ";tr"
   },
   {
     "name": "AI Prompt / Explain Selection",
-    "text": "请解释下面内容。\n\n要求：\n\n1. **先说明它是什么**（1 句话定位类型：代码/配置/报错/文档）。\n2. **关键机制**：\n   - 如果是代码：输入、输出、副作用、潜在风险\n   - 如果是配置：关键字段的作用和默认值\n   - 如果是报错：最可能原因（按概率排序）和排查步骤\n3. **背景或原因**（为什么这样设计/为什么会出错）。\n4. **下一步**：给出 1-3 个可执行的操作（命令、检查项、修改建议）。\n\n前台应用：\n窗口标题：\n\n内容：\n\n```text\n{clipboard}\n```",
+    "text": "Explain the content below.\n\nRequirements:\n\n1. **Say what it is first** - one line identifying the kind of thing: code, config, error output or prose.\n2. **Explain the mechanism**:\n   - Code: inputs, outputs, side effects, latent risks\n   - Config: what each key does and its default\n   - Error: most likely causes ranked by probability, plus how to investigate each\n3. **Give the background**: why it is built this way, or why it went wrong.\n4. **Say what to do next**: 1-3 concrete actions - a command, a thing to check, a change to make.\n\nFrontmost app: \nWindow title: \n\nContent:\n\n```text\n{clipboard}\n```",
     "keyword": ";ex"
   },
   {
     "name": "AI Prompt / Rewrite Selection",
-    "text": "请改写下面文本。\n\n要求：\n\n1. **保留原意**（不改变事实、结论、承诺）。\n2. **语气**：更清晰、直接、专业。去掉冗余修饰词。\n3. **不添加**未经确认的新事实。\n4. **不夸张、不官腔**（避免\"非常高兴\"、\"深入探讨\"、\"赋能\"等）。\n5. 如果原文有歧义，给出 2 个候选版本，标记为\"版本 A\"和\"版本 B\"。\n6. 输出只包含改写结果，不要解释。\n\n原文：\n\n```text\n{clipboard}\n```",
+    "text": "Rewrite the text below.\n\nRequirements:\n\n1. **Keep the meaning.** Do not change facts, conclusions or commitments.\n2. **Tone**: clearer, more direct, professional. Cut filler modifiers.\n3. **Add nothing** that is not already established in the text.\n4. **No hype, no corporate voice** (avoid \"delighted to\", \"deep dive\", \"empower\", \"leverage\").\n5. If the original is genuinely ambiguous, give two candidates labelled \"Version A\" and \"Version B\".\n6. Output the rewrite only. No commentary.\n\nOriginal:\n\n```text\n{clipboard}\n```",
     "keyword": ";rw"
   },
   {
     "name": "AI Prompt / Fix Selection",
-    "text": "请修复下面内容。\n\n要求：\n\n1. **文本**：修复错别字、语法、标点、格式问题。保留原意。\n2. **代码**：只修复明显的语法错误、拼写错误、缩进问题、未闭合括号。\n3. **不修复**：逻辑 bug、性能问题、安全漏洞（这些需要更多上下文）。\n4. 如果发现严重问题但不确定如何修，在输出后用 `<!-- 注意：发现 X 问题但未修复 -->` 说明。\n5. 输出修复后的内容，不要额外解释。\n\n内容：\n\n```text\n{clipboard}\n```",
+    "text": "Fix the content below.\n\nRequirements:\n\n1. **Prose**: fix typos, grammar, punctuation and formatting. Preserve the meaning.\n2. **Code**: fix only obvious syntax errors, misspellings, indentation and unclosed brackets.\n3. **Do not fix**: logic bugs, performance problems or security holes - those need more context than a selection.\n4. If you spot a serious problem you are not confident fixing, append `<!-- Note: found X but did not fix it -->` after the output.\n5. Output the fixed content only. No commentary.\n\nContent:\n\n```text\n{clipboard}\n```",
     "keyword": ";fx"
   },
   {
     "name": "AI Prompt / Extract Key Points",
-    "text": "请从下面内容中提取结构化信息。\n\n输出格式：\n\n## 关键结论\n- （1 行总结每个结论）\n\n## 待办事项\n- [ ] 任务描述（负责人，截止时间）\n\n## 涉及的人 / 项目 / 文件 / 链接\n- 人：@name\n- 项目：project-name\n- 文件：`path/to/file`\n- 链接：https://...\n\n## 风险或不确定点\n- 风险描述（影响范围）\n\n## 建议下一步\n- 具体可执行的操作\n\n要求：\n\n1. **不要编造**。如果某类信息不存在，写”未提及”。\n2. **保留重要数字、路径、命令、错误信息**。\n3. 待办事项用 `[ ]` 标记，方便复制到任务管理工具。\n\n内容：\n\n```text\n{clipboard}\n```",
+    "text": "Extract structured information from the content below.\n\nOutput format:\n\n## Key conclusions\n- (one line per conclusion)\n\n## Action items\n- [ ] Task description (owner, due date)\n\n## People / projects / files / links\n- Person: @name\n- Project: project-name\n- File: `path/to/file`\n- Link: https://...\n\n## Risks and open questions\n- Risk description (what it affects)\n\n## Suggested next steps\n- A concrete, executable action\n\nRequirements:\n\n1. **Do not invent anything.** If a section has no source material, write \"Not mentioned\".\n2. **Preserve important numbers, paths, commands and error messages** verbatim.\n3. Mark action items with `[ ]` so they paste straight into a task tracker.\n\nContent:\n\n```text\n{clipboard}\n```",
     "keyword": ";xt"
   },
   {
     "name": "AI Prompt / Research Plan",
-    "text": "请把下面问题拆成一个可执行的研究任务。\n\n要求：\n\n1. **明确研究目标和判断标准**（什么算\"找到答案\"）。\n2. **列出需要验证的事实点**（按优先级排序）。\n3. **给出推荐搜索关键词**或资料来源类型（官方文档、GitHub issue、论文等）。\n4. **标注哪些结论必须联网验证**（如版本号、API 变更、最新政策）。\n5. **输出一个简短的研究结论模板**，方便我填充结果。\n\n输出格式：\n\n## 研究目标\n要回答的核心问题\n\n## 需要验证的事实（按优先级）\n1. [ ] 事实 A（搜索关键词：...）\n2. [ ] 事实 B（资料来源：...）\n\n## 必须联网验证\n- 项目 X 的最新版本号\n- ...\n\n## 结论模板\n```\n核心发现：\n- \n证据来源：\n-\n建议：\n-\n```\n\n问题或材料：\n\n```text\n{clipboard}\n```",
+    "text": "Turn the question below into an executable research task.\n\nRequirements:\n\n1. **State the goal and the bar for done** - what counts as \"answered\".\n2. **List the facts that need verifying**, ranked by how much they matter.\n3. **Suggest search terms** or source types: official docs, GitHub issues, papers, changelogs.\n4. **Flag what cannot be answered from memory** - version numbers, API changes, current policy - and must be checked online.\n5. **Give me a short findings template** to fill in as I go.\n\nOutput format:\n\n## Research goal\nThe core question to answer\n\n## Facts to verify (ranked)\n1. [ ] Fact A (search terms: ...)\n2. [ ] Fact B (source type: ...)\n\n## Must be verified online\n- Current version of project X\n- ...\n\n## Findings template\n```\nKey findings:\n-\nEvidence:\n-\nRecommendation:\n-\n```\n\nQuestion or material:\n\n```text\n{clipboard}\n```",
     "keyword": ";rs"
   },
   {
     "name": "AI Prompt / Generate Content",
-    "text": "请基于下面需求生成内容。\n\n要求：\n\n1. **先确认**（如果需求不明确，列出假设）：\n   - 目标：要达成什么\n   - 受众：给谁看\n   - 约束：长度、格式、语气限制\n2. **给出一个可直接使用的版本**（不要只给大纲）。\n3. 如果有多种合理方向，最多给 2 个备选，标记为\"方案 A\"和\"方案 B\"。\n4. **避免空话**，优先给具体文本、结构或步骤。\n\n需求：\n\n```text\n{clipboard}\n```",
+    "text": "Generate content for the requirement below.\n\nRequirements:\n\n1. **Establish the frame first.** If the requirement is underspecified, list your assumptions:\n   - Goal: what this has to achieve\n   - Audience: who reads it\n   - Constraints: length, format, tone\n2. **Produce one version that can be used as-is.** An outline alone is not an answer.\n3. If more than one direction is genuinely reasonable, give at most two, labelled \"Option A\" and \"Option B\".\n4. **No filler.** Prefer concrete text, structure or steps over description of them.\n\nRequirement:\n\n```text\n{clipboard}\n```",
     "keyword": ";gn"
   },
   {
     "name": "AI Prompt / Draft Message",
-    "text": "请基于下面材料起草一份可直接发送或继续编辑的内容。\n\n要求：\n\n1. **先判断最合适的文体**：邮件、IM、文档、评论、计划或说明。\n2. **语气**：直接、清楚、不过度客套（避免\"希望这封邮件找到你时一切安好\"等）。\n3. **行动项**：如果有，明确负责人、时间和下一步。\n4. **输出正文**，不要写\"以下是草稿\"等多余解释。\n\n材料：\n\n```text\n{clipboard}\n```",
+    "text": "Draft something from the material below that I can send as-is or keep editing.\n\nRequirements:\n\n1. **Pick the right form first**: email, chat message, doc, comment, plan or status note.\n2. **Tone**: direct and clear, not over-polite (skip \"I hope this email finds you well\").\n3. **Action items**: if there are any, name the owner, the date and the next step.\n4. **Output the message body only.** No \"here is a draft\" preamble.\n\nMaterial:\n\n```text\n{clipboard}\n```",
     "keyword": ";df"
   },
   {
     "name": "AI Prompt / Translate to English",
-    "text": "请将下面中文翻译成英文。\n\n要求：\n\n1. **自然、专业的英文表达**（不要逐字翻译）。\n2. **保留**：代码、命令、路径、变量名、专有名词。\n3. **技术术语**：\n   - API、CLI、SDK、HTTP、JSON 等缩写保持原样\n   - 中文技术术语翻译为业界标准英文（如\"中间件\" → \"middleware\"）\n4. **不要解释**，只输出翻译结果。\n\n中文内容：\n\n```text\n{clipboard}\n```",
+    "text": "Translate the content below into English.\n\nRequirements:\n\n1. **Idiomatic, professional English.** Translate the meaning, not the words.\n2. **Preserve** code, commands, paths, variable names and proper nouns exactly as written.\n3. **Terminology**:\n   - Keep acronyms such as API, CLI, SDK, HTTP and JSON as they are.\n   - Map technical jargon to the standard industry term, not a literal gloss (an \"intermediate layer\" between services is *middleware*).\n4. Output the translation only. No commentary.\n\nContent:\n\n```text\n{clipboard}\n```",
     "keyword": ";en"
   },
   {
     "name": "AI Prompt / Optimize Prompt",
-    "text": "请优化下面的 AI prompt。\n\n要求：\n\n1. **增强约束性**：\n   - 明确禁止 AI 常见坏习惯（夸张、编造、空话）\n   - 定义输出格式（用结构化模板）\n   - 限制长度或范围\n\n2. **提升清晰度**：\n   - 任务边界明确（做什么 / 不做什么）\n   - 优先级清晰（如果有多个要求）\n   - 用加粗标记关键指令\n\n3. **添加示例**（如果任务复杂）：\n   - 给 1-2 个 Few-Shot 示例\n   - 格式：输入 → 输出\n\n4. **输出优化后的 prompt**，不要解释改了什么。\n\n原 prompt：\n\n```text\n{clipboard}\n```",
+    "text": "Optimize the AI prompt below.\n\nRequirements:\n\n1. **Harden the constraints**:\n   - Rule out the usual failure modes explicitly: hype, invented facts, empty filler\n   - Define the output format as a structured template\n   - Bound the length or the scope\n\n2. **Sharpen the instructions**:\n   - Make the task boundary explicit: what to do, and what not to do\n   - Rank the requirements when there is more than one\n   - Bold the load-bearing instructions\n\n3. **Add examples** when the task is complex:\n   - One or two few-shot examples\n   - Format: input -> output\n\n4. **Output the optimized prompt only.** Do not explain what you changed.\n\nOriginal prompt:\n\n```text\n{clipboard}\n```",
     "keyword": ";op"
   },
   {
     "name": "AI Prompt / Code Review",
-    "text": "请以代码评审方式检查下面内容。\n\n要求：\n\n1. Findings first，按以下优先级排序：\n   - **P0**: 数据丢失、安全漏洞、生产故障\n   - **P1**: 行为回归、边界条件未处理、数据兼容性\n   - **P2**: 错误处理不完整、测试缺口\n   - **P3**: 可读性、命名（仅在严重影响理解时提）\n\n2. 每个问题包含：\n   - 具体位置（行号、函数名、文件名）\n   - 问题描述\n   - 影响范围\n   - 建议修复方法\n\n3. 不要做无关风格建议。\n4. 最后给出简短 summary（1-2 句话）。\n\n输出格式：\n\n## P0 Issues\n- [位置] 问题描述 → 建议\n\n## P1 Issues\n- ...\n\n## Summary\n总体评价和主要风险\n\n材料：\n\n```text\n{clipboard}\n```",
+    "text": "Review the content below as a code reviewer would.\n\nRequirements:\n\n1. Findings first, in this severity order:\n   - **P0**: data loss, security holes, production outages\n   - **P1**: behavioral regressions, unhandled edge cases, data compatibility\n   - **P2**: incomplete error handling, missing test coverage\n   - **P3**: readability and naming - only when it genuinely blocks understanding\n\n2. Every finding carries:\n   - Where it is (line number, function, file)\n   - What is wrong\n   - What it affects\n   - How to fix it\n\n3. No unrelated style opinions.\n4. Close with a short summary, one or two sentences.\n\nOutput format:\n\n## P0 Issues\n- [location] what is wrong -> the fix\n\n## P1 Issues\n- ...\n\n## Summary\nOverall assessment and the main risk\n\nMaterial:\n\n```text\n{clipboard}\n```",
     "keyword": ";cr"
   },
   {
     "name": "AI Prompt / Generate Commit Message",
-    "text": "请根据下面改动生成提交信息。\n\n要求：\n\n1. 使用英文。\n2. 标题不超过 72 字符，格式：`type(scope): subject`\n3. body 简明说明 why 和 what，每行不超过 80 字符。\n4. 不要夸张，不要营销语气。\n\n示例：\n\n**改动**：添加了用户认证中间件，修复了 session 过期后的重定向问题\n**输出**：\n```\nfix(auth): redirect to login on expired session\n\nPreviously users saw a 401 error page. Now they're\nredirected to /login with a flash message explaining\nthe session expired.\n```\n\n**改动**：重构了配置文件解析逻辑，提取了公共函数\n**输出**：\n```\nrefactor(config): extract parse_frontmatter helper\n\nReduces duplication across 3 files. No behavior change.\n```\n\n改动：\n\n```text\n{clipboard}\n```",
+    "text": "Write a commit message for the change below.\n\nRequirements:\n\n1. Write it in English.\n2. Subject under 72 characters, in the form `type(scope): subject`.\n3. Body explains why and what, wrapped at 80 characters.\n4. No hype, no marketing voice.\n\nExamples:\n\n**Change**: added authentication middleware, fixed the redirect after session expiry\n**Output**:\n```\nfix(auth): redirect to login on expired session\n\nPreviously users saw a 401 error page. Now they're\nredirected to /login with a flash message explaining\nthe session expired.\n```\n\n**Change**: refactored config parsing, extracted a shared helper\n**Output**:\n```\nrefactor(config): extract parse_frontmatter helper\n\nReduces duplication across 3 files. No behavior change.\n```\n\nChange:\n\n```text\n{clipboard}\n```",
     "keyword": ";cm"
   },
   {
     "name": "AI Prompt / Debug Issue",
-    "text": "请帮我调试这个问题。\n\n输出格式：\n\n## 问题分析\n- **现象**：实际发生了什么\n- **预期**：应该发生什么\n- **差异**：关键差异点\n\n## 可能原因（按概率排序）\n1. **[70%] 原因 A**\n   - 验证方法：具体命令或检查步骤\n   - 如果是这个，修复方法：...\n\n2. **[20%] 原因 B**\n   - 验证方法：...\n   - 如果是这个，修复方法：...\n\n3. **[10%] 原因 C**\n   - ...\n\n## 最小复现步骤\n1. 前置条件（环境、数据状态）\n2. 操作步骤\n3. 观察到的错误\n\n## 需要的额外信息（如果材料不足）\n- [ ] 日志文件路径\n- [ ] 环境变量配置\n- [ ] ...\n\n前台应用：\n日期：{date}\n\n问题描述：\n\n```text\n{clipboard}\n```",
+    "text": "Help me debug this.\n\nOutput format:\n\n## Analysis\n- **Observed**: what actually happens\n- **Expected**: what should happen\n- **Delta**: the part that differs\n\n## Likely causes (ranked by probability)\n1. **[70%] Cause A**\n   - How to check: the exact command or inspection step\n   - If it is this, the fix is: ...\n\n2. **[20%] Cause B**\n   - How to check: ...\n   - If it is this, the fix is: ...\n\n3. **[10%] Cause C**\n   - ...\n\n## Minimal reproduction\n1. Preconditions (environment, data state)\n2. Steps\n3. Observed failure\n\n## Information I still need (if the material is not enough)\n- [ ] Log file path\n- [ ] Environment variables\n- [ ] ...\n\nFrontmost app: \nDate: {date}\n\nProblem:\n\n```text\n{clipboard}\n```",
     "keyword": ";db"
   },
   {
     "name": "AI Prompt / Generate PR Description",
-    "text": "请根据下面材料生成 PR 描述。\n\n输出结构：\n\n## Summary\n- 1-2 句话说明这个 PR 做了什么和为什么\n\n## Changes\n- 按文件或模块列出主要改动\n- 每条说明改了什么，不要只列文件名\n\n## Testing\n- 如何验证这个改动（手动测试步骤或自动化测试）\n- 测试了哪些场景（正常路径 + 边界条件）\n\n## Risks\n- 可能影响的现有功能\n- 需要特别注意的部署步骤\n- 如果无风险，写\"None\"\n\n示例：\n\n## Summary\n- Add rate limiting to `/api/users` endpoint to prevent abuse\n\n## Changes\n- `middleware/rate_limit.go`: new rate limiter (100 req/min per IP)\n- `routes/users.go`: apply rate limit middleware\n- `config/default.yaml`: add `rate_limit.enabled` flag\n\n## Testing\n- Manual: sent 150 requests in 1 min, got 429 after 100th\n- Unit tests: `TestRateLimitMiddleware` covers edge cases\n- Verified existing `/api/posts` endpoint unaffected\n\n## Risks\n- If Redis is down, rate limiting fails open (allows all requests)\n- Need to monitor 429 error rate after deploy\n\n材料：\n\n```text\n{clipboard}\n```",
+    "text": "Write a PR description from the material below.\n\nStructure:\n\n## Summary\n- One or two sentences: what this PR does and why\n\n## Changes\n- Main changes, grouped by file or module\n- Say what changed in each - a bare file list is not a change log\n\n## Testing\n- How to verify this change (manual steps or automated tests)\n- Which scenarios were covered (happy path plus edge cases)\n\n## Risks\n- Existing behavior this could affect\n- Deployment steps that need attention\n- Write \"None\" if there is genuinely no risk\n\nExample:\n\n## Summary\n- Add rate limiting to `/api/users` endpoint to prevent abuse\n\n## Changes\n- `middleware/rate_limit.go`: new rate limiter (100 req/min per IP)\n- `routes/users.go`: apply rate limit middleware\n- `config/default.yaml`: add `rate_limit.enabled` flag\n\n## Testing\n- Manual: sent 150 requests in 1 min, got 429 after 100th\n- Unit tests: `TestRateLimitMiddleware` covers edge cases\n- Verified existing `/api/posts` endpoint unaffected\n\n## Risks\n- If Redis is down, rate limiting fails open (allows all requests)\n- Need to monitor 429 error rate after deploy\n\nMaterial:\n\n```text\n{clipboard}\n```",
     "keyword": ";pr"
   },
   {
     "name": "AI Prompt / Refactor Code",
-    "text": "请重构下面代码。\n\n要求：\n\n1. **保持外部行为完全不变**（输入输出、副作用、性能特征）。\n2. **优先改进**：\n   - 重复代码（提取公共函数）\n   - 过长函数（拆分为小函数）\n   - 不清晰命名（改为描述性名称）\n   - 魔法数字（提取为常量）\n3. **不改变**：架构、依赖、公共 API。\n4. 输出重构后的代码 + 简短说明（1-2 句话说明改了什么）。\n\n示例：\n\n**输入**：\n```python\ndef process(data):\n    if data[\"type\"] == \"A\":\n        return data[\"value\"] * 2\n    elif data[\"type\"] == \"B\":\n        return data[\"value\"] * 3\n    else:\n        return data[\"value\"]\n```\n\n**输出**：\n```python\nMULTIPLIERS = {\"A\": 2, \"B\": 3}\n\ndef process(data):\n    multiplier = MULTIPLIERS.get(data[\"type\"], 1)\n    return data[\"value\"] * multiplier\n```\n重构说明：用字典替换 if-elif 链，提取魔法数字为常量。\n\n代码：\n\n```text\n{clipboard}\n```",
+    "text": "Refactor the code below.\n\nRequirements:\n\n1. **Preserve external behavior exactly**: inputs, outputs, side effects, performance characteristics.\n2. **Improve, in priority order**:\n   - Duplicated code (extract a shared function)\n   - Over-long functions (split them up)\n   - Unclear names (make them descriptive)\n   - Magic numbers (lift them into named constants)\n3. **Do not change**: architecture, dependencies or the public API.\n4. Output the refactored code plus a one- or two-sentence note on what changed.\n\nExample:\n\n**Input**:\n```python\ndef process(data):\n    if data[\"type\"] == \"A\":\n        return data[\"value\"] * 2\n    elif data[\"type\"] == \"B\":\n        return data[\"value\"] * 3\n    else:\n        return data[\"value\"]\n```\n\n**Output**:\n```python\nMULTIPLIERS = {\"A\": 2, \"B\": 3}\n\ndef process(data):\n    multiplier = MULTIPLIERS.get(data[\"type\"], 1)\n    return data[\"value\"] * multiplier\n```\nNote: replaced the if-elif chain with a lookup table and lifted the magic numbers into a constant.\n\nCode:\n\n```text\n{clipboard}\n```",
     "keyword": ";rf"
   },
   {
     "name": "AI Prompt / Terminal Error Analysis",
-    "text": "请分析这个终端错误，并给出最小修复步骤。\n\n系统信息：\n- 前台应用：\n- 日期：{date}\n\n要求：\n\n1. 判断最可能根因（如果错误信息提到路径/命令，说明它们的作用）。\n2. 给出最小验证命令（用于确认根因）。\n3. 给出最小修复步骤。\n4. 明确哪些操作有破坏性（如 `rm -rf`、`--force`），标记为 ⚠️。\n5. 给出如何确认修复成功。\n\n输出格式：\n\n## 根因\n最可能原因\n\n## 验证\n```bash\n# 运行这个命令确认根因\ncommand\n```\n\n## 修复\n```bash\n# 步骤 1\ncommand\n# 步骤 2（⚠️ 破坏性操作）\ncommand\n```\n\n## 确认成功\n重新运行原命令，预期输出：...\n\n命令和输出：\n\n```text\n{clipboard}\n```",
+    "text": "Diagnose this terminal error and give me the smallest fix that resolves it.\n\nSystem context:\n- Frontmost app: \n- Date: {date}\n\nRequirements:\n\n1. Identify the most likely root cause. If the error names a path or a command, say what it is for.\n2. Give the smallest command that confirms the root cause.\n3. Give the smallest fix.\n4. Mark any destructive step (`rm -rf`, `--force`, anything that overwrites) with a warning sign.\n5. Say how I confirm the fix worked.\n\nOutput format:\n\n## Root cause\nThe most likely explanation\n\n## Verify\n```bash\n# run this to confirm the root cause\ncommand\n```\n\n## Fix\n```bash\n# step 1\ncommand\n# step 2 (destructive - review before running)\ncommand\n```\n\n## Confirm\nRe-run the original command. Expected output: ...\n\nCommand and output:\n\n```text\n{clipboard}\n```",
     "keyword": ";te"
   },
   {
     "name": "AI Snippet / Architecture Review",
-    "text": "# Architecture Review\n\n请评审下面方案或架构。\n\n关注点：\n\n1. 目标是否清晰。\n2. 边界是否合理。\n3. 复杂度是否必要。\n4. 可演进性和回滚路径。\n5. 实施风险和验证计划。\n\n材料：\n\n```text\n{clipboard}\n```",
+    "text": "# Architecture Review\n\nReview the design or architecture below.\n\nLook at:\n\n1. Whether the goal is stated clearly.\n2. Whether the boundaries are drawn in the right place.\n3. Whether the complexity is necessary.\n4. How it evolves, and how it rolls back.\n5. Implementation risk and the plan to validate it.\n\nMaterial:\n\n```text\n{clipboard}\n```",
     "keyword": ";ar"
   },
   {
     "name": "AI Snippet / Bug Report",
-    "text": "# Bug Report\n\n## 现象\n\n{clipboard}\n\n## 期望行为\n\n\n## 实际行为\n\n\n## 复现步骤\n\n1.\n2.\n3.\n\n## 环境\n\n- App:\n- OS:\n- Version:\n\n## 已尝试\n\n\n## 需要 AI 帮助判断\n\n1. 可能根因是什么？\n2. 如何最小化验证？\n3. 应该优先检查哪些日志或配置？",
+    "text": "# Bug Report\n\n## Symptom\n\n{clipboard}\n\n## Expected behavior\n\n\n## Actual behavior\n\n\n## Steps to reproduce\n\n1.\n2.\n3.\n\n## Environment\n\n- App:\n- OS:\n- Version:\n\n## Already tried\n\n\n## Questions for AI\n\n1. What is the likely root cause?\n2. What is the smallest way to verify it?\n3. Which logs or config should I check first?",
     "keyword": ";br"
   },
   {
     "name": "AI Snippet / Commit Message",
-    "text": "# Commit Message\n\n请根据下面改动生成提交信息。\n\n要求：\n\n1. 使用英文。\n2. 标题不超过 72 字符。\n3. body 简明说明 why 和 what。\n4. 不要夸张，不要营销语气。\n\n改动：\n\n```text\n{clipboard}\n```",
+    "text": "# Commit Message\n\nWrite a commit message for the change below.\n\nRequirements:\n\n1. Write it in English.\n2. Subject under 72 characters.\n3. Body explains why and what.\n4. No hype, no marketing voice.\n\nChange:\n\n```text\n{clipboard}\n```",
     "keyword": ";gc"
   },
   {
     "name": "AI Snippet / Incident Report",
-    "text": "# Incident Report\n\n## 事件概述\n\n{clipboard}\n\n## 影响范围\n\n\n## 时间线\n\n-\n\n## 根因分析\n\n\n## 处置过程\n\n\n## 后续行动\n\n-",
+    "text": "# Incident Report\n\n## Overview\n\n{clipboard}\n\n## Impact\n\n\n## Timeline\n\n-\n\n## Root cause\n\n\n## Response\n\n\n## Follow-up actions\n\n-",
     "keyword": ";ir"
   },
   {
     "name": "AI Snippet / Meeting Notes",
-    "text": "# Meeting Notes\n\n## 主题\n\n\n## 结论\n\n-\n\n## 决策\n\n-\n\n## 待办\n\n-\n\n## 风险 / 阻塞\n\n-\n\n## 原始记录\n\n```text\n{clipboard}\n```",
+    "text": "# Meeting Notes\n\n## Topic\n\n\n## Conclusions\n\n-\n\n## Decisions\n\n-\n\n## Action items\n\n-\n\n## Risks / blockers\n\n-\n\n## Raw notes\n\n```text\n{clipboard}\n```",
     "keyword": ";mt"
   },
   {
     "name": "AI Snippet / PR Review",
-    "text": "# PR Review\n\n请以代码评审方式检查下面改动或说明。\n\n重点：\n\n1. 行为回归。\n2. 边界条件。\n3. 数据兼容性。\n4. 错误处理。\n5. 测试缺口。\n\n材料：\n\n```text\n{clipboard}\n```\n\n输出格式：\n\n- Findings first，按严重程度排序。\n- 每个问题给出具体位置或可验证线索。\n- 最后只给简短 summary。",
+    "text": "# PR Review\n\nReview the change or description below as a code reviewer would.\n\nFocus on:\n\n1. Behavioral regressions.\n2. Edge cases.\n3. Data compatibility.\n4. Error handling.\n5. Test gaps.\n\nMaterial:\n\n```text\n{clipboard}\n```\n\nOutput format:\n\n- Findings first, ordered by severity.\n- Every finding names a location or a verifiable clue.\n- End with a short summary and nothing more.",
     "keyword": ";rv"
   },
   {
     "name": "AI Snippet / Refactor Request",
-    "text": "# Refactor Request\n\n请基于下面代码或需求，给出一个低风险重构方案。\n\n## 当前问题\n\n{clipboard}\n\n## 约束\n\n- 保持现有行为不变。\n- 优先小步提交。\n- 不引入不必要的新抽象。\n\n## 请输出\n\n1. 重构目标。\n2. 分阶段步骤。\n3. 风险点。\n4. 验证方式。",
+    "text": "# Refactor Request\n\nPropose a low-risk refactor for the code or requirement below.\n\n## Current problem\n\n{clipboard}\n\n## Constraints\n\n- Existing behavior must not change.\n- Prefer small commits.\n- Do not introduce abstractions that are not needed yet.\n\n## Please output\n\n1. The goal of the refactor.\n2. The staged steps.\n3. The risks.\n4. How to validate each stage.",
     "keyword": ";rr"
   },
   {
     "name": "AI Snippet / SQL Debug",
-    "text": "# SQL Debug\n\n请分析下面 SQL 或数据库问题。\n\n## SQL / 报错\n\n```sql\n{clipboard}\n```\n\n## 请输出\n\n1. SQL 意图。\n2. 可能问题。\n3. 性能风险。\n4. 最小修复。\n5. 如何验证结果正确。",
+    "text": "# SQL Debug\n\nAnalyze the SQL or database problem below.\n\n## SQL / error\n\n```sql\n{clipboard}\n```\n\n## Please output\n\n1. What the SQL is trying to do.\n2. What could be wrong.\n3. Performance risks.\n4. The smallest fix.\n5. How to confirm the result is correct.",
     "keyword": ";sq"
   },
   {
     "name": "AI Snippet / Terminal Error",
-    "text": "# Terminal Error\n\n请分析这个终端错误，并给出最小修复步骤。\n\n## 命令和输出\n\n```text\n{clipboard}\n```\n\n## 请按这个格式回答\n\n1. 根因判断。\n2. 最可能的修复命令。\n3. 需要避免的破坏性操作。\n4. 如何验证修复成功。",
+    "text": "# Terminal Error\n\nDiagnose this terminal error and give me the smallest fix that resolves it.\n\n## Command and output\n\n```text\n{clipboard}\n```\n\n## Answer in this format\n\n1. Root cause.\n2. The most likely fix command.\n3. Destructive operations to avoid.\n4. How to confirm the fix worked.",
     "keyword": ";er"
   }
 ]

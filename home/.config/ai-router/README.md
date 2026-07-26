@@ -1,81 +1,92 @@
 # AI Workflow Router
 
-AI Workflow Router 是 CapsLock AI Lite 的下一层：它不以“打开哪个 AI 工具”为中心，而以“我要完成什么工作流”为中心。
+AI Workflow Router is the layer above CapsLock AI Lite. It is not organized around
+"which AI tool do I open" but around "which piece of work am I trying to finish".
 
-调用链：
+Call chain:
 
 ```text
 CapsLock Hyper
-  -> Karabiner 输出稳定全局快捷键
-  -> Hammerspoon 接收快捷键和显示菜单
-  -> ai-router.sh 收集上下文、渲染 prompt、选择 provider
-  -> Provider / Agent / Clipboard / Output File
+  -> Karabiner emits a stable global shortcut
+  -> Hammerspoon receives the shortcut and shows the menu
+  -> ai-router.sh collects context, renders the prompt, picks a provider
+  -> Provider / Agent / Clipboard / Output file
 ```
 
-Karabiner 不在本层修改。
+Karabiner is not modified by this layer.
 
-## 快捷键
+## Shortcuts
 
-| 快捷键 | 行为 |
+| Shortcut | Behavior |
 |---|---|
-| CapsLock + Space | 快速 AI Command Palette，不动态扫描 |
-| CapsLock + A/S/T/E/W/F/X/R/G/D | 渲染对应 Prompt，把选中文本嵌进去并复制到剪贴板 |
-| CapsLock + Y | 渲染 `translate-to-en` Prompt，把中文选区翻译成英文 |
-| CapsLock + = | 渲染 `optimize-prompt` Prompt，增强选中的提示词 |
-| CapsLock + C | Coding Agent 菜单 |
-| CapsLock + Shift + 同一个字母 | 同一个 Prompt 走 `run`，真的调用 provider，答案直接出现在通知里并复制到剪贴板 |
+| CapsLock + Space | AI command palette, served from a cached catalog |
+| CapsLock + A/S/T/E/W/F/X/R/G/D | Render that prompt with the selection embedded, copy it to the clipboard |
+| CapsLock + Y | Render `translate-to-en` and translate the selection into English |
+| CapsLock + = | Render `optimize-prompt` and sharpen the selected prompt |
+| CapsLock + C | Coding agent menu |
+| CapsLock + Shift + the same letter | Send that prompt through a provider - the answer lands in the notification and on the clipboard |
 
-Agent 菜单会在 `config.json` 里 `terminal.app` 指定的终端新开标签页并粘贴命令，不自动执行。
+The agent menu opens a new tab in whichever terminal `terminal.app` names in
+`config.json` and pastes the command. It does not run it.
 
-Provider 直跑是显式的第二个手势，不是默认行为：
+Calling a provider is an explicit second gesture, never the default:
 
-- `CapsLock + 字母` 永远只渲染 prompt 到剪贴板，快、可预期、不花钱。
-- `CapsLock + Shift + 字母` 才调用 provider。按下的瞬间弹 "Running ..." 通知，结束后通知里直接显示答案，失败则显示失败原因。
-- Palette 里 `Enter` 是复制，`Shift + Enter` 是调用。
+- `CapsLock + letter` only ever renders the prompt to the clipboard. Fast, predictable, free.
+- `CapsLock + Shift + letter` calls a provider. A "Running ..." notification fires immediately; when it finishes the answer (or the failure) is in the notification.
+- In the palette, `Enter` copies and `Shift + Enter` runs.
 
-判定方式：Karabiner 的 Hyper 输出的是**右侧**四个修饰键，所以只要再按住一个**左侧**修饰键，就是一个 Hyper 自己发不出来的信号。左 Shift 和左 Cmd 都可以（左手拇指按左 Cmd 通常最顺手）。读不到修饰键状态时一律按 `render` 处理——绝不会因为判断不出来就替你花一次模型调用。
+How the two are told apart: Karabiner emits Hyper as the four **right-side**
+modifiers, so holding any **left-side** modifier on top of it is a signal Hyper
+cannot produce by itself. Left Shift and left Cmd both work (left thumb on left
+Cmd is usually the easiest reach). If the modifier state cannot be read, the
+router falls back to `render` - it will never spend a model call because it could
+not decide.
 
-## Direct Launch 层
+## Direct launch layer
 
-`CapsLock + Ctrl + 首字母` 是 Karabiner 直达启动层，不经过 Hammerspoon 菜单。
+`CapsLock + Ctrl + initial` is a Karabiner direct-launch layer. It does not go
+through the Hammerspoon menu.
 
-| 快捷键 | 行为 |
+| Shortcut | Behavior |
 |---|---|
-| CapsLock + Ctrl + W | 打开 Warp |
-| CapsLock + Ctrl + I | 打开 IntelliJ IDEA |
-| CapsLock + Ctrl + G | 打开 GoLand |
-| CapsLock + Ctrl + X | 打开 Codex App |
-| CapsLock + Ctrl + H | 打开 ChatGPT |
-| CapsLock + Ctrl + C | 新开 Warp tab 并启动 Codex CLI |
-| CapsLock + Ctrl + L | 新开 Warp tab 并启动 Claude Code |
+| CapsLock + Ctrl + W | Open Warp |
+| CapsLock + Ctrl + I | Open IntelliJ IDEA |
+| CapsLock + Ctrl + G | Open GoLand |
+| CapsLock + Ctrl + X | Open Codex App |
+| CapsLock + Ctrl + H | Open ChatGPT |
+| CapsLock + Ctrl + C | New Warp tab running Codex CLI |
+| CapsLock + Ctrl + L | New Warp tab running Claude Code |
 
-## 概念
+## Concepts
 
-| 类型 | 含义 |
+| Type | Meaning |
 |---|---|
-| Prompt | 指挥 AI 如何处理当前输入的 Markdown 模板 |
-| Snippet | 可复制/插入的固定资料或模板 |
-| Skill | Agent 能力说明或调用规范 |
-| Plugin | 工具扩展、集成能力或插件配置 |
-| Agent | 长任务执行者，如 Codex CLI、Claude Code、Junie |
-| Provider | 具体 AI 后端或客户端，如 Kimi、Gemini、Claude |
+| Prompt | A Markdown template that tells the model how to handle the current input |
+| Snippet | Fixed text or a template to copy or insert |
+| Skill | An agent capability description or calling convention |
+| Plugin | A tool extension, integration or plugin config |
+| Agent | A long-running executor such as Codex CLI, Claude Code or Junie |
+| Provider | A concrete AI backend or client such as Claude, Codex, Gemini or Kimi |
 
-## 目录结构
+## Directory layout
 
-配置和运行时数据是分开的。配置可以进版本库，运行时数据不行。
+Configuration and runtime data are separate. Configuration belongs in version
+control; runtime data does not.
 
 ```text
-~/.config/ai-router/            # 配置，可以进 git
+~/.config/ai-router/            # configuration, safe to commit
   config.json
   ai-router.sh
   lib/router_tools.py
   prompts/
+    zh/                         # optional Chinese prompt set, see below
   snippets/
+    zh/
   providers/
   exports/
   tests/
 
-${XDG_STATE_HOME:-~/.local/state}/ai-router/   # 运行时数据，随时可删
+${XDG_STATE_HOME:-~/.local/state}/ai-router/   # runtime data, deletable at any time
   catalogs/
     prompts.json  hotkeys.json  palette.json  agents.json
   cache/
@@ -86,20 +97,50 @@ ${XDG_STATE_HOME:-~/.local/state}/ai-router/   # 运行时数据，随时可删
     events.jsonl  errors/
 ```
 
-2.4.0 之前这四个目录在 `~/.config/ai-router/` 下。升级后第一次运行会自动搬家，favorites 和 usage 记录不会丢。
+Before 2.4.0 those four directories lived under `~/.config/ai-router/`. The first
+run after upgrading moves them, so favorites and usage history survive.
 
-`AI_ROUTER_HOME` 指定的目录（测试、沙箱）里运行时数据仍然留在同一棵树下，保证互不污染。
+When `AI_ROUTER_HOME` is set (tests, sandboxes) runtime data stays inside that
+same tree, so a test copy never writes into the real one.
 
-## 常用命令
+## Prompt language
+
+The shipped prompts and snippets are English. The router only reads the top level
+of `prompts/` and `snippets/` - both the shell and the indexer glob `*.md`
+non-recursively - so a subdirectory is an inert place to park a second language.
+
+`prompts/zh/` and `snippets/zh/` hold the Chinese set: same ids, same filenames,
+same frontmatter keys, Chinese descriptions and bodies. Switching language means
+swapping which set sits at the top level.
 
 ```bash
-# 管道输入：不需要任何 macOS 权限，也不需要图形界面
+# Switch the active set to Chinese
+cp ~/.config/ai-router/prompts/zh/*.md ~/.config/ai-router/prompts/
+cp ~/.config/ai-router/snippets/zh/*.md ~/.config/ai-router/snippets/
+~/.config/ai-router/ai-router.sh index
+~/.config/ai-router/ai-router.sh export-snippets all
+
+# Switch back to English (redeploy the repo copy over local edits)
+./bootstrap/install/ai-router.sh --deploy-only --force
+```
+
+Hotkeys, ids and provider settings are identical across the two sets, so nothing
+downstream has to change: `index` regenerates the catalogs and Hammerspoon picks
+up the new descriptions on its next read.
+
+To add a third language, create a sibling directory (`prompts/de/`, say) with the
+same ids and use the same swap.
+
+## Common commands
+
+```bash
+# Piped input: no macOS permissions and no GUI required
 git diff --staged | ~/.config/ai-router/ai-router.sh run commit-message
 
-# 装完先跑这个：谁能用、缺的怎么装
+# Run this first after installing: what works, and how to install the rest
 ~/.config/ai-router/ai-router.sh doctor
 
-# 看清楚到底什么内容会被发给模型
+# See exactly what would be sent to the model
 ~/.config/ai-router/ai-router.sh show summarize
 
 ~/.config/ai-router/ai-router.sh render summarize
@@ -116,15 +157,15 @@ git diff --staged | ~/.config/ai-router/ai-router.sh run commit-message
 bash ~/.config/ai-router/tests/run.sh
 ```
 
-## 新增 Prompt
+## Adding a prompt
 
-在 `prompts/` 下新增 Markdown 文件，使用 YAML Frontmatter：
+Add a Markdown file under `prompts/` with YAML frontmatter:
 
 ```markdown
 ---
 id: my-action
 title: My Action
-description: 这个 prompt 的用途
+description: What this prompt is for
 category: writing
 hotkey: z
 priority: 300
@@ -135,51 +176,54 @@ output: clipboard
 allow_replace: false
 aliases:
   - alias-a
-  - 中文别名
+  - alias-b
 keywords:
   - search-word
-  - 场景词
+  - scenario-word
 tags:
   - writing
 ---
 
-处理下面内容：
+Handle the content below:
 
 {{selection}}
 ```
 
-新增后运行：
+Then run:
 
 ```bash
 ~/.config/ai-router/ai-router.sh index
 ```
 
-`index` 会生成：
+`index` generates:
 
-- `catalogs/` 在状态目录下（见上面的目录结构）。
-- `catalogs/prompts.json`: prompt 元数据、别名、keywords、标签、provider 设置。
-- `catalogs/hotkeys.json`: Hammerspoon 直接热键绑定数据。
-- `catalogs/palette.json`: Hammerspoon chooser 和未来外部 App 的搜索数据。
-- `catalogs/agents.json`: 从 `config.json` 生成的 agent 菜单数据。
+- `catalogs/` under the state directory (see the layout above).
+- `catalogs/prompts.json`: prompt metadata, aliases, keywords, tags, provider settings.
+- `catalogs/hotkeys.json`: the direct hotkey bindings Hammerspoon reads.
+- `catalogs/palette.json`: search data for the Hammerspoon chooser and any future external app.
+- `catalogs/agents.json`: the agent menu, generated from `config.json`.
 
-Hammerspoon 会优先读取这些缓存；缓存不存在时才回退到内置静态列表。
+Hammerspoon reads those caches first and only falls back to its built-in static
+lists when they are missing.
 
-`ai-router.sh palette` 也读取 `catalogs/palette.json`，只在缓存缺失时才重建索引或回退到动态扫描。后续 Raycast、外部 Mac App 或其他 UI 应优先接这个缓存入口。
+`ai-router.sh palette` reads `catalogs/palette.json` too, rebuilding the index or
+scanning dynamically only on a cache miss. Raycast, a future Mac app or any other
+UI should consume the same cache.
 
-## Favorites / Recent / Ranking
+## Favorites, recent and ranking
 
-Chooser 排序由两个本地状态文件控制：
+Chooser ordering comes from two local state files:
 
-- `state/usage.json`（状态目录下）: 自动记录使用次数和最近使用时间，只记录 `kind/value/title/count/time`，不记录 selection、prompt 或 output。
-- `state/favorites.json`（状态目录下）: 手动收藏项，收藏项会显示在 chooser 顶部。
+- `state/usage.json`: use count and last-used time, recorded automatically. It stores only `kind/value/title/count/time` - never the selection, prompt or output.
+- `state/favorites.json`: manually pinned items, shown at the top of the chooser.
 
-使用方式：
+How it works:
 
-- 打开 `CapsLock + Space`，选择任意 prompt/snippet/skill/plugin/agent/tool 后会自动更新 recent 和 usage count。
-- 在 chooser 里右键某一项可以切换 favorite。
-- Chooser 标题会按 `Pinned / Recent / Prompt / Snippet / Agent / Skill / Plugin / Tool` 显示分组语义。
-- 副标题会显示分类、使用次数、最近使用时间，以及 aliases / keywords / tags 组成的预览摘要。
-- 命令行也可以管理 favorite：
+- Anything picked from `CapsLock + Space` updates recent and usage count.
+- Right-click an entry in the chooser to toggle its favorite state.
+- Chooser titles group as `Pinned / Recent / Prompt / Snippet / Agent / Skill / Plugin / Tool`.
+- Subtitles show the category, use count, last-used time and a condensed preview built from aliases, keywords and tags.
+- Favorites can also be managed from the command line:
 
 ```bash
 ~/.config/ai-router/ai-router.sh favorite list
@@ -187,25 +231,27 @@ Chooser 排序由两个本地状态文件控制：
 ~/.config/ai-router/ai-router.sh favorite remove prompt summarize "Summarize Selection"
 ```
 
-## 新增 Snippet
+## Adding a snippet
 
-在 `snippets/` 下新增 Markdown 文件。Snippet 可以使用 `{{selection}}`、`{{clipboard}}`、`{{frontmost_app}}`、`{{window_title}}` 变量。
+Add a Markdown file under `snippets/`. Snippets can use `{{selection}}`,
+`{{clipboard}}`, `{{frontmost_app}}` and `{{window_title}}`.
 
-Snippet 也支持和 Prompt 类似的 Frontmatter，便于 palette 搜索：
+Snippets take the same kind of frontmatter as prompts so they are searchable in
+the palette:
 
 ```markdown
 ---
 id: my-snippet
 title: My Snippet
-description: 这个 snippet 的用途
+description: What this snippet is for
 category: writing
 priority: 300
 aliases:
   - alias-a
-  - 中文别名
+  - alias-b
 keywords:
   - search-word
-  - 场景词
+  - scenario-word
 tags:
   - snippet
   - writing
@@ -216,30 +262,36 @@ tags:
 {{selection}}
 ```
 
-## 导出到 Snippet 工具
+## Exporting to snippet tools
 
-静态 Prompt / Snippet 可以导出给外部 snippet 工具使用；动态选区读取、前台应用、窗口标题等仍然保留在 `CapsLock + 字母` 快捷键里。
+Static prompts and snippets can be exported to external snippet tools. The
+dynamic parts - reading the selection, the frontmost app, the window title - stay
+behind the `CapsLock + letter` shortcuts.
 
 ```bash
 ~/.config/ai-router/ai-router.sh export-snippets all
 ```
 
-生成文件：
+Generated files:
 
-- `exports/raycast-snippets.json`: Raycast Snippets 可导入格式，字段为 `name`、`text`、`keyword`。
-- `exports/ai-router-snippets.json`: 中立 JSON，保留 metadata、aliases、keywords、原始模板、Raycast 版本文本和变量列表，后续可给 HapiGo 或自研 Mac App 做转换。
+- `exports/raycast-snippets.json`: importable by Raycast Snippets. Fields are `name`, `text`, `keyword`.
+- `exports/ai-router-snippets.json`: neutral JSON that keeps metadata, aliases, keywords, the raw template, the Raycast-flavored text and the variable list, so another tool can convert from it.
 
-导出规则：
+Export rules:
 
-- 关键字统一为 `;` + 2-3 个字母，便于 Raycast Snippets 里快速触发。
-- 示例：`;sm` 总结、`;tr` 翻译、`;ex` 解释、`;rw` 改写、`;fx` 修复、`;qa` 问答。
-- Snippet 示例：`;mt` 会议纪要、`;rv` PR Review、`;sq` SQL Debug、`;er` 终端错误。
-- Raycast 导出会把 `{{selection}}` 和 `{{clipboard}}` 转成 `{clipboard}`，把 `{{date}}` 转成 `{date}`。
-- HapiGo 当前公开文档描述的是导入/导出 `.hasnp` 文件，没有稳定公开 JSON schema；需要拿到一份 HapiGo 导出的 `.hasnp` 样本后再做精确转换。
+- Keywords are `;` plus 2-3 letters, short enough to trigger quickly in Raycast.
+- Prompt examples: `;sm` summarize, `;tr` translate, `;ex` explain, `;rw` rewrite, `;fx` fix, `;qa` ask.
+- Snippet examples: `;mt` meeting notes, `;rv` PR review, `;sq` SQL debug, `;er` terminal error.
+- The Raycast export rewrites `{{selection}}` and `{{clipboard}}` to `{clipboard}`, and `{{date}}` to `{date}`.
 
-## 新增 Provider
+Both files are checked into the repository and a smoke test diffs them against a
+fresh export, so **re-run `export-snippets all` after editing any prompt or
+snippet**.
 
-Provider 就是 `providers/` 下一个可执行脚本，没有白名单。复制模板即可：
+## Adding a provider
+
+A provider is any executable script under `providers/`. There is no allowlist.
+Copy the template:
 
 ```bash
 cp ~/.config/ai-router/providers/_template.sh ~/.config/ai-router/providers/my-provider.sh
@@ -247,49 +299,57 @@ chmod +x ~/.config/ai-router/providers/my-provider.sh
 ~/.config/ai-router/ai-router.sh doctor
 ```
 
-约定：
+The contract:
 
-- 从 stdin 接收完整 prompt，向 stdout 输出结果，失败时写 stderr 并返回非 0。
-- `--health-check`：能用就退出 0。不能用（CLI 没装、模型没拉、缺 key）就退出非 0，router 会跳到下一个 provider。
-- `--install-hint`：一行安装说明。以 `install:` 开头表示"装上就能用"，`doctor` 会原样打印给用户。
-- 文件名以 `_` 开头的不会被当成 provider，所以模板本身不会被路由到。
+- Read the full prompt from stdin, write the result to stdout. On failure, write stderr and exit non-zero.
+- `--health-check`: exit 0 when usable. Exit non-zero when not (CLI missing, model not pulled, no key) and the router moves to the next provider.
+- `--install-hint`: one line of install instructions. A line starting with `install:` means "installing this makes it work", and `doctor` prints it verbatim.
+- Filenames starting with `_` are never treated as providers, so the template itself is not a routing target.
 
-随仓库提供的 adapter：
+Adapters shipped with the repository:
 
 - `claude`: `claude --print`
-- `codex`: `codex exec`，read-only sandbox、不落 session 文件、只输出最终回答
-- `ollama`: 本地模型，用 `AI_ROUTER_OLLAMA_MODEL` 选模型，没拉到模型时 health check 直接失败
-- `gemini` / `kimi`: 需要各自的 CLI 和 key
-- `junie`: 默认禁用 text provider，建议从 Coding Agent 菜单进入
-- `warp-agent` / `app-opener`: 不是文本 provider，`doctor` 里标记为 `[helper]`
+- `codex`: `codex exec`, read-only sandbox, no session files, final answer only
+- `ollama`: local models, pick one with `AI_ROUTER_OLLAMA_MODEL`; the health check fails when the model has not been pulled
+- `gemini` / `kimi`: need their own CLI and key
+- `junie`: disabled as a text provider by default; use the coding agent menu instead
+- `warp-agent` / `app-opener`: not text providers, shown as `[helper]` in `doctor`
 
-默认调用顺序来自 `config.json`：
+The default chain comes from `config.json`:
 
 ```json
 "providers": { "default": ["claude", "codex"] }
 ```
 
-prompt frontmatter 里的 `default_provider` / `fallback_provider` 是这条链之前的偏好；`providers.default` 永远追加在最后，所以只装了一个 CLI 的机器也能路由到它。
+A prompt's `default_provider` / `fallback_provider` are preferences that come
+before that chain; `providers.default` is always appended last, so a machine with
+only one CLI installed still routes somewhere.
 
-## 输出和日志
+## Output and logs
 
-- 所有运行结果保存到状态目录的 `cache/last-output.md`。
-- `output: clipboard` 的 prompt 会把结果复制到剪贴板。
-- `output: preview` 的 prompt 只保存结果并通知，可从 palette 的 `Tool: Open Last Output` 打开。
-- 日志写入 `logs/events.jsonl`，新事件带 `request_id`、`input_source`、`selection_source`、`selection_ms` 等元信息。
-- Provider 不可用或执行失败时，默认把 sanitized/capped 错误复制到剪贴板并写入 `logs/errors/<request_id>.log`。
-- 如需调试原始 provider 错误，显式设置 `AI_ROUTER_DEBUG_FULL_LOG=1`，原始错误会写入 `logs/errors/<request_id>.raw.log`。
-- 最近一次错误会复制到 `logs/errors/latest.log`，可从 palette 的 `Tool: Open Last Error` 打开。
-- 日志只记录元信息，不记录完整 selection、prompt 或 output。
-- `config.json` 里 `privacy.log_events: false` 可以彻底关掉 `logs/events.jsonl`；`privacy.debug_full_error_log: true` 等价于默认打开 `AI_ROUTER_DEBUG_FULL_LOG=1`。这两个开关是真的接在代码上的。
+- Every run writes its result to `cache/last-output.md` in the state directory.
+- `output: clipboard` prompts also copy the result to the clipboard.
+- `output: preview` prompts save and notify only; open the result from the palette with `Tool: Open Last Output`.
+- Events go to `logs/events.jsonl` with `request_id`, `input_source`, `selection_source`, `selection_ms` and related metadata.
+- When a provider is unavailable or fails, the sanitized and capped error is copied to the clipboard and written to `logs/errors/<request_id>.log`.
+- To debug the raw provider error, set `AI_ROUTER_DEBUG_FULL_LOG=1` and it is written to `logs/errors/<request_id>.raw.log`.
+- The most recent failure is mirrored to `logs/errors/latest.log`, reachable from the palette as `Tool: Open Last Error`.
+- Logs record metadata only - never the full selection, prompt or output.
+- `privacy.log_events: false` in `config.json` turns `logs/events.jsonl` off entirely; `privacy.debug_full_error_log: true` is the config equivalent of `AI_ROUTER_DEBUG_FULL_LOG=1`. Both switches are really wired to the code.
 
-Agent 菜单数据来自 `config.json` 的 `agents` 字段。Hammerspoon chooser 会优先读取 `ai-router.sh agent-menu`，读取失败时才使用内置 fallback。
+The agent menu is built from the `agents` block in `config.json`. The Hammerspoon
+chooser reads `ai-router.sh agent-menu` first and only uses its built-in fallback
+when that fails.
 
-## 可靠性参数
+## Reliability settings
 
-读取选中文本时会临时保存剪贴板、写入 sentinel、触发 `Cmd+C`，然后短间隔轮询剪贴板；一旦检测到新内容就继续，不再固定等待完整延迟。最后会恢复原剪贴板，并把读取来源和耗时写入 `cache/selection-meta.env` 与 `logs/events.jsonl`。
+Reading the selection saves the clipboard, writes a sentinel, sends `Cmd+C`, then
+polls the clipboard at a short interval - as soon as new content appears it moves
+on instead of waiting out a fixed delay. The original clipboard is restored, and
+the source and duration are written to `cache/selection-meta.env` and
+`logs/events.jsonl`.
 
-可通过环境变量微调：
+Environment variables for tuning:
 
 ```bash
 AI_ROUTER_SELECTION_COPY_DELAY=0.28
@@ -301,67 +361,54 @@ AI_ROUTER_SELECTION_STRICT=0
 AI_ROUTER_PROVIDER_TIMEOUT_SECONDS=60
 ```
 
-输入来源本身也可以指定：
+The input source can be set explicitly:
 
 ```bash
-AI_ROUTER_INPUT='要处理的文本' ~/.config/ai-router/ai-router.sh run summarize
+AI_ROUTER_INPUT='text to process' ~/.config/ai-router/ai-router.sh run summarize
 printf 'text' | ~/.config/ai-router/ai-router.sh run summarize
-~/.config/ai-router/ai-router.sh run summarize --from selection   # 忽略 stdin，读选区
-~/.config/ai-router/ai-router.sh run summarize --quiet            # 不发系统通知，由调用方负责反馈
+~/.config/ai-router/ai-router.sh run summarize --from selection   # ignore stdin, read the selection
+~/.config/ai-router/ai-router.sh run summarize --quiet            # no system notification, the caller reports
 ```
 
-优先级：`AI_ROUTER_INPUT` > 管道 stdin > 选区 > 剪贴板。Hammerspoon 一律显式传 `--from selection`，所以热键永远不会去读一个不属于它的管道。
+Priority: `AI_ROUTER_INPUT` > piped stdin > selection > clipboard. Hammerspoon
+always passes `--from selection`, so a hotkey never reads a pipe that is not its
+own.
 
-默认最多重试 2 次，每次轮询 10 次、间隔 `0.03s`。如果关闭轮询，则回退到 `AI_ROUTER_SELECTION_COPY_DELAY=0.28` 的固定等待。`AI_ROUTER_SELECTION_STRICT=1` 时，如果读不到选区会直接失败并通知，不会静默使用剪贴板。
+The default is at most 2 attempts, each polling 10 times at `0.03s`. With polling
+off it falls back to the fixed `AI_ROUTER_SELECTION_COPY_DELAY=0.28` wait. With
+`AI_ROUTER_SELECTION_STRICT=1`, failing to read a selection fails loudly instead
+of silently using the clipboard.
 
-正常模式下，如果读不到选区，会回退到剪贴板输入，并在通知和日志里标记 `clipboard input`。Provider 默认 60 秒超时。Provider 调用失败时会继续尝试 fallback chain；全部失败后不会再把输入 prompt 覆盖到剪贴板，而是复制错误信息。
+Normally an unreadable selection falls back to clipboard input, marked as
+`clipboard input` in the notification and the log. Providers time out after 60
+seconds by default. A failed provider call continues down the fallback chain;
+when every provider fails the input prompt is not written back over the
+clipboard - the error is copied instead.
 
-## 测试
+## Tests
 
-核心测试在 `tests/` 下：
+Core tests live under `tests/`:
 
 ```bash
 bash ~/.config/ai-router/tests/run.sh
 ```
 
-覆盖：
+They cover:
 
-- prompt render 和 UTF-8 文本
-- selection 读取元信息
-- catalog / hotkeys / cached palette 生成
-- provider 失败后的 fallback
-- usage / favorites 状态文件
+- prompt rendering and UTF-8 text
+- selection read metadata
+- catalog, hotkey and cached palette generation
+- provider fallback after a failure
+- usage and favorites state files
 
-## 回滚
-
-本轮改造前的备份：
-
-- `~/.config/ai-router.backup-workflow-router-20260427-210229`
-- `~/.hammerspoon/ai_hotkeys.lua.backup-ai-router-20260427-210229`
-- `~/.hammerspoon/init.lua.backup-ai-router-20260427-210229`
-
-恢复 ai-router：
-
-```bash
-rm -rf ~/.config/ai-router
-cp -R ~/.config/ai-router.backup-workflow-router-20260427-210229 ~/.config/ai-router
-```
-
-恢复 Hammerspoon AI 热键：
-
-```bash
-cp ~/.hammerspoon/ai_hotkeys.lua.backup-ai-router-20260427-210229 ~/.hammerspoon/ai_hotkeys.lua
-hs -c 'hs.reload()'
-```
-
-## Hammerspoon Reload
+## Reloading Hammerspoon
 
 ```bash
 hs -c 'hs.reload()'
 ```
 
-## 后续路线图
+## Roadmap and design notes
 
-未完成工作、设计原则、验收命令和后续 Agent 交接提示词见：
-
-- `~/.config/ai-router/ROADMAP.md`
+- `~/.config/ai-router/ROADMAP.md` - what is planned next.
+- `docs/tools/ai-router/design-notes.md` in the repository - the design rules, the
+  history behind them, and the parts that are deliberately unfinished.

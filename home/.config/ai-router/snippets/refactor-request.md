@@ -1,24 +1,23 @@
 ---
 id: refactor-request
 title: Refactor Request
-description: 低风险重构请求模板，强调行为不变和分阶段验证
+description: Low-risk refactor request template - behavior preserved, validated in stages
 category: coding
 priority: 370
 aliases:
   - refactor
   - cleanup
   - refactor-plan
-  - 重构方案
-  - 代码优化
+  - restructure
+  - tech-debt
 keywords:
   - behavior-preserving
   - staged-plan
   - risk
   - validation
   - maintainability
-  - 保持行为
-  - 分阶段
-  - 验证方式
+  - small-commits
+  - abstraction
 tags:
   - snippet
   - coding
@@ -27,21 +26,21 @@ tags:
 
 # Refactor Request
 
-请基于下面代码或需求，给出一个低风险重构方案。
+Propose a low-risk refactor for the code or requirement below.
 
-## 当前问题
+## Current problem
 
 {{selection}}
 
-## 约束
+## Constraints
 
-- 保持现有行为不变。
-- 优先小步提交。
-- 不引入不必要的新抽象。
+- Existing behavior must not change.
+- Prefer small commits.
+- Do not introduce abstractions that are not needed yet.
 
-## 请输出
+## Please output
 
-1. 重构目标。
-2. 分阶段步骤。
-3. 风险点。
-4. 验证方式。
+1. The goal of the refactor.
+2. The staged steps.
+3. The risks.
+4. How to validate each stage.

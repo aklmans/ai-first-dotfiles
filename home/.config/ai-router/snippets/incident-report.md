@@ -1,24 +1,23 @@
 ---
 id: incident-report
 title: Incident Report
-description: 事故复盘模板，包含影响、时间线、根因和后续行动
+description: Postmortem template covering impact, timeline, root cause and follow-up
 category: operations
 priority: 340
 aliases:
   - incident
   - postmortem
   - outage
-  - 事故复盘
-  - 故障报告
+  - retro
+  - rca
 keywords:
   - impact
   - timeline
   - root-cause
   - mitigation
   - follow-up
-  - 影响范围
-  - 时间线
-  - 根因分析
+  - blameless
+  - action-items
 tags:
   - snippet
   - operations
@@ -27,23 +26,23 @@ tags:
 
 # Incident Report
 
-## 事件概述
+## Overview
 
 {{selection}}
 
-## 影响范围
+## Impact
 
 
-## 时间线
+## Timeline
 
 -
 
-## 根因分析
+## Root cause
 
 
-## 处置过程
+## Response
 
 
-## 后续行动
+## Follow-up actions
 
 -

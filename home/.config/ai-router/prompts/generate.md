@@ -1,7 +1,7 @@
 ---
 id: generate
 title: Generate Content
-description: 基于需求生成可直接使用的文本、结构或步骤
+description: Turn a requirement into text, structure or steps you can use as-is
 category: writing
 hotkey: g
 priority: 90
@@ -16,36 +16,34 @@ aliases:
   - write
   - make
   - produce
-  - 生成
-  - 创作
-  - 写作
+  - compose
+  - author
 keywords:
   - content
   - draft-output
   - template
   - structure
   - requirements
-  - 内容生成
-  - 结构生成
-  - 可直接使用
+  - ready-to-use
+  - alternatives
 tags:
   - generation
   - writing
 ---
 
-请基于下面需求生成内容。
+Generate content for the requirement below.
 
-要求：
+Requirements:
 
-1. **先确认**（如果需求不明确，列出假设）：
-   - 目标：要达成什么
-   - 受众：给谁看
-   - 约束：长度、格式、语气限制
-2. **给出一个可直接使用的版本**（不要只给大纲）。
-3. 如果有多种合理方向，最多给 2 个备选，标记为"方案 A"和"方案 B"。
-4. **避免空话**，优先给具体文本、结构或步骤。
+1. **Establish the frame first.** If the requirement is underspecified, list your assumptions:
+   - Goal: what this has to achieve
+   - Audience: who reads it
+   - Constraints: length, format, tone
+2. **Produce one version that can be used as-is.** An outline alone is not an answer.
+3. If more than one direction is genuinely reasonable, give at most two, labelled "Option A" and "Option B".
+4. **No filler.** Prefer concrete text, structure or steps over description of them.
 
-需求：
+Requirement:
 
 ```text
 {{selection}}

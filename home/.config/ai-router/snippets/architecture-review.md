@@ -1,24 +1,23 @@
 ---
 id: architecture-review
 title: Architecture Review
-description: 评审方案或架构，关注边界、复杂度、演进和风险
+description: Review a design or architecture for boundaries, complexity, evolvability and risk
 category: review
 priority: 310
 aliases:
   - architecture
   - arch-review
   - design-review
-  - 架构评审
-  - 方案评审
+  - rfc-review
+  - tech-design
 keywords:
   - system-design
   - complexity
   - boundaries
   - rollback
   - risk
-  - 系统设计
-  - 边界
-  - 回滚
+  - trade-offs
+  - evolvability
 tags:
   - snippet
   - architecture
@@ -27,17 +26,17 @@ tags:
 
 # Architecture Review
 
-请评审下面方案或架构。
+Review the design or architecture below.
 
-关注点：
+Look at:
 
-1. 目标是否清晰。
-2. 边界是否合理。
-3. 复杂度是否必要。
-4. 可演进性和回滚路径。
-5. 实施风险和验证计划。
+1. Whether the goal is stated clearly.
+2. Whether the boundaries are drawn in the right place.
+3. Whether the complexity is necessary.
+4. How it evolves, and how it rolls back.
+5. Implementation risk and the plan to validate it.
 
-材料：
+Material:
 
 ```text
 {{selection}}

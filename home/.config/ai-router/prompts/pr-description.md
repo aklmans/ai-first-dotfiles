@@ -1,7 +1,7 @@
 ---
 id: pr-description
 title: Generate PR Description
-description: 根据改动生成 PR 描述、测试说明和风险
+description: Turn a change into a PR description with testing notes and risks
 category: coding
 priority: 240
 default_provider: claude
@@ -15,45 +15,43 @@ aliases:
   - pr-description
   - merge-request
   - mr
-  - PR描述
-  - 合并请求
-  - PR说明
+  - pr-body
+  - changelog
 keywords:
   - summary
   - changes
   - testing
   - risks
   - review-notes
-  - 改动说明
-  - 测试说明
-  - 风险说明
+  - deploy-notes
+  - rollout
 tags:
   - coding
   - git
   - pull-request
 ---
 
-请根据下面材料生成 PR 描述。
+Write a PR description from the material below.
 
-输出结构：
+Structure:
 
 ## Summary
-- 1-2 句话说明这个 PR 做了什么和为什么
+- One or two sentences: what this PR does and why
 
 ## Changes
-- 按文件或模块列出主要改动
-- 每条说明改了什么，不要只列文件名
+- Main changes, grouped by file or module
+- Say what changed in each - a bare file list is not a change log
 
 ## Testing
-- 如何验证这个改动（手动测试步骤或自动化测试）
-- 测试了哪些场景（正常路径 + 边界条件）
+- How to verify this change (manual steps or automated tests)
+- Which scenarios were covered (happy path plus edge cases)
 
 ## Risks
-- 可能影响的现有功能
-- 需要特别注意的部署步骤
-- 如果无风险，写"None"
+- Existing behavior this could affect
+- Deployment steps that need attention
+- Write "None" if there is genuinely no risk
 
-示例：
+Example:
 
 ## Summary
 - Add rate limiting to `/api/users` endpoint to prevent abuse
@@ -72,7 +70,7 @@ tags:
 - If Redis is down, rate limiting fails open (allows all requests)
 - Need to monitor 429 error rate after deploy
 
-材料：
+Material:
 
 ```text
 {{selection}}

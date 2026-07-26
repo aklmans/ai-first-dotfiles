@@ -1,7 +1,7 @@
 ---
 id: code-review
 title: Code Review
-description: 以代码评审方式检查改动、风险和测试缺口
+description: Review a change for defects, risk and missing test coverage
 category: coding
 priority: 210
 default_provider: claude
@@ -15,54 +15,52 @@ aliases:
   - cr
   - review-code
   - inspect
-  - 代码评审
-  - 审查
-  - 代码审查
+  - critique
+  - audit
 keywords:
   - findings
   - regression
   - edge-cases
   - test-gaps
   - risk-review
-  - 行为回归
-  - 边界条件
-  - 测试缺口
+  - severity
+  - data-loss
 tags:
   - coding
   - review
 ---
 
-请以代码评审方式检查下面内容。
+Review the content below as a code reviewer would.
 
-要求：
+Requirements:
 
-1. Findings first，按以下优先级排序：
-   - **P0**: 数据丢失、安全漏洞、生产故障
-   - **P1**: 行为回归、边界条件未处理、数据兼容性
-   - **P2**: 错误处理不完整、测试缺口
-   - **P3**: 可读性、命名（仅在严重影响理解时提）
+1. Findings first, in this severity order:
+   - **P0**: data loss, security holes, production outages
+   - **P1**: behavioral regressions, unhandled edge cases, data compatibility
+   - **P2**: incomplete error handling, missing test coverage
+   - **P3**: readability and naming - only when it genuinely blocks understanding
 
-2. 每个问题包含：
-   - 具体位置（行号、函数名、文件名）
-   - 问题描述
-   - 影响范围
-   - 建议修复方法
+2. Every finding carries:
+   - Where it is (line number, function, file)
+   - What is wrong
+   - What it affects
+   - How to fix it
 
-3. 不要做无关风格建议。
-4. 最后给出简短 summary（1-2 句话）。
+3. No unrelated style opinions.
+4. Close with a short summary, one or two sentences.
 
-输出格式：
+Output format:
 
 ## P0 Issues
-- [位置] 问题描述 → 建议
+- [location] what is wrong -> the fix
 
 ## P1 Issues
 - ...
 
 ## Summary
-总体评价和主要风险
+Overall assessment and the main risk
 
-材料：
+Material:
 
 ```text
 {{selection}}

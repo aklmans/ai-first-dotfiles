@@ -1,7 +1,7 @@
 ---
 id: draft
 title: Draft Message
-description: 根据材料起草邮件、IM、文档、评论或计划
+description: Draft an email, chat message, doc, comment or plan from the material
 category: writing
 hotkey: d
 priority: 100
@@ -16,33 +16,31 @@ aliases:
   - message
   - email
   - reply
-  - 起草
-  - 草稿
-  - 写消息
+  - dm
+  - write-back
 keywords:
   - email-draft
   - im-message
   - comment
   - plan
   - action-items
-  - 邮件
-  - 即时消息
-  - 回复
+  - follow-up
+  - announcement
 tags:
   - writing
   - draft
 ---
 
-请基于下面材料起草一份可直接发送或继续编辑的内容。
+Draft something from the material below that I can send as-is or keep editing.
 
-要求：
+Requirements:
 
-1. **先判断最合适的文体**：邮件、IM、文档、评论、计划或说明。
-2. **语气**：直接、清楚、不过度客套（避免"希望这封邮件找到你时一切安好"等）。
-3. **行动项**：如果有，明确负责人、时间和下一步。
-4. **输出正文**，不要写"以下是草稿"等多余解释。
+1. **Pick the right form first**: email, chat message, doc, comment, plan or status note.
+2. **Tone**: direct and clear, not over-polite (skip "I hope this email finds you well").
+3. **Action items**: if there are any, name the owner, the date and the next step.
+4. **Output the message body only.** No "here is a draft" preamble.
 
-材料：
+Material:
 
 ```text
 {{selection}}

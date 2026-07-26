@@ -387,40 +387,40 @@ local function runRouterAfterModifiersReleased(args, options)
 end
 
 local fallbackPromptBindings = {
-  { key = "a", prompt = "ask", title = "Ask AI", desc = "复制通用问答 prompt" },
-  { key = "s", prompt = "summarize", title = "Summarize", desc = "复制总结 prompt" },
-  { key = "t", prompt = "translate", title = "Translate", desc = "复制翻译 prompt" },
-  { key = "e", prompt = "explain", title = "Explain", desc = "复制解释 prompt" },
-  { key = "w", prompt = "rewrite", title = "Rewrite", desc = "复制改写 prompt" },
-  { key = "f", prompt = "fix", title = "Fix", desc = "复制修复 prompt" },
-  { key = "x", prompt = "extract", title = "Extract", desc = "复制提取 prompt" },
-  { key = "r", prompt = "research", title = "Research", desc = "复制研究 prompt" },
-  { key = "g", prompt = "generate", title = "Generate", desc = "复制生成 prompt" },
-  { key = "d", prompt = "draft", title = "Draft", desc = "复制起草 prompt" },
-  { key = "y", prompt = "translate-to-en", title = "Translate to English", desc = "复制中译英 prompt" },
-  { key = "=", prompt = "optimize-prompt", title = "Optimize Prompt", desc = "复制提示词增强 prompt" },
+  { key = "a", prompt = "ask", title = "Ask AI", desc = "Copy the general question prompt" },
+  { key = "s", prompt = "summarize", title = "Summarize", desc = "Copy the summarize prompt" },
+  { key = "t", prompt = "translate", title = "Translate", desc = "Copy the translate prompt" },
+  { key = "e", prompt = "explain", title = "Explain", desc = "Copy the explain prompt" },
+  { key = "w", prompt = "rewrite", title = "Rewrite", desc = "Copy the rewrite prompt" },
+  { key = "f", prompt = "fix", title = "Fix", desc = "Copy the fix prompt" },
+  { key = "x", prompt = "extract", title = "Extract", desc = "Copy the extract prompt" },
+  { key = "r", prompt = "research", title = "Research", desc = "Copy the research prompt" },
+  { key = "g", prompt = "generate", title = "Generate", desc = "Copy the generate prompt" },
+  { key = "d", prompt = "draft", title = "Draft", desc = "Copy the draft prompt" },
+  { key = "y", prompt = "translate-to-en", title = "Translate to English", desc = "Copy the translate-to-English prompt" },
+  { key = "=", prompt = "optimize-prompt", title = "Optimize Prompt", desc = "Copy the prompt optimizer prompt" },
 }
 
 -- Only used when catalogs/agents.json is missing; the real list comes from
 -- config.json, including which terminal the command is pasted into.
 local fallbackAgentChoices = {
-  { text = "Codex CLI", subText = "新开终端标签页并粘贴 codex --disable apps", kind = "agent", value = "codex" },
-  { text = "Claude Code", subText = "新开终端标签页并粘贴 claude", kind = "agent", value = "claude" },
-  { text = "Junie", subText = "新开终端标签页并粘贴 junie", kind = "agent", value = "junie" },
-  { text = "Gemini CLI", subText = "新开终端标签页并粘贴 gemini", kind = "agent", value = "gemini" },
-  { text = "Kimi CLI", subText = "新开终端标签页并粘贴 kimi", kind = "agent", value = "kimi" },
-  { text = "Warp Agent", subText = "新开终端标签页并放置 Warp Agent 占位命令", kind = "agent", value = "warp-agent" },
-  { text = "Codex App", subText = "打开 Codex App", kind = "agent", value = "codex-app" },
+  { text = "Codex CLI", subText = "Open a new terminal tab and paste codex --disable apps", kind = "agent", value = "codex" },
+  { text = "Claude Code", subText = "Open a new terminal tab and paste claude", kind = "agent", value = "claude" },
+  { text = "Junie", subText = "Open a new terminal tab and paste junie", kind = "agent", value = "junie" },
+  { text = "Gemini CLI", subText = "Open a new terminal tab and paste gemini", kind = "agent", value = "gemini" },
+  { text = "Kimi CLI", subText = "Open a new terminal tab and paste kimi", kind = "agent", value = "kimi" },
+  { text = "Warp Agent", subText = "Open a new terminal tab with the Warp Agent placeholder command", kind = "agent", value = "warp-agent" },
+  { text = "Codex App", subText = "Open Codex App", kind = "agent", value = "codex-app" },
 }
 
 local toolChoices = {
-  { text = "Open Last Output", subText = "打开 cache/last-output.md", kind = "tool", value = "last-output" },
-  { text = "Open Last Error", subText = "打开最近一次错误日志", kind = "tool", value = "last-error" },
-  { text = "Provider Status", subText = "查看 providers/ 下每个 provider 的状态", kind = "tool", value = "provider-status" },
-  { text = "Open AI Router Config", subText = "打开 ~/.config/ai-router", kind = "tool", value = "config" },
-  { text = "Open Prompt Folder", subText = "打开 prompts 目录", kind = "tool", value = "prompts" },
-  { text = "Open Logs", subText = "打开 logs 目录", kind = "tool", value = "logs" },
-  { text = "Rebuild Catalog Index", subText = "重新生成 catalogs/*.json", kind = "tool", value = "index" },
+  { text = "Open Last Output", subText = "Open cache/last-output.md", kind = "tool", value = "last-output" },
+  { text = "Open Last Error", subText = "Open the most recent error log", kind = "tool", value = "last-error" },
+  { text = "Provider Status", subText = "Check every provider under providers/", kind = "tool", value = "provider-status" },
+  { text = "Open AI Router Config", subText = "Open ~/.config/ai-router", kind = "tool", value = "config" },
+  { text = "Open Prompt Folder", subText = "Open the prompts directory", kind = "tool", value = "prompts" },
+  { text = "Open Logs", subText = "Open the logs directory", kind = "tool", value = "logs" },
+  { text = "Rebuild Catalog Index", subText = "Regenerate catalogs/*.json", kind = "tool", value = "index" },
 }
 
 local function stateKey(kind, value)

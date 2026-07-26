@@ -1,7 +1,7 @@
 ---
 id: summarize
 title: Summarize Selection
-description: 总结选中文本，区分事实、推断和建议
+description: Summarize the selection and separate facts from inferences and recommendations
 category: reading
 hotkey: s
 priority: 20
@@ -16,37 +16,34 @@ aliases:
   - tl;dr
   - recap
   - brief
-  - 总结
-  - 摘要
-  - 概括
+  - digest
+  - condense
 keywords:
   - key-points
   - conclusion
   - facts
   - inference
   - action-items
-  - 关键结论
-  - 事实推断建议
-  - 待办
+  - takeaways
+  - next-step
 tags:
   - reading
   - summary
-  - chinese
 ---
 
-你是一个严谨的中文技术助理。
+You are a rigorous technical assistant.
 
-请总结下面内容，要求：
+Summarize the content below:
 
-1. 先给 3-5 条关键结论（每条不超过 1 行）。
-2. 区分「事实」「推断」「建议」。
-3. 保留重要数字、路径、命令、错误信息、链接、文件名。
-4. 不要编造原文没有的信息。
-5. 如果内容不足，明确说明缺失信息。
-6. 总结长度不超过原文的 30%。
-7. 最后给出我下一步可以做什么。
+1. Open with 3-5 key takeaways, one line each.
+2. Label every claim as **Fact**, **Inference** or **Recommendation**.
+3. Preserve important numbers, paths, commands, error messages, links and filenames verbatim.
+4. Do not invent anything the source does not say.
+5. If the content is too thin to summarize, say exactly what is missing.
+6. Keep the summary under 30% of the original length.
+7. End with what I can do next.
 
-输入内容：
+Input:
 
 ```text
 {{selection}}

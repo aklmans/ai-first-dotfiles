@@ -10,10 +10,11 @@ It is the central automation service used by the CapsLock AI workflow.
 - `home/.config/ai-router/ai-router.sh`
 - `home/.config/ai-router/config.json`
 - `home/.config/ai-router/lib/router_tools.py`
-- `home/.config/ai-router/prompts/`
-- `home/.config/ai-router/snippets/`
+- `home/.config/ai-router/prompts/` (English set; `prompts/zh/` holds the Chinese one)
+- `home/.config/ai-router/snippets/` (English set; `snippets/zh/` holds the Chinese one)
 - `home/.config/ai-router/providers/`
-- `home/.config/ai-router/README.md` (reference notes)
+- `home/.config/ai-router/README.md` (full reference)
+- `home/.config/ai-router/ROADMAP.md` (what is planned next)
 - `bootstrap/install/ai-router.sh`
 
 ## Install
@@ -28,9 +29,32 @@ This will deploy files, make scripts executable, build indices, and export snipp
 
 - **Prompt**: Markdown template with frontmatter + variables (e.g. `{{selection}}`).
 - **Snippet**: Small reusable text blocks for repeated insertion patterns.
-- **Provider**: Back-end executor (`kimi`, `gemini`, etc.).
+- **Provider**: Back-end executor (`claude`, `codex`, `ollama`, `gemini`, `kimi`).
 - **Agent**: Long-running command executors (`codex`, `claude`, `junie`, etc.).
 - **Skill/Tool/Plugin**: Optional UI or operational entries shown in chooser modes.
+
+## Prompt language
+
+Prompts and snippets ship in English. A second language set lives in a
+subdirectory (`prompts/zh/`, `snippets/zh/`) with identical ids, filenames and
+frontmatter keys. The router globs the top level of `prompts/` and `snippets/`
+non-recursively, so a language subdirectory is inert until its files are copied
+up one level.
+
+```bash
+# Switch the active set to Chinese
+cp ~/.config/ai-router/prompts/zh/*.md ~/.config/ai-router/prompts/
+cp ~/.config/ai-router/snippets/zh/*.md ~/.config/ai-router/snippets/
+~/.config/ai-router/ai-router.sh index
+~/.config/ai-router/ai-router.sh export-snippets all
+
+# Switch back to English
+./bootstrap/install/ai-router.sh --deploy-only --force
+```
+
+Hotkeys, ids and provider settings are identical across the sets, so nothing
+downstream changes. Adding a language means adding a sibling directory with the
+same ids.
 
 ## How to use
 
@@ -97,6 +121,10 @@ The default flow favors explicit invocation:
 ~/.config/ai-router/ai-router.sh export-snippets all
 ```
 
+`exports/*.json` are tracked in the repository and `tests/smoke/ai_router_exports_smoke.sh`
+diffs them against a fresh export, so committing a prompt or snippet edit without
+re-exporting turns that test red.
+
 ### New provider
 
 1. Add executable in `home/.config/ai-router/providers/`.
@@ -128,3 +156,9 @@ Use Raycast import/imported JSON as a runtime workflow bridge.
 - Keep provider binary names explicit and local.
 - `catalogs/`, `cache/`, `state/`, and `logs/` are runtime outputs and excluded from tracked repo state.
 - Real API keys stay outside the repo and loaded from private local files only.
+
+## Further reading
+
+- [`home/.config/ai-router/README.md`](../../../home/.config/ai-router/README.md) - full reference: every command, every setting, the provider contract.
+- [`home/.config/ai-router/ROADMAP.md`](../../../home/.config/ai-router/ROADMAP.md) - what is planned next.
+- [`design-notes.md`](design-notes.md) - design rules, the reasoning behind them, and the known rough edges.

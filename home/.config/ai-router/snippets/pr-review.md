@@ -1,24 +1,23 @@
 ---
 id: pr-review
 title: PR Review
-description: 代码评审模板，优先检查回归、边界条件和测试缺口
+description: Code review template that leads with regressions, edge cases and test gaps
 category: coding
 priority: 360
 aliases:
   - pr
   - review
   - code-review
-  - 代码评审
-  - PR审查
+  - pr-feedback
+  - diff-review
 keywords:
   - findings
   - regression
   - edge-cases
   - error-handling
   - tests
-  - 行为回归
-  - 边界条件
-  - 测试缺口
+  - compatibility
+  - severity
 tags:
   - snippet
   - coding
@@ -27,24 +26,24 @@ tags:
 
 # PR Review
 
-请以代码评审方式检查下面改动或说明。
+Review the change or description below as a code reviewer would.
 
-重点：
+Focus on:
 
-1. 行为回归。
-2. 边界条件。
-3. 数据兼容性。
-4. 错误处理。
-5. 测试缺口。
+1. Behavioral regressions.
+2. Edge cases.
+3. Data compatibility.
+4. Error handling.
+5. Test gaps.
 
-材料：
+Material:
 
 ```text
 {{selection}}
 ```
 
-输出格式：
+Output format:
 
-- Findings first，按严重程度排序。
-- 每个问题给出具体位置或可验证线索。
-- 最后只给简短 summary。
+- Findings first, ordered by severity.
+- Every finding names a location or a verifiable clue.
+- End with a short summary and nothing more.

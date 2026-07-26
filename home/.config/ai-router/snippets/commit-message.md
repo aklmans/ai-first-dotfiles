@@ -1,22 +1,22 @@
 ---
 id: commit-message
 title: Commit Message
-description: 根据改动生成英文提交信息模板
+description: Short template for turning a diff into an English commit message
 category: coding
 priority: 330
 aliases:
   - commit
   - git-message
   - conventional-commit
-  - 提交信息
-  - 提交说明
+  - commit-msg
+  - git-commit
 keywords:
   - git
   - diff
   - type-scope-subject
   - changelog
-  - 变更摘要
-  - 英文提交
+  - subject-line
+  - commit-body
 tags:
   - snippet
   - coding
@@ -25,16 +25,16 @@ tags:
 
 # Commit Message
 
-请根据下面改动生成提交信息。
+Write a commit message for the change below.
 
-要求：
+Requirements:
 
-1. 使用英文。
-2. 标题不超过 72 字符。
-3. body 简明说明 why 和 what。
-4. 不要夸张，不要营销语气。
+1. Write it in English.
+2. Subject under 72 characters.
+3. Body explains why and what.
+4. No hype, no marketing voice.
 
-改动：
+Change:
 
 ```text
 {{selection}}

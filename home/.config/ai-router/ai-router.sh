@@ -1458,14 +1458,14 @@ palette_data_dynamic() {
     printf 'plugin:%s\tPlugin: %s\t%s\tplugin\t%s\n' "$name" "$name" "$desc" "$path"
   done < <(list_plugin_rows)
 
-  printf 'tool:index\tTool: Rebuild Catalog Index\t生成 prompts/snippets/skills/plugins 索引\ttool\tindex\n'
-  printf 'tool:provider-status\tTool: Show Provider Status\t检测 providers/ 下的每个 provider\ttool\tprovider-status\n'
-  printf 'tool:last-output\tTool: Open Last Output\t打开 cache/last-output.md\ttool\tlast-output\n'
-  printf 'tool:last-error\tTool: Open Last Error\t打开最近一次错误日志\ttool\tlast-error\n'
-  printf 'tool:config\tTool: Open AI Router Config\t打开 ~/.config/ai-router\ttool\tconfig\n'
-  printf 'tool:prompts\tTool: Open Prompt Folder\t打开 prompts 目录\ttool\tprompts\n'
-  printf 'tool:snippets\tTool: Open Snippet Folder\t打开 snippets 目录\ttool\tsnippets\n'
-  printf 'tool:logs\tTool: Open Logs\t打开 logs 目录\ttool\tlogs\n'
+  printf 'tool:index\tTool: Rebuild Catalog Index\tRebuild the prompt, snippet, skill and plugin index\ttool\tindex\n'
+  printf 'tool:provider-status\tTool: Show Provider Status\tReport the status of every adapter in providers/\ttool\tprovider-status\n'
+  printf 'tool:last-output\tTool: Open Last Output\tOpen cache/last-output.md\ttool\tlast-output\n'
+  printf 'tool:last-error\tTool: Open Last Error\tOpen the most recent error log\ttool\tlast-error\n'
+  printf 'tool:config\tTool: Open AI Router Config\tOpen ~/.config/ai-router\ttool\tconfig\n'
+  printf 'tool:prompts\tTool: Open Prompt Folder\tOpen the prompts directory\ttool\tprompts\n'
+  printf 'tool:snippets\tTool: Open Snippet Folder\tOpen the snippets directory\ttool\tsnippets\n'
+  printf 'tool:logs\tTool: Open Logs\tOpen the logs directory\ttool\tlogs\n'
 }
 
 palette_data() {

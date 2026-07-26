@@ -1,7 +1,7 @@
 ---
 id: explain
 title: Explain Selection
-description: 解释文本、代码、配置或报错，并给出下一步
+description: Explain text, code, config or an error, and say what to do next
 category: reading
 hotkey: e
 priority: 40
@@ -16,40 +16,38 @@ aliases:
   - why
   - understand
   - meaning
-  - 解释
-  - 说明
-  - 看不懂
+  - what-is-this
+  - walkthrough
 keywords:
   - code-explain
   - error-explain
   - config-explain
   - mechanism
   - next-step
-  - 代码解释
-  - 报错解释
-  - 原理
+  - side-effects
+  - rationale
 tags:
   - reading
   - debugging
   - coding
 ---
 
-请解释下面内容。
+Explain the content below.
 
-要求：
+Requirements:
 
-1. **先说明它是什么**（1 句话定位类型：代码/配置/报错/文档）。
-2. **关键机制**：
-   - 如果是代码：输入、输出、副作用、潜在风险
-   - 如果是配置：关键字段的作用和默认值
-   - 如果是报错：最可能原因（按概率排序）和排查步骤
-3. **背景或原因**（为什么这样设计/为什么会出错）。
-4. **下一步**：给出 1-3 个可执行的操作（命令、检查项、修改建议）。
+1. **Say what it is first** - one line identifying the kind of thing: code, config, error output or prose.
+2. **Explain the mechanism**:
+   - Code: inputs, outputs, side effects, latent risks
+   - Config: what each key does and its default
+   - Error: most likely causes ranked by probability, plus how to investigate each
+3. **Give the background**: why it is built this way, or why it went wrong.
+4. **Say what to do next**: 1-3 concrete actions - a command, a thing to check, a change to make.
 
-前台应用：{{frontmost_app}}
-窗口标题：{{window_title}}
+Frontmost app: {{frontmost_app}}
+Window title: {{window_title}}
 
-内容：
+Content:
 
 ```text
 {{selection}}

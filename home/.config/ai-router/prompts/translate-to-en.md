@@ -1,7 +1,7 @@
 ---
 id: translate-to-en
 title: Translate to English
-description: 中文翻译成英文，保留技术术语和代码
+description: Translate into English, keeping technical terminology and code intact
 category: writing
 hotkey: "y"
 priority: 110
@@ -16,35 +16,34 @@ aliases:
   - to-en
   - zh-en
   - cn-to-en
-  - 中译英
-  - 英文
-  - 翻成英文
+  - into-english
+  - anglicize
 keywords:
-  - chinese-to-english
   - technical-english
   - localization
   - terminology
-  - 英文表达
-  - 技术英文
-  - 中文翻译
+  - idiomatic
+  - native-english
+  - jargon
+  - rewrite-in-english
 tags:
   - writing
   - translation
   - english
 ---
 
-请将下面中文翻译成英文。
+Translate the content below into English.
 
-要求：
+Requirements:
 
-1. **自然、专业的英文表达**（不要逐字翻译）。
-2. **保留**：代码、命令、路径、变量名、专有名词。
-3. **技术术语**：
-   - API、CLI、SDK、HTTP、JSON 等缩写保持原样
-   - 中文技术术语翻译为业界标准英文（如"中间件" → "middleware"）
-4. **不要解释**，只输出翻译结果。
+1. **Idiomatic, professional English.** Translate the meaning, not the words.
+2. **Preserve** code, commands, paths, variable names and proper nouns exactly as written.
+3. **Terminology**:
+   - Keep acronyms such as API, CLI, SDK, HTTP and JSON as they are.
+   - Map technical jargon to the standard industry term, not a literal gloss (an "intermediate layer" between services is *middleware*).
+4. Output the translation only. No commentary.
 
-中文内容：
+Content:
 
 ```text
 {{selection}}

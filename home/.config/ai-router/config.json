@@ -19,28 +19,28 @@
       "command": "codex --disable apps",
       "behavior": "paste_in_terminal",
       "priority": 501,
-      "aliases": ["codex", "openai", "代码代理"]
+      "aliases": ["codex", "openai", "coding-agent"]
     },
     "claude": {
       "label": "Claude Code",
       "command": "claude",
       "behavior": "paste_in_terminal",
       "priority": 502,
-      "aliases": ["claude", "anthropic", "代码代理"]
+      "aliases": ["claude", "anthropic", "coding-agent"]
     },
     "junie": {
       "label": "Junie",
       "command": "junie",
       "behavior": "paste_in_terminal",
       "priority": 503,
-      "aliases": ["junie", "jetbrains", "代码代理"]
+      "aliases": ["junie", "jetbrains", "coding-agent"]
     },
     "kimi": {
       "label": "Kimi CLI",
       "command": "kimi",
       "behavior": "paste_in_terminal",
       "priority": 504,
-      "aliases": ["kimi", "moonshot", "月之暗面"]
+      "aliases": ["kimi", "moonshot", "moonshot-ai"]
     },
     "gemini": {
       "label": "Gemini CLI",

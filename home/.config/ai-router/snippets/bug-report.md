@@ -1,24 +1,23 @@
 ---
 id: bug-report
 title: Bug Report
-description: 生成结构化 bug 报告，包含现象、复现、环境和排查问题
+description: Structured bug report - symptom, reproduction, environment and the questions to answer
 category: debugging
 priority: 320
 aliases:
   - bug
   - issue
   - repro
-  - 缺陷报告
-  - 问题报告
+  - defect
+  - ticket
 keywords:
   - actual-behavior
   - expected-behavior
   - steps-to-reproduce
   - environment
   - logs
-  - 复现步骤
-  - 预期行为
-  - 实际行为
+  - regression
+  - severity
 tags:
   - snippet
   - debugging
@@ -27,33 +26,33 @@ tags:
 
 # Bug Report
 
-## 现象
+## Symptom
 
 {{selection}}
 
-## 期望行为
+## Expected behavior
 
 
-## 实际行为
+## Actual behavior
 
 
-## 复现步骤
+## Steps to reproduce
 
 1.
 2.
 3.
 
-## 环境
+## Environment
 
 - App:
 - OS:
 - Version:
 
-## 已尝试
+## Already tried
 
 
-## 需要 AI 帮助判断
+## Questions for AI
 
-1. 可能根因是什么？
-2. 如何最小化验证？
-3. 应该优先检查哪些日志或配置？
+1. What is the likely root cause?
+2. What is the smallest way to verify it?
+3. Which logs or config should I check first?

@@ -1,7 +1,7 @@
 ---
 id: optimize-prompt
 title: Optimize Prompt
-description: 优化 AI prompt，提升清晰度、约束性和输出稳定性
+description: Sharpen an AI prompt - clearer instructions, harder constraints, more stable output
 category: prompt-engineering
 hotkey: "="
 priority: 120
@@ -16,44 +16,42 @@ aliases:
   - optimize
   - prompt-engineering
   - improve-prompt
-  - 提示词
-  - 提示词增强
-  - 优化提示词
+  - tighten-prompt
+  - rewrite-prompt
 keywords:
   - system-prompt
   - instruction
   - constraints
   - output-format
   - few-shot
-  - 约束
-  - 输出格式
-  - 指令优化
+  - guardrails
+  - determinism
 tags:
   - prompt-engineering
   - optimization
 ---
 
-请优化下面的 AI prompt。
+Optimize the AI prompt below.
 
-要求：
+Requirements:
 
-1. **增强约束性**：
-   - 明确禁止 AI 常见坏习惯（夸张、编造、空话）
-   - 定义输出格式（用结构化模板）
-   - 限制长度或范围
+1. **Harden the constraints**:
+   - Rule out the usual failure modes explicitly: hype, invented facts, empty filler
+   - Define the output format as a structured template
+   - Bound the length or the scope
 
-2. **提升清晰度**：
-   - 任务边界明确（做什么 / 不做什么）
-   - 优先级清晰（如果有多个要求）
-   - 用加粗标记关键指令
+2. **Sharpen the instructions**:
+   - Make the task boundary explicit: what to do, and what not to do
+   - Rank the requirements when there is more than one
+   - Bold the load-bearing instructions
 
-3. **添加示例**（如果任务复杂）：
-   - 给 1-2 个 Few-Shot 示例
-   - 格式：输入 → 输出
+3. **Add examples** when the task is complex:
+   - One or two few-shot examples
+   - Format: input -> output
 
-4. **输出优化后的 prompt**，不要解释改了什么。
+4. **Output the optimized prompt only.** Do not explain what you changed.
 
-原 prompt：
+Original prompt:
 
 ```text
 {{selection}}
