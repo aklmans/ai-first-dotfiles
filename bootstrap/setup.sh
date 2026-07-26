@@ -34,6 +34,9 @@ Options:
   --install-only  Install packages/external dependencies only.
   --dry-run       Print commands without running them.
   -h, --help      Show this help.
+
+Environment:
+  DOTFILES_SKIP_PREFLIGHT=1  Skip the brew/git/Xcode CLT prerequisite check.
 EOF
 }
 
@@ -203,6 +206,16 @@ while [[ "$#" -gt 0 ]]; do
   esac
   shift
 done
+
+# Runs after argument parsing so `--help` still works on a machine that has
+# nothing installed yet, and before any profile so the failure is one readable
+# message instead of a broken half-install. --dry-run only warns: README tells
+# strangers to preview first, and that must not require Homebrew.
+if [[ "$dry_run" -eq 1 ]]; then
+  require_prerequisites warn
+else
+  require_prerequisites
+fi
 
 if [[ "${#profiles[@]}" -eq 0 ]]; then
   profiles=(all)

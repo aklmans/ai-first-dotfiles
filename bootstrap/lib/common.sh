@@ -7,6 +7,59 @@ repo_root_dir() {
   printf '%s\n' "$script_dir"
 }
 
+# Fail fast on a missing toolchain. Without this the first module script to need
+# Homebrew dies with a bare `command not found`, several screens into an install
+# the user cannot tell apart from a real bug.
+# Pass "warn" to report problems without failing. --dry-run uses that: previewing
+# is the one thing a stranger should be able to do before installing anything,
+# including Homebrew itself.
+require_prerequisites() {
+  local mode="${1:-fail}"
+
+  if [[ "${DOTFILES_SKIP_PREFLIGHT:-0}" == "1" ]]; then
+    return 0
+  fi
+
+  local -a problems
+  local problem
+  problems=()
+
+  if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
+    problems+=('Xcode Command Line Tools are missing. Install them: xcode-select --install')
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    problems+=('git is missing. It ships with the Xcode Command Line Tools, or: brew install git')
+  fi
+
+  if ! command -v brew >/dev/null 2>&1; then
+    problems+=('Homebrew is missing. Install it from https://brew.sh, then open a new shell so brew is on PATH.')
+  fi
+
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if [[ "$mode" == "warn" ]]; then
+    printf 'Note: prerequisites are missing. This preview still works, but installing will not.\n\n' >&2
+  else
+    printf 'Cannot bootstrap: missing prerequisites.\n\n' >&2
+  fi
+
+  for problem in ${problems[@]+"${problems[@]}"}; do
+    printf '  - %s\n' "$problem" >&2
+  done
+  printf '\nSee the Prerequisites section of README.md.\n' >&2
+
+  if [[ "$mode" == "warn" ]]; then
+    printf '\n' >&2
+    return 0
+  fi
+
+  printf 'Set DOTFILES_SKIP_PREFLIGHT=1 to bypass this check.\n' >&2
+  return 1
+}
+
 DOTFILES_INSTALL=1
 DOTFILES_DEPLOY=1
 DOTFILES_BREW=1
