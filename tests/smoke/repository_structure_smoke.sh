@@ -98,6 +98,8 @@ require_file home/.config/ai-router/providers/gemini.sh
 require_file home/.config/ai-router/providers/kimi.sh
 require_file home/.config/ai-router/providers/junie.sh
 require_file home/.config/ai-router/providers/warp-agent.sh
+require_file home/.config/ai-router/providers/_template.sh
+require_file home/.config/ai-router/providers/ollama.sh
 
 require_file home/.config/sketchybar/sketchybarrc
 require_file home/.config/sketchybar/colors.sh
@@ -107,6 +109,10 @@ require_file home/.config/sketchybar/plugins/ai_app_notifications.sh
 require_file home/.config/borders/bordersrc
 require_file home/.config/aerospace/app-defaults.sh
 require_file home/.config/aerospace/reveal-app.sh
+require_file home/.config/aerospace/displays.conf
+require_file home/.config/aerospace/workspaces.conf
+require_file home/.config/aerospace/render-layout.sh
+require_file home/.config/aerospace/lib/layout.sh
 require_file home/.aerospace.toml
 
 require_file home/.config/karabiner/karabiner.json
@@ -153,6 +159,7 @@ require_file tests/smoke/privacy_scan_smoke.sh
 require_file tests/smoke/deploy_engine_smoke.sh
 require_file tests/smoke/orchestration_smoke.sh
 require_file tests/smoke/shell_layer_smoke.sh
+require_file tests/smoke/ai_router_cli_smoke.sh
 
 require_absent bootstrap/macos
 require_absent home/.config/zsh/personal.zsh
