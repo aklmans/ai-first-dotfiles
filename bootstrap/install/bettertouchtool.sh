@@ -20,7 +20,9 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-parse_install_args "${args[@]}"
+# Guarded expansion: bash 3.2 (the macOS system bash) treats "${args[@]}" as an
+# unbound variable when the array is empty, which aborts the script under `set -u`.
+parse_install_args ${args[@]+"${args[@]}"}
 
 brew_install_cask bettertouchtool
 
