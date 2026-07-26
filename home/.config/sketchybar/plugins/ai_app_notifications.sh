@@ -13,7 +13,7 @@ REQUEST_DIR="$STATE_DIR/ai_attention.clear_requests"
 NOTIFICATION_DB="${NOTIFICATION_DB:-$HOME/Library/Group Containers/group.com.apple.usernoted/db2/db}"
 ACTION="${1:-update}"
 
-source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/lib/theme.sh"
 source "$CONFIG_DIR/icons.sh"
 
 app_item() {
@@ -388,17 +388,17 @@ set_item_state() {
   if [ "${count:-0}" -gt 0 ]; then
     "$SKETCHYBAR" --set "$item" \
       icon="$icon" \
-      icon.color=$BLUE \
+      icon.color=$THEME_ACCENT_ATTENTION \
       label="$count" \
       label.drawing=on \
       label.width=18 \
-      label.color=$WHITE \
+      label.color=$THEME_ACCENT_ON_ACCENT \
       drawing=off \
       background.drawing=off >/dev/null 2>&1 || true
   else
     "$SKETCHYBAR" --set "$item" \
       icon="$icon" \
-      icon.color=$GREY \
+      icon.color=$THEME_ACCENT_MUTED \
       label.drawing=off \
       label.width=0 \
       label.color=$BAR_COLOR \
@@ -425,9 +425,9 @@ set_popup_state() {
     "$SKETCHYBAR" --set "$item" \
       drawing=on \
       icon="$icon" \
-      icon.color=$BLUE \
+      icon.color=$THEME_ACCENT_ATTENTION \
       label="$label" \
-      label.color=$WHITE >/dev/null 2>&1 || true
+      label.color=$THEME_ACCENT_ON_ACCENT >/dev/null 2>&1 || true
   else
     "$SKETCHYBAR" --set "$item" drawing=off >/dev/null 2>&1 || true
   fi
@@ -445,15 +445,15 @@ append_app_args() {
   if [ "${count:-0}" -gt 0 ]; then
     args+=(--set "$item" \
       icon="$icon" \
-      icon.font="sketchybar-app-font:Regular:15.0" \
-      icon.color=$BLUE \
+      icon.font="$THEME_FONT_BADGE_APP_ICON" \
+      icon.color=$THEME_ACCENT_ATTENTION \
       icon.padding_left=8 \
       icon.padding_right=4 \
       label="$count" \
       label.drawing=on \
-      label.font="SF Pro:Semibold:14.0" \
+      label.font="$THEME_FONT_BADGE" \
       label.width=18 \
-      label.color=$WHITE \
+      label.color=$THEME_ACCENT_ON_ACCENT \
       label.padding_left=1 \
       label.padding_right=8 \
       drawing=on \
@@ -469,13 +469,13 @@ append_app_args() {
     args+=(--set "$popup" \
       drawing=on \
       icon="$icon" \
-      icon.color=$BLUE \
+      icon.color=$THEME_ACCENT_ATTENTION \
       label="$label" \
-      label.color=$WHITE)
+      label.color=$THEME_ACCENT_ON_ACCENT)
   else
     args+=(--set "$item" \
       icon="$icon" \
-      icon.color=$GREY \
+      icon.color=$THEME_ACCENT_MUTED \
       label.drawing=off \
       label.width=0 \
       label.color=$BAR_COLOR \
@@ -511,23 +511,23 @@ update_bar() {
     args+=(--set ai_notify.total \
       drawing=on \
       icon=$BELL \
-      icon.font="SF Pro:Semibold:13.5" \
-      icon.color=$GREY \
+      icon.font="$THEME_FONT_BADGE_ICON" \
+      icon.color=$THEME_ACCENT_MUTED \
       icon.padding_left=8 \
       icon.padding_right=4 \
       label=0 \
       label.drawing=on \
-      label.font="SF Pro:Semibold:14.0" \
+      label.font="$THEME_FONT_BADGE" \
       label.width=18 \
-      label.color=$WHITE \
+      label.color=$THEME_ACCENT_ON_ACCENT \
       label.padding_left=1 \
       label.padding_right=8)
     args+=(--set ai_notify.popup.empty \
       drawing=on \
       icon=$BELL \
-      icon.color=$GREY \
+      icon.color=$THEME_ACCENT_MUTED \
       label="No AI attention" \
-      label.color=$GREY)
+      label.color=$THEME_ACCENT_MUTED)
   elif [ "$active_apps" -eq 1 ]; then
     args+=(--set ai_notify.total drawing=off popup.drawing=off)
     args+=(--set ai_notify.popup.empty drawing=off)
@@ -535,15 +535,15 @@ update_bar() {
     args+=(--set ai_notify.total \
       drawing=on \
       icon=$BELL_DOT \
-      icon.font="SF Pro:Semibold:13.5" \
-      icon.color=$BLUE \
+      icon.font="$THEME_FONT_BADGE_ICON" \
+      icon.color=$THEME_ACCENT_ATTENTION \
       icon.padding_left=8 \
       icon.padding_right=4 \
       label="$total" \
       label.drawing=on \
-      label.font="SF Pro:Semibold:14.0" \
+      label.font="$THEME_FONT_BADGE" \
       label.width=18 \
-      label.color=$WHITE \
+      label.color=$THEME_ACCENT_ON_ACCENT \
       label.padding_left=1 \
       label.padding_right=8)
     args+=(--set ai_notify.popup.empty drawing=off)

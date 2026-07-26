@@ -111,6 +111,14 @@ fi
 
 cat <<'EOF'
 
+SketchyBar theming:
+- Fonts, sizes, geometry and colour roles live in ~/.config/sketchybar/theme.conf;
+  the palette they refer to lives in ~/.config/sketchybar/colors.sh.
+- Your edits to both survive re-running this installer. Use --force to take the
+  shipped versions back.
+- The space a window manager has to leave above the bar is derived from the bar
+  geometry: ~/.config/sketchybar/lib/theme.sh get THEME_TOP_INSET
+
 SketchyBar AI notification notes:
 - Runtime attention state is stored in ~/Library/Caches/sketchybar, not in ~/.config/sketchybar.
 - To let SketchyBar read macOS notification metadata, grant Full Disk Access to SketchyBar:

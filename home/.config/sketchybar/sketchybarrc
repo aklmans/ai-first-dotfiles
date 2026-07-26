@@ -1,34 +1,37 @@
 #!/bin/bash
 
-source "$CONFIG_DIR/colors.sh" # Loads all defined colors
+# lib/theme.sh loads colors.sh and then theme.conf on top of it, so the whole
+# look of the bar - palette, fonts, sizes, geometry - comes from those two files
+# and nothing here is a number somebody has to find and change twice.
+source "$CONFIG_DIR/lib/theme.sh"
 source "$CONFIG_DIR/icons.sh" # Loads all defined icons
 
 ITEM_DIR="$CONFIG_DIR/items" # Directory where the items are configured
 PLUGIN_DIR="$CONFIG_DIR/plugins" # Directory where all the plugin scripts are stored
 
-FONT="SF Pro" # Needs to have Regular, Bold, Semibold, Heavy and Black variants
-PADDINGS=3 # All paddings use this value (icon, label, background)
+FONT="$THEME_FONT" # Needs Regular, Bold, Semibold, Heavy and Black variants
+PADDINGS="$THEME_ITEM_PADDING" # All paddings use this value (icon, label, background)
 
 # Unload the macOS on screen indicator overlay for volume change
 launchctl unload -F /System/Library/LaunchAgents/com.apple.OSDUIHelper.plist > /dev/null 2>&1 &
 
 # Setting up the general bar appearance of the bar
 bar=(
-  height=40
+  height=$THEME_BAR_HEIGHT
   color=$BAR_COLOR
-  border_width=2
-  border_color=$BLUE
+  border_width=$THEME_BAR_BORDER_WIDTH
+  border_color=$THEME_ACCENT_BAR_BORDER
   shadow=off
   position=top
   sticky=on
-  padding_right=10
-  padding_left=10
-  y_offset=35
-  margin=20
+  padding_right=$THEME_BAR_PADDING
+  padding_left=$THEME_BAR_PADDING
+  y_offset=$THEME_BAR_Y_OFFSET
+  margin=$THEME_BAR_MARGIN
   blur_radius=0
-  corner_radius=15
+  corner_radius=$THEME_BAR_CORNER_RADIUS
   sticky=on
-  notch_width=200
+  notch_width=$THEME_BAR_NOTCH_WIDTH
   topmost=window
 )
 
@@ -37,20 +40,20 @@ sketchybar --bar "${bar[@]}"
 # Setting up default values
 defaults=(
   updates=when_shown
-  icon.font="$FONT:Bold:14.0"
+  icon.font="$THEME_FONT_ICON"
   icon.color=$ICON_COLOR
   icon.padding_left=$PADDINGS
   icon.padding_right=$PADDINGS
-  label.font="$FONT:Semibold:13.0"
+  label.font="$THEME_FONT_LABEL"
   label.color=$LABEL_COLOR
   label.padding_left=$PADDINGS
   label.padding_right=$PADDINGS
   padding_right=$PADDINGS
   padding_left=$PADDINGS
-  background.height=26
-  background.corner_radius=15
-  background.border_width=2
-  popup.background.border_width=2
+  background.height=$THEME_ITEM_HEIGHT
+  background.corner_radius=$THEME_ITEM_CORNER_RADIUS
+  background.border_width=$THEME_ITEM_BORDER_WIDTH
+  popup.background.border_width=$THEME_ITEM_BORDER_WIDTH
   popup.background.corner_radius=11
   popup.background.border_color=$POPUP_BORDER_COLOR
   popup.background.color=$POPUP_BACKGROUND_COLOR
@@ -82,4 +85,5 @@ sketchybar --hotload on
 # Forcing all item scripts to run (never do this outside of sketchybarrc)
 sketchybar --update
 
-echo "sketchybar configuation loaded.."
+printf 'sketchybar configuration loaded (bar %spx, top inset %spx)\n' \
+  "$THEME_BAR_HEIGHT" "$THEME_TOP_INSET"

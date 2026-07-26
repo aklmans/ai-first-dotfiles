@@ -21,20 +21,20 @@ toggle_detail() {
 
 toggle_devices() {
   which SwitchAudioSource >/dev/null || exit 0
-  source "$CONFIG_DIR/colors.sh"
+  source "$CONFIG_DIR/lib/theme.sh"
 
   args=(--remove '/volume.device\.*/' --set "$NAME" popup.drawing=toggle)
   COUNTER=0
   CURRENT="$(SwitchAudioSource -t output -c)"
   while IFS= read -r device; do
-    COLOR=$GREY
+    COLOR=$THEME_ACCENT_MUTED
     if [ "${device}" = "$CURRENT" ]; then
-      COLOR=$WHITE
+      COLOR=$THEME_ACCENT_ON_ACCENT
     fi
     args+=(--add item volume.device.$COUNTER popup."$NAME" \
            --set volume.device.$COUNTER label="${device}" \
                                         label.color="$COLOR" \
-                 click_script="SwitchAudioSource -s \"${device}\" && sketchybar --set /volume.device\.*/ label.color=$GREY --set \$NAME label.color=$WHITE --set $NAME popup.drawing=off")
+                 click_script="SwitchAudioSource -s \"${device}\" && sketchybar --set /volume.device\.*/ label.color=$THEME_ACCENT_MUTED --set \$NAME label.color=$THEME_ACCENT_ON_ACCENT --set $NAME popup.drawing=off")
     COUNTER=$((COUNTER+1))
   done <<< "$(SwitchAudioSource -a -t output)"
 

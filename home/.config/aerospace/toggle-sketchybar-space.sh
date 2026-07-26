@@ -25,7 +25,14 @@ SKETCHYBAR_CONFIG_DIR="${SKETCHYBAR_CONFIG_DIR:-$HOME_DIR/.config/sketchybar}"
 
 # shellcheck source=lib/layout.sh
 source "$SCRIPT_DIR/lib/layout.sh"
-source "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh"
+# SketchyBar is optional: this runs from .aerospace.toml's after-startup-command,
+# so a missing resolver must degrade rather than fail the whole login.
+if [ -r "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh" ]; then
+  source "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh"
+else
+  sketchybar_display_id_for_monitor() { return 1; }
+  sketchybar_visible_display_list_excluding() { printf 'all\n'; }
+fi
 
 aerospace_layout_load_config
 aerospace_layout_resolve

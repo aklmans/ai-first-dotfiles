@@ -2,17 +2,32 @@
 set -euo pipefail
 
 CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
-SKETCHYBAR="${SKETCHYBAR:-/opt/homebrew/bin/sketchybar}"
-AEROSPACE="${AEROSPACE:-/opt/homebrew/bin/aerospace}"
 ICON_MAP="$CONFIG_DIR/plugins/icon_map.sh"
 
-source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/lib/theme.sh"
+source "$CONFIG_DIR/lib/runtime.sh"
+source "$CONFIG_DIR/lib/workspaces.sh"
+
+SKETCHYBAR="${SKETCHYBAR:-$(sketchybar_runtime_bin "" sketchybar)}"
+SKETCHYBAR="${SKETCHYBAR:-/opt/homebrew/bin/sketchybar}"
+AEROSPACE="${AEROSPACE:-$(sketchybar_runtime_bin "" aerospace)}"
+
+# No AeroSpace means no windows to report and no workspaces to repaint. Saying
+# so once and leaving the chips alone beats a screenful of "command not found"
+# and beats wiping every label to "-".
+if ! sketchybar_runtime_has "$AEROSPACE"; then
+  sketchybar_warn_once aerospace-missing \
+    'aerospace CLI not found; workspace chips will not be repainted. Install AeroSpace, or set AEROSPACE to its path.'
+  exit 0
+fi
 
 run_aerospace() {
   "$AEROSPACE" "$@" 2>/dev/null
 }
 
-WORKSPACES="1 2 3 4 5 6 7 8 9 10 11 12 13"
+# The one list, shared with items/spaces.sh, so a chip is never repainted that
+# was never created - and never left stale because it was.
+WORKSPACES="$(sketchybar_workspace_list)"
 
 collect_windows() {
   local windows
@@ -56,8 +71,8 @@ for workspace in $WORKSPACES; do
 
   if [ "$workspace" = "$focused_workspace" ]; then
     selected=true
-    border_color="$BLUE"
-    icon_color="$BLUE"
+    border_color="$THEME_ACCENT_WORKSPACE_ACTIVE"
+    icon_color="$THEME_ACCENT_WORKSPACE_ACTIVE"
   fi
 
   args+=(

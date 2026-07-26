@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# The palette, and only the palette. Three are shipped; uncomment the one you
+# want and comment out the current one, then restart SketchyBar.
+#
+# Which palette entry each item uses - clock, calendar, battery, volume, the
+# focused workspace - is decided in theme.conf, which is read after this file
+# and can also override any entry below. Everything on the bar goes through one
+# of the two, so a colour never has to be changed in six places again.
+
 ### Sonokai
 # export BLACK=0xff181819
 # export WHITE=0xffe2e2e3

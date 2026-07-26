@@ -2,13 +2,13 @@
 
 ai_total=(
   icon=$BELL_DOT
-  icon.font="$FONT:Semibold:13.5"
-  icon.color=$GREY
+  icon.font="$THEME_FONT_BADGE_ICON"
+  icon.color=$THEME_ACCENT_MUTED
   icon.padding_left=8
   icon.padding_right=4
   label.drawing=off
-  label.font="$FONT:Semibold:14.0"
-  label.color=$WHITE
+  label.font="$THEME_FONT_BADGE"
+  label.color=$THEME_ACCENT_ON_ACCENT
   label.padding_left=1
   label.padding_right=8
   padding_left=3
@@ -19,13 +19,13 @@ ai_total=(
 )
 
 ai_app_common=(
-  icon.font="sketchybar-app-font:Regular:15.0"
-  icon.color=$GREY
+  icon.font="$THEME_FONT_BADGE_APP_ICON"
+  icon.color=$THEME_ACCENT_MUTED
   icon.padding_left=8
   icon.padding_right=4
   label.drawing=off
-  label.font="$FONT:Semibold:14.0"
-  label.color=$WHITE
+  label.font="$THEME_FONT_BADGE"
+  label.color=$THEME_ACCENT_ON_ACCENT
   label.padding_left=1
   label.padding_right=8
   padding_left=3
@@ -35,16 +35,16 @@ ai_app_common=(
 
 ai_popup_common=(
   drawing=off
-  icon.font="sketchybar-app-font:Regular:16.0"
-  icon.color=$GREY
+  icon.font="$THEME_FONT_APP_ICON"
+  icon.color=$THEME_ACCENT_MUTED
   icon.padding_left=8
   icon.padding_right=8
-  label.font="$FONT:Semibold:12.0"
-  label.color=$WHITE
+  label.font="$THEME_FONT_POPUP"
+  label.color=$THEME_ACCENT_ON_ACCENT
   label.padding_left=0
   label.padding_right=12
   background.corner_radius=8
-  background.height=26
+  background.height=$THEME_ITEM_HEIGHT
 )
 
 sketchybar --add event ai_notification_sync
@@ -124,8 +124,8 @@ sketchybar --add bracket ai_notify.bracket              \
              ai_notify.goland                           \
            --set ai_notify.bracket                      \
              background.drawing=on                      \
-             background.height=26                       \
+             background.height=$THEME_ITEM_HEIGHT                       \
              background.corner_radius=14                \
              background.color=$BACKGROUND_1             \
              background.border_color=$BACKGROUND_2      \
-             background.border_width=2
+             background.border_width=$THEME_ITEM_BORDER_WIDTH

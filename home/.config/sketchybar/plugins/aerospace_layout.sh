@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-AEROSPACE="${AEROSPACE:-/opt/homebrew/bin/aerospace}"
+CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/sketchybar}"
+source "$CONFIG_DIR/lib/runtime.sh"
+
+AEROSPACE="${AEROSPACE:-$(sketchybar_runtime_bin "" aerospace)}"
+
+# The item shows the layout of the focused window. Without AeroSpace there is
+# no layout to show, so the honest thing is to leave the item empty rather than
+# report a state nothing produced.
+if ! sketchybar_runtime_has "$AEROSPACE"; then
+  sketchybar_warn_once aerospace-missing \
+    'aerospace CLI not found; the layout indicator stays hidden.'
+  sketchybar -m --set "${NAME:-aerospace_layout}" icon.width=0 label.width=0 >/dev/null 2>&1 || true
+  exit 0
+fi
 
 run_aerospace() {
   local timeout="${AEROSPACE_QUERY_TIMEOUT_SECONDS:-2}"
@@ -30,7 +43,7 @@ run_aerospace() {
 }
 
 window_state() {
-  source "$CONFIG_DIR/colors.sh"
+  source "$CONFIG_DIR/lib/theme.sh"
   source "$CONFIG_DIR/icons.sh"
 
   WINDOW="$(run_aerospace list-windows --focused --format "%{window-layout}%{tab}%{window-parent-container-layout}%{tab}%{workspace-root-container-layout}%{tab}%{window-is-fullscreen}" || true)"

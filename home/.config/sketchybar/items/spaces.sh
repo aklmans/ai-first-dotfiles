@@ -6,15 +6,15 @@
 #
 # Why the AeroSpace config and not a SketchyBar one: these items exist to show
 # AeroSpace workspaces, and two sources of truth for the same list is how they
-# end up disagreeing.
+# end up disagreeing. lib/workspaces.sh owns the lookup and its fallbacks so
+# this file and the plugin that repaints the chips cannot answer differently.
 
 AEROSPACE_CONFIG_DIR="${AEROSPACE_CONFIG_DIR:-$HOME/.config/aerospace}"
-AEROSPACE_BIN="${AEROSPACE_BIN:-/opt/homebrew/bin/aerospace}"
-SKETCHYBAR_BIN="${SKETCHYBAR_BIN:-/opt/homebrew/bin/sketchybar}"
-HS_BIN="${HS_BIN:-/opt/homebrew/bin/hs}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 CONFIG_DIR="${CONFIG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd -P)}"
 
+source "$CONFIG_DIR/lib/theme.sh"
+source "$CONFIG_DIR/lib/workspaces.sh"
 source "$CONFIG_DIR/lib/display-resolver.sh"
 
 # Environment overrides are still honoured by the library itself; naming them
@@ -31,14 +31,6 @@ if [ -r "$AEROSPACE_CONFIG_DIR/lib/layout.sh" ]; then
 fi
 
 sketchybar --add event aerospace_workspace_change
-
-workspace_list() {
-  if type aerospace_layout_workspaces >/dev/null 2>&1; then
-    aerospace_layout_workspaces
-    return
-  fi
-  printf '1 2 3 4 5 6 7 8 9 10 11 12 13\n'
-}
 
 role_for_workspace() {
   if type aerospace_layout_role_for_workspace >/dev/null 2>&1; then
@@ -68,27 +60,33 @@ main_display=""
 
 # Arrangement id 1 always exists, so an unresolvable role puts its workspaces on
 # a real display instead of on display 2 or 3 of a laptop that has neither.
-display_id_for_role() {
+#
+# Assigns into a named variable rather than printing: a command substitution is
+# a subshell, and the resolver's "warn once" guard cannot survive one, so three
+# roles used to produce three copies of the same warning.
+resolve_display_id() {
   local role="$1"
+  local target="$2"
   local monitor_name display_id=""
 
   monitor_name="$(monitor_name_for_role "$role")"
   if [ -n "$monitor_name" ]; then
-    display_id="$(sketchybar_display_id_for_monitor "$monitor_name" || true)"
+    sketchybar_display_id_for_monitor_var "$monitor_name" || true
+    display_id="$SKETCHYBAR_DISPLAY_ID"
   fi
 
   if [ -z "$display_id" ] && [ "$role" != "main" ]; then
     display_id="$main_display"
   fi
 
-  printf '%s\n' "${display_id:-1}"
+  eval "$target=\"\${display_id:-1}\""
 }
 
-main_display="$(display_id_for_role main)"
-side_display="$(display_id_for_role side)"
-stage_display="$(display_id_for_role stage)"
+resolve_display_id main main_display
+resolve_display_id side side_display
+resolve_display_id stage stage_display
 
-for sid in $(workspace_list); do
+for sid in $(sketchybar_workspace_list); do
   case "$(role_for_workspace "$sid")" in
     side)
       display="$side_display"
@@ -109,10 +107,10 @@ for sid in $(workspace_list); do
     padding_left=2
     padding_right=2
     label.padding_right=20
-    icon.highlight_color=$BLUE
-    label.color=$GREY
-    label.highlight_color=$WHITE
-    label.font="sketchybar-app-font:Regular:16.0"
+    icon.highlight_color=$THEME_ACCENT_WORKSPACE_ACTIVE
+    label.color=$THEME_ACCENT_WORKSPACE_IDLE
+    label.highlight_color=$THEME_ACCENT_ON_ACCENT
+    label.font="$THEME_FONT_APP_ICON"
     label.y_offset=-1
     background.color=$BACKGROUND_1
     background.border_color=$BACKGROUND_2
@@ -124,20 +122,25 @@ for sid in $(workspace_list); do
              --subscribe space.$sid mouse.clicked
 done
 
-space_creator=(
-  icon=􀆊
-  icon.font="$FONT:Heavy:16.0"
-  padding_left=10
-  padding_right=8
-  label.drawing=off
-  display=active
-  click_script="$PLUGIN_DIR/aerospace_spaces_refresh.sh"
-  script="$PLUGIN_DIR/aerospace_spaces_refresh.sh"
-  icon.color=$ORANGE
-)
+# The refresh item exists to re-read AeroSpace. Without the binary it would
+# fire on every app switch, find nothing, and log a warning each time, so it is
+# simply not added - the chips above still show the configured workspaces.
+if sketchybar_runtime_has "$(sketchybar_runtime_bin "${AEROSPACE_BIN:-${AEROSPACE:-}}" aerospace)"; then
+  space_creator=(
+    icon=􀆊
+    icon.font="$THEME_FONT_HEAVY"
+    padding_left=10
+    padding_right=8
+    label.drawing=off
+    display=active
+    click_script="$PLUGIN_DIR/aerospace_spaces_refresh.sh"
+    script="$PLUGIN_DIR/aerospace_spaces_refresh.sh"
+    icon.color=$THEME_ACCENT_WORKSPACE_ADD
+  )
 
-sketchybar --add item space_creator left                 \
-           --set space_creator "${space_creator[@]}"     \
-           --subscribe space_creator aerospace_workspace_change front_app_switched
+  sketchybar --add item space_creator left                 \
+             --set space_creator "${space_creator[@]}"     \
+             --subscribe space_creator aerospace_workspace_change front_app_switched
 
-"$PLUGIN_DIR/aerospace_spaces_refresh.sh"
+  "$PLUGIN_DIR/aerospace_spaces_refresh.sh"
+fi
