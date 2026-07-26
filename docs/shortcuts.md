@@ -10,6 +10,11 @@ This page is the canonical shortcut map for the tracked setup.
 In this document, `CapsLock + key` means hold `CapsLock`, then press `key`.
 `Alt` in AeroSpace config is the macOS `Option` key.
 
+> **Some of these collide with macOS defaults**, most notably `Ctrl + ←/→` and
+> the CapsLock key itself. See
+> [Shortcuts that fight macOS](../README.md#shortcuts-that-fight-macos) before
+> concluding a binding is broken.
+
 ## Workspaces
 
 Workspace behavior is owned by `home/.aerospace.toml`.
@@ -40,8 +45,8 @@ Workspace behavior is owned by `home/.aerospace.toml`.
 | `Ctrl + Shift + \` | Move focused window to workspace `13` and follow it |
 | `Ctrl + Left` / `Ctrl + Right` | Move to previous / next workspace group |
 | `Alt + Tab` | Toggle back to the previously focused workspace |
-| `Ctrl + Up` | Mission Control |
-| `Ctrl + Down` | App Expose |
+| `Ctrl + Up` | Mission Control — **requires BetterTouchTool** (`setup.sh extras`) |
+| `Ctrl + Down` | App Exposé — **requires BetterTouchTool** (`setup.sh extras`) |
 
 ## Window Focus And Layout
 
@@ -212,7 +217,15 @@ When Hammerspoon is running, its AI Router bindings consume the prompt-related c
 ## Config Files
 
 - `home/.aerospace.toml`: workspace, window, display, and desktop UI shortcuts.
-- `home/.config/karabiner/karabiner.json`: CapsLock Hyper, navigation, editing, global chords, launchers.
+  The workspace and `Ctrl + N` blocks are generated — edit
+  `~/.config/aerospace/workspaces.conf` and run `render-layout.sh` instead.
+- `home/.config/karabiner/assets/complex_modifications/capslock-ai-lite.json`:
+  CapsLock Hyper, navigation, editing, global chords, launchers. **This is the
+  file that gets installed**, as a Karabiner complex-modification rule you enable
+  yourself.
+- `home/.config/karabiner/karabiner.json`: a reference copy of the profile those
+  rules produce. Never deployed — Karabiner rewrites that file itself, and
+  overwriting it would replace every profile and device override you have.
 - `home/.hammerspoon/ai_hotkeys.lua`: AI Router chooser, prompt hotkeys, agent chooser.
 - `home/.hammerspoon/screencast.lua`: focused-window recording size presets.
 - `home/.config/bettertouchtool/aerospace-gestures.sh`: trackpad gestures.

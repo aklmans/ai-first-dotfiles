@@ -22,15 +22,6 @@ This document summarizes the current public architecture of this repository.
 - **Shell + Terminal stack**: command line ergonomics and file manager workflows
 - **Desktop UI stack**: status bar and borders
 
-## Deprecated modules intentionally excluded
-
-- `skhd`
-- `yabai`
-- `wezterm`
-- `oh-my-posh`
-
-Do not assume behavior from these modules in this repository.
-
 ## AeroSpace essentials
 
 - `Ctrl + 1...0` switch workspace `1..10`
@@ -41,7 +32,9 @@ Do not assume behavior from these modules in this repository.
 - `Ctrl + Shift + \` move focused window to workspace `13`
 - `Alt + H/J/K/L` move focus in tiled layout
 - `Ctrl + Left/Right` cycle workspace groups
-- `Ctrl + Up` / `Ctrl + Down` are reserved for Mission Control / App Expose style system workflows, depending on your active keyboard layer.
+- `Ctrl + Up` / `Ctrl + Down` trigger Mission Control / App Exposé through
+  `home/.config/aerospace/macos-control.sh`, which drives BetterTouchTool. BTT
+  lives in the `extras` profile, so without it these two keys do nothing.
 
 Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 
@@ -67,8 +60,9 @@ Typical path: select text -> trigger caps command -> render -> paste/run via cho
 ```bash
 zsh -n home/.zshenv home/.config/zsh/*.zsh
 bash -n home/.config/ai-router/ai-router.sh
-python3 -m json.tool home/.config/karabiner/karabiner.json
+python3 -m json.tool home/.config/karabiner/assets/complex_modifications/capslock-ai-lite.json
 bash tests/smoke/repository_structure_smoke.sh
 ```
 
-For full smoke checks, run scripts in `tests/smoke/`.
+For the full suite, run every script in `tests/smoke/` — see
+[CONTRIBUTING.md](../../../CONTRIBUTING.md).

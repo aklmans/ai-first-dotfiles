@@ -12,16 +12,41 @@ It provides predictable workspace keys, quick window movement, and deterministic
 - `home/.config/aerospace/workspaces.conf` - how many workspaces exist and where they live
 - `home/.config/aerospace/lib/layout.sh` - the library every script reads those two through
 - `home/.config/aerospace/render-layout.sh` - renders both into `~/.aerospace.toml`
+- `home/.config/aerospace/render-app-rules.sh` - renders `app-defaults.sh` into the app-placement block of `~/.aerospace.toml`
+- `home/.config/aerospace/doctor.sh` - reports where the desk, the config and the TOML disagree
 - `home/.config/aerospace/*.sh`
-- `bootstrap/install/aerospace.sh`
 - `bootstrap/install/aerospace.sh` installs `aerospace`, deploys config, re-renders the generated blocks from your `displays.conf` / `workspaces.conf`, enables native ctrl-drag behavior, and tries a dry-run reload.
+
+### The two generators
+
+`~/.aerospace.toml` is partly generated. Two scripts own the marked blocks
+inside it, and everything outside those markers — your own bindings, your own
+comments — is left untouched, so both are safe to run against a config you have
+edited by hand.
+
+| Script | Reads | Writes into `~/.aerospace.toml` |
+|---|---|---|
+| `render-layout.sh` | `displays.conf`, `workspaces.conf` | Persistent workspace list, workspace-to-monitor assignment, the `Ctrl + N` and `Ctrl + Shift + N` bindings. Then calls `render-app-rules.sh` unless given `--no-app-rules`. |
+| `render-app-rules.sh` | `app-defaults.sh` | The per-app placement and floating rules |
+
+`render-layout.sh --check` reports drift, exits 1 when the TOML is out of date,
+and changes nothing — usually the fastest answer to "did my edit take?":
+
+```bash
+~/.config/aerospace/render-layout.sh --check
+```
+
+`render-app-rules.sh` takes an optional path and always writes; it keeps the
+previous file next to the target as `.bak-<timestamp>-render-app-rules`.
+
+Edit the `.conf` files and `app-defaults.sh`, not the generated blocks — the next
+render replaces them.
 
 ## What it does
 
 - 13 workspaces by default: `1`–`12` for daily work and `13` as the recording/meeting stage. The count is config, not code - see below.
 - Window-focused tiling and move commands are exposed as fast workspace shortcuts.
 - SketchyBar and Borders integration uses scripts in `home/.config/aerospace/` to keep visible state aligned.
-- Legacy `skhd`, `yabai`, `wezterm`, and `oh-my-posh` modules are **not included**.
 
 ## Displays and workspaces
 

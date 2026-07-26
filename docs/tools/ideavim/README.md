@@ -1,20 +1,32 @@
 # IdeaVim
 
-`home/.ideavimrc` contains the reusable Vim-mode settings for JetBrains IDEs.
+`home/.ideavimrc` holds the Vim-mode settings for JetBrains IDEs, so editing
+inside IntelliJ, GoLand or PyCharm behaves like editing anywhere else in this
+setup.
 
-## Purpose
+## Install
 
-- keep key behavior consistent with terminal `zsh` and terminal text workflows
-- support quick editing mode in IDEs without tracking IDE runtime data
+```bash
+./bootstrap/install/ideavim.sh
+```
 
-## Installation
+That deploys one file, `~/.ideavimrc`, and installs nothing. It is also part of
+the `shell` profile:
 
-This file is deployed as part of `home/.ideavimrc` by default in this repository layout.
+```bash
+./bootstrap/setup.sh shell
+```
 
-No dedicated installer writes it; it is copied when using your normal home sync flow.
+The IDE picks it up on the next restart, or via `:source ~/.ideavimrc`. IdeaVim
+itself is a JetBrains plugin — install it from the IDE's plugin marketplace;
+nothing here can do that for you.
 
 ## Notes
 
-- This layer is intentionally configuration-only.
-- Do not copy private workspace files or shared project snapshots into `.ideavimrc`.
-- If IDE runtime behavior differs, keep your local IDE-specific plugins in per-machine overrides and avoid committing full IDE settings.
+- Configuration only. No IDE runtime data, workspace files or project snapshots
+  are tracked, and none should be added to `.ideavimrc`.
+- Keep IDE-specific or machine-specific settings in your own IDE config rather
+  than here.
+- The deploy engine keeps your edits: once `~/.ideavimrc` differs from the copy
+  the last install wrote, a redeploy reports `Kept local change` and leaves it
+  alone. Re-run with `--force` to take the shipped version back.

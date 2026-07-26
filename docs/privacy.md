@@ -1,18 +1,23 @@
 # Privacy and Public Safety
 
-This repository is designed to be public-safe.
-Only public configuration and minimal bootstrap helpers are tracked.
+A dotfiles repo is a machine snapshot, and machine snapshots leak. This page is
+the policy that keeps this one from leaking, and
+[`tests/smoke/privacy_scan_smoke.sh`](../tests/smoke/privacy_scan_smoke.sh)
+enforces it on every push.
 
-## Public safety policy
+## What the scan blocks
 
-This project does **not** import private Git history.
-Only current, reviewed, public-safe files are tracked.
+The check fails the build — it is not advisory — on any of:
 
-That means:
-
-- Existing repository history is not exposed here.
-- Contributors should rotate secrets that may still exist in the old project history.
-- Runtime and private local files are intentionally excluded.
+- A token-shaped string: `sk-…`, `ghp_…`, `github_pat_…`, `AKIA…`, `xox[baprs]-…`
+- A private key header
+- An `api_key` / `access_token` / `bearer_token` assignment with a real-looking value
+- **Any real absolute home path.** `/Users/<anything>` fails unless it is one of
+  the documented placeholders (`/Users/YOUR_USERNAME`, `/Users/you`,
+  `/Users/alice`, …). Use `$HOME`.
+- A file named `*.env*`, `*secret*`, `*token*`, `*backup*` or `*.bak`
+- A directory named `cache`, `logs` or `state`
+- Hardware identifiers in the Karabiner config (see below)
 
 ## Runtime / state exclusions
 
@@ -36,25 +41,22 @@ The following directories are excluded by design and are not tracked:
 
 Use private overrides:
 
-- `home/.config/zsh/private.zsh` (private local shell vars, if needed)
-- `home/.config/ai-router/.env.local.example` as a template only
+- `~/.config/zsh/private.zsh` — machine-specific shell variables and secrets.
+  Never tracked. `home/.config/zsh/private.zsh.example` shows the shape.
 
 Every `*.example` file here is a placeholder.
 Copy and fill it at your private local location; never commit a filled version.
 
-## Excluded legacy and deprecated modules
+## Credentials
 
-The following are excluded from this repository by design:
+The AI layer stores none. Every provider under
+`home/.config/ai-router/providers/` shells out to a CLI you have already signed
+into — `codex`, `claude`, `gemini`, `kimi`, `ollama` — so no API key is ever read
+from, written to, or tracked in this repository.
 
-- `home/.config/skhd`
-- `home/.config/yabai`
-- `home/.config/wezterm`
-- `home/.config/oh-my-posh`
-- `bootstrap/install/warp-launch-agent.sh`
-- `home/.config/aerospace/warp-launch-agent.sh`
-- `bootstrap/install/gbrain.sh` and `templates/gbrain/` — cloned a private
-  repository and required a toolchain nothing else here uses, so it could never
-  have run for anyone outside that account
+`home/.config/ai-router/lib/router_tools.py` additionally redacts anything
+shaped like `api_key`, `token`, `password`, `secret` or `bearer` out of error
+text before it reaches the log.
 
 ## Personal inventories
 

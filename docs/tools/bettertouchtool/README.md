@@ -1,7 +1,16 @@
 # BetterTouchTool Gestures
 
-`BetterTouchTool` is optional in this setup.
-It is used for trackpad/trackpoint gestures that complement AeroSpace workspace movement.
+`BetterTouchTool` drives the trackpad gestures that complement AeroSpace
+workspace movement.
+
+> **It is not installed by `setup.sh all`.** BTT is free for 45 days and paid
+> after that, so it lives in the `extras` profile:
+> `./bootstrap/setup.sh extras`.
+>
+> Two keyboard shortcuts depend on it as well:
+> `home/.config/aerospace/macos-control.sh` routes `Ctrl + ↑` (Mission Control)
+> and `Ctrl + ↓` (App Exposé) through BTT's `trigger_action` API. Without BTT
+> installed and running, those two keys silently do nothing.
 
 ![BetterTouchTool workspace gestures](../../../assets/screenshots/bettertouchtool-gestures.png)
 
@@ -14,7 +23,8 @@ It is used for trackpad/trackpoint gestures that complement AeroSpace workspace 
 ## Install
 
 ```bash
-./bootstrap/install/bettertouchtool.sh
+./bootstrap/setup.sh extras                  # BetterTouchTool + Warp
+./bootstrap/install/bettertouchtool.sh       # or this module alone
 ```
 
 The installer copies the tracked gesture preset script but does not start BetterTouchTool by default.

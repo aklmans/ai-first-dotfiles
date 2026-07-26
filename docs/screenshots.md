@@ -17,16 +17,25 @@ Use public demo windows and avoid any real names, project paths, logs, tickets, 
 
 | File | Purpose | Referenced from |
 |---|---|---|
-| [`desktop-overview.png`](../assets/screenshots/desktop-overview.png) | Full desktop with workspace bar and app layout. | `README.md` |
+| [`aerospace-tiling-layout.png`](../assets/screenshots/aerospace-tiling-layout.png) | Multi-window AeroSpace tiling with the workspace bar. | `README.md` (hero), `docs/tools/aerospace/README.md` |
+| [`desktop-overview.png`](../assets/screenshots/desktop-overview.png) | Full desktop with workspace bar, no windows open. | this page |
 | [`sketchybar-workspace-bar.png`](../assets/screenshots/sketchybar-workspace-bar.png) | Top bar showing workspace indicators and app icons. | `docs/tools/sketchybar/README.md` |
-| [`aerospace-tiling-layout.png`](../assets/screenshots/aerospace-tiling-layout.png) | Multi-window AeroSpace tiling with workspace layout. | `docs/tools/aerospace/README.md` |
-| [`capslock-chooser.png`](../assets/screenshots/capslock-chooser.png) | AI Router prompt chooser. | `README.md`, `docs/tools/ai-router/README.md` |
+| [`capslock-chooser.png`](../assets/screenshots/capslock-chooser.png) | AI Router prompt chooser. | `docs/tools/ai-router/README.md` |
 | [`agent-chooser.png`](../assets/screenshots/agent-chooser.png) | Long-running coding agent chooser. | `docs/tools/hammerspoon/README.md` |
 | [`starship-prompt.png`](../assets/screenshots/starship-prompt.png) | Shell prompt with path and git context. | `docs/tools/zsh-starship/README.md` |
 | [`kaku-warp-terminal.png`](../assets/screenshots/kaku-warp-terminal.png) | Terminal workflow with Kaku/Warp-oriented configuration. | `docs/tools/terminal/README.md` |
 | [`raycast-import.png`](../assets/screenshots/raycast-import.png) | Raycast snippet import flow for AI Router exports. | `docs/tools/ai-router/README.md` |
 | [`bettertouchtool-gestures.png`](../assets/screenshots/bettertouchtool-gestures.png) | Trackpad gesture configuration for workspace movement. | `docs/tools/bettertouchtool/README.md` |
 | [`karabiner-profile.png`](../assets/screenshots/karabiner-profile.png) | `CapsLock AI Lite` Karabiner profile. | `docs/tools/karabiner/README.md` |
+
+## Known-stale shots
+
+- `capslock-chooser.png` still shows the prompt catalog with Chinese
+  descriptions. The default prompt set is English now; the Chinese set moved to
+  `home/.config/ai-router/prompts/zh/`. Recapture before relying on it.
+- `karabiner-profile.png` shows the old `CapsLock AI Lite` *profile*. The install
+  now ships a complex-modification rule you enable yourself, so the screen a new
+  user sees is Complex Modifications → Add rule, not the profile list.
 
 ## Gallery
 
