@@ -8,24 +8,84 @@ It provides predictable workspace keys, quick window movement, and deterministic
 ## Installed files
 
 - `home/.aerospace.toml`
+- `home/.config/aerospace/displays.conf` - which monitor plays which role
+- `home/.config/aerospace/workspaces.conf` - how many workspaces exist and where they live
+- `home/.config/aerospace/lib/layout.sh` - the library every script reads those two through
+- `home/.config/aerospace/render-layout.sh` - renders both into `~/.aerospace.toml`
 - `home/.config/aerospace/*.sh`
 - `bootstrap/install/aerospace.sh`
-- `bootstrap/install/aerospace.sh` installs `aerospace`, deploys config, enables native ctrl-drag behavior, and tries a dry-run reload.
+- `bootstrap/install/aerospace.sh` installs `aerospace`, deploys config, re-renders the generated blocks from your `displays.conf` / `workspaces.conf`, enables native ctrl-drag behavior, and tries a dry-run reload.
 
 ## What it does
 
-- 13 workspaces by default: `1`–`12` for daily work and `13` for the built-in display recording/meeting stage.
+- 13 workspaces by default: `1`–`12` for daily work and `13` as the recording/meeting stage. The count is config, not code - see below.
 - Window-focused tiling and move commands are exposed as fast workspace shortcuts.
 - SketchyBar and Borders integration uses scripts in `home/.config/aerospace/` to keep visible state aligned.
 - Legacy `skhd`, `yabai`, `wezterm`, and `oh-my-posh` modules are **not included**.
 
+## Displays and workspaces
+
+Everything about your desk lives in two files, and nothing else names a monitor
+or a workspace count:
+
+| File | Answers |
+|---|---|
+| `~/.config/aerospace/displays.conf` | which physical monitor plays the `main`, `side` and `stage` role |
+| `~/.config/aerospace/workspaces.conf` | which workspaces exist, and which role each one belongs to |
+
+### One display works out of the box
+
+`displays.conf` ships with all three roles empty, which means "resolve from
+whatever is connected". On a MacBook with no external display, `main`, `side`
+and `stage` all resolve to the built-in screen, every workspace lands there,
+`Option + Shift + Space` hides that screen's bar, and `doctor.sh` is green.
+Nothing waits at login for a display that is not there.
+
+With two or three displays and no names configured, roles are handed out in the
+order `aerospace list-monitors` reports them.
+
+### Pinning a role to a specific monitor
+
+Name the display when you want a role to follow one specific panel regardless of
+enumeration order:
+
+```bash
+aerospace list-monitors          # exact names of what is connected
+$EDITOR ~/.config/aerospace/displays.conf
+~/.config/aerospace/render-layout.sh
+```
+
+A named display that is not connected costs nothing: its role falls back to the
+next unclaimed monitor, and then onto `side` -> `main`, so one screen can carry
+all three roles.
+
+### Changing the number of workspaces
+
+Edit the three lists in `workspaces.conf` and render once:
+
+```bash
+$EDITOR ~/.config/aerospace/workspaces.conf
+~/.config/aerospace/render-layout.sh
+```
+
+That regenerates, inside the marked blocks of `~/.aerospace.toml`, the
+persistent workspace list, the workspace-to-monitor assignment and the
+`Ctrl + N` / `Ctrl + Shift + N` shortcuts, and re-renders the app placement
+rules. Shortcut keys are handed out in order `1`-`9`, `0`, `[`, `]`, `\`;
+workspaces past the fourteenth work but have no single-key shortcut. App rules
+that ask for a workspace you removed are mapped onto the highest one you kept.
+
+Everything outside the markers - your own bindings, your own comments - is left
+untouched, so `render-layout.sh` is safe to run against a config you have
+edited. `doctor.sh` reports when the config and the TOML have drifted apart.
+
 ## Default Workspace Map
 
-Default monitor split:
+Default role split:
 
-- `PHL 279C9` / 27-inch main display: workspaces `1`-`6`
-- `24V5C2` / 24-inch side display: workspaces `7`-`12`
-- `Built-in Retina Display`: workspace `13`
+- `main` display: workspaces `1`-`6`
+- `side` display: workspaces `7`-`12`
+- `stage` display (built-in, when there is one): workspace `13`
 
 | Workspace | Default role | Tracked apps |
 |---|---|---|
@@ -71,6 +131,9 @@ Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 bash -n home/.config/aerospace/*.sh
 HOME="$PWD/home" bash home/.config/aerospace/app-defaults.sh
 HOME="$PWD/home" bash home/.config/aerospace/check-display-layout.sh
+
+# Is ~/.aerospace.toml still what displays.conf and workspaces.conf render?
+~/.config/aerospace/render-layout.sh --check
 ```
 
 If available on your machine:
@@ -81,6 +144,8 @@ aerospace reload-config --dry-run --no-gui
 
 ## File rules and behavior
 
+- `displays.conf` and `workspaces.conf` are deployed like any other config file, which means the deploy engine keeps your edits: a redeploy only overwrites a file this repo itself has changed, and backs up whatever it replaces.
+- The generated blocks of `~/.aerospace.toml` are re-rendered from your two config files after every deploy, so an update to the tracked TOML does not quietly reset your workspace count or your monitor names.
 - App placement defaults are intentionally generated from tracked config, not from local session state.
 - Agent launch shortcuts use the tracked AI Router `agent` command, which opens a new Warp tab and pastes the command without executing it.
 - `home/.config/aerospace/layout-control.sh` owns temporary layout repair/toggle actions so shortcuts do not rely on multi-command inline AeroSpace chains.

@@ -1,5 +1,33 @@
 #!/usr/bin/env bash
 
+# App placement and floating rules, in one place, in two forms: shell functions
+# for the scripts that sort existing windows, and TOML for AeroSpace's own
+# on-window-detected rules. render-app-rules.sh renders the second from the
+# first so the two cannot drift.
+#
+# Workspace numbers below are written against the thirteen workspaces this repo
+# ships. They are passed through the clamp in lib/layout.sh on the way out, so
+# a user who cuts workspaces.conf down to five gets the recording apps on their
+# highest workspace instead of AeroSpace conjuring a fourteenth one nothing can
+# reach. With the shipped config the clamp changes nothing.
+
+_app_defaults_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+if [ -r "$_app_defaults_dir/lib/layout.sh" ]; then
+    # shellcheck source=lib/layout.sh
+    . "$_app_defaults_dir/lib/layout.sh"
+fi
+
+# Copied out of a deployment without its library, this file still has to be a
+# usable set of rules rather than a syntax error waiting to happen.
+if ! type aerospace_layout_clamp_workspace >/dev/null 2>&1; then
+    aerospace_layout_clamp_workspace() {
+        printf '%s\n' "${1:-}"
+    }
+    aerospace_layout_clamp_workspace_stream() {
+        cat
+    }
+fi
+
 is_jetbrains_app() {
     local app_id="${1:-}"
     local app_name="${2:-}"
@@ -167,6 +195,15 @@ should_tile_window() {
 }
 
 default_workspace_for_window() {
+    local raw
+
+    raw="$(default_workspace_rule_for_window "$@")" || return 1
+    [ -n "$raw" ] || return 1
+
+    aerospace_layout_clamp_workspace "$raw"
+}
+
+default_workspace_rule_for_window() {
     local app_id="${1:-}"
     local app_name="${2:-}"
     local title="${3:-}"
@@ -303,6 +340,10 @@ default_workspace_for_window() {
 }
 
 emit_on_window_detected_rules() {
+    emit_on_window_detected_rules_raw | aerospace_layout_clamp_workspace_stream
+}
+
+emit_on_window_detected_rules_raw() {
     cat <<'TOML'
 # Application placement and floating rules.
 # Keep this block aligned with ~/.config/aerospace/app-defaults.sh.

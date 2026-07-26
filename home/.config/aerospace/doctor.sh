@@ -89,6 +89,17 @@ check_file_executable() {
     fi
 }
 
+# Libraries and config files are sourced, not run, so an executable bit on them
+# is neither required nor a problem.
+check_file_readable() {
+    local path="$1"
+    if [ -r "$path" ]; then
+        ok "readable: $path"
+    else
+        fail "missing: $path"
+    fi
+}
+
 check_app_rules_drift() {
     local generated current generated_clean current_clean
     generated="$(mktemp)"
@@ -131,24 +142,35 @@ run_check "Hammerspoon CLI responds" hs -c 'return true'
 
 printf '\nSyntax\n'
 run_check "Hammerspoon Lua syntax" lua -e "assert(loadfile('$HAMMERSPOON_CONFIG'))"
+run_check "layout.sh syntax" bash -n "$AEROSPACE_DIR/lib/layout.sh"
 run_check "app-defaults.sh syntax" bash -n "$AEROSPACE_DIR/app-defaults.sh"
 run_check "focus-workspace-arrow.sh syntax" bash -n "$AEROSPACE_DIR/focus-workspace-arrow.sh"
 run_check "reset-apps-to-default-workspaces.sh syntax" bash -n "$AEROSPACE_DIR/reset-apps-to-default-workspaces.sh"
 run_check "check-display-layout.sh syntax" bash -n "$AEROSPACE_DIR/check-display-layout.sh"
 run_check "toggle-sketchybar-space.sh syntax" bash -n "$AEROSPACE_DIR/toggle-sketchybar-space.sh"
+run_check "render-layout.sh syntax" bash -n "$AEROSPACE_DIR/render-layout.sh"
 run_check "aerospace_spaces.sh syntax" bash -n "$SKETCHYBAR_PLUGINS/aerospace_spaces.sh"
 run_check "layout plugin syntax" bash -n "$SKETCHYBAR_PLUGINS/aerospace_layout.sh"
 
 printf '\nLayout\n'
 run_check "display layout matches profile" "$AEROSPACE_DIR/check-display-layout.sh"
+# The generated blocks of the AeroSpace config against the workspace and
+# display config they come from. Out of date means someone edited
+# workspaces.conf or displays.conf and has not run render-layout.sh yet, which
+# is a one-command fix the report names.
+run_check "AeroSpace config matches workspaces.conf" "$AEROSPACE_DIR/render-layout.sh" --check "$AEROSPACE_CONFIG"
 check_app_rules_drift
 
 printf '\nFiles\n'
+check_file_readable "$AEROSPACE_DIR/lib/layout.sh"
+check_file_readable "$AEROSPACE_DIR/displays.conf"
+check_file_readable "$AEROSPACE_DIR/workspaces.conf"
 check_file_executable "$AEROSPACE_DIR/app-defaults.sh"
 check_file_executable "$AEROSPACE_DIR/focus-workspace-arrow.sh"
 check_file_executable "$AEROSPACE_DIR/reset-apps-to-default-workspaces.sh"
 check_file_executable "$AEROSPACE_DIR/check-display-layout.sh"
 check_file_executable "$AEROSPACE_DIR/toggle-sketchybar-space.sh"
+check_file_executable "$AEROSPACE_DIR/render-layout.sh"
 check_file_executable "$SKETCHYBAR_PLUGINS/aerospace_spaces.sh"
 check_file_executable "$SKETCHYBAR_PLUGINS/aerospace_layout.sh"
 

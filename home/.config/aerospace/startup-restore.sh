@@ -2,56 +2,56 @@
 
 set -u
 
+# Runs once from AeroSpace's after-startup-command. Its job is to wait until the
+# display layout has settled, then put windows back where they belong and let
+# SketchyBar rebind its items to the current monitor ids.
+#
+# The waiting used to be "poll until the two displays named in this file are
+# both connected", with a ten-second ceiling each for AeroSpace and for
+# Hammerspoon. On a Mac without those displays - a laptop on its own, anyone
+# else's desk - neither condition could ever become true, so every login paid
+# the full twenty seconds and then continued anyway. What actually needs
+# waiting for is the display list settling down, which is something any machine
+# can reach.
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=lib/layout.sh
+source "$SCRIPT_DIR/lib/layout.sh"
+
 AEROSPACE_BIN="${AEROSPACE_BIN:-/opt/homebrew/bin/aerospace}"
 SKETCHYBAR_BIN="${SKETCHYBAR_BIN:-/opt/homebrew/bin/sketchybar}"
 HS_BIN="${HS_BIN:-/opt/homebrew/bin/hs}"
-RESET_SCRIPT="$HOME/.config/aerospace/reset-apps-to-default-workspaces.sh"
-SPACE_PLUGIN="$HOME/.config/sketchybar/plugins/aerospace_spaces.sh"
+RESET_SCRIPT="${AEROSPACE_RESET_SCRIPT:-$SCRIPT_DIR/reset-apps-to-default-workspaces.sh}"
+SPACE_PLUGIN="${AEROSPACE_SPACES_PLUGIN:-$HOME/.config/sketchybar/plugins/aerospace_spaces.sh}"
 RESTORE_DELAY="${AEROSPACE_STARTUP_RESTORE_DELAY:-2}"
-MAIN_MONITOR_NAME="${AEROSPACE_MAIN_MONITOR_NAME:-PHL 279C9}"
-SIDE_MONITOR_NAME="${AEROSPACE_SIDE_MONITOR_NAME:-24V5C2}"
+SCREEN_WAIT_ATTEMPTS="${AEROSPACE_SCREEN_WAIT_ATTEMPTS:-8}"
+SCREEN_WAIT_INTERVAL="${AEROSPACE_SCREEN_WAIT_INTERVAL:-0.25}"
 
-wait_for_aerospace() {
-    local attempt=0
-    local monitors
-
-    while [ "$attempt" -lt 20 ]; do
-        monitors="$("$AEROSPACE_BIN" list-monitors --format '%{monitor-name}' 2>/dev/null || true)"
-        if [ -n "$monitors" ] &&
-            /usr/bin/grep -Fxq "$MAIN_MONITOR_NAME" <<<"$monitors" &&
-            /usr/bin/grep -Fxq "$SIDE_MONITOR_NAME" <<<"$monitors"; then
-            return 0
-        fi
-
-        attempt=$((attempt + 1))
-        sleep 0.5
-    done
-
-    [ -n "$monitors" ]
-}
-
+# Hammerspoon publishes screen metadata slightly after AeroSpace does, and
+# SketchyBar item placement reads it. Any answer is enough - which screens are
+# there is the display list's business, already settled above.
 wait_for_screen_metadata() {
     local attempt=0
     local screens
 
-    while [ "$attempt" -lt 20 ]; do
+    [ -x "$HS_BIN" ] || return 0
+
+    while [ "$attempt" -lt "$SCREEN_WAIT_ATTEMPTS" ]; do
         screens="$("$HS_BIN" -c 'for _, screen in ipairs(hs.screen.allScreens()) do print(screen:name()) end' 2>/dev/null || true)"
-        if [ -n "$screens" ] &&
-            /usr/bin/grep -Fxq "$MAIN_MONITOR_NAME" <<<"$screens" &&
-            /usr/bin/grep -Fxq "$SIDE_MONITOR_NAME" <<<"$screens"; then
+        if [ -n "$screens" ]; then
             return 0
         fi
 
         attempt=$((attempt + 1))
-        sleep 0.5
+        sleep "$SCREEN_WAIT_INTERVAL"
     done
 
-    [ -n "$screens" ]
+    return 0
 }
 
 sleep "$RESTORE_DELAY"
-wait_for_aerospace || exit 0
-wait_for_screen_metadata || true
+aerospace_layout_wait_for_monitors || exit 0
+wait_for_screen_metadata
 
 # SketchyBar may start before AeroSpace has stable display metadata. Reload once
 # after AeroSpace is ready so workspace items bind to the current monitor IDs.

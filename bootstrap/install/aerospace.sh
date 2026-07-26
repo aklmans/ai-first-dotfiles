@@ -13,6 +13,23 @@ brew_install_cask nikitabobko/tap/aerospace
 if should_deploy; then
   deploy_repo_path "$repo_root" "home/.aerospace.toml" "$HOME/.aerospace.toml" "$stamp"
   deploy_repo_path "$repo_root" "home/.config/aerospace" "$HOME/.config/aerospace" "$stamp"
+
+  # The shipped .aerospace.toml is generated from the shipped workspaces.conf
+  # and displays.conf. Those two files are the ones a user edits, and the deploy
+  # engine keeps their edits - but an update to the repo's .aerospace.toml
+  # replaces the rendered result of those edits with the shipped default. So
+  # render once here: on an unmodified config it changes nothing, and on a
+  # customised one it puts the user's workspace count and monitor names back
+  # without them having to remember to.
+  #
+  # App placement rules are deliberately left alone: unlike the marked blocks,
+  # they are a section people do edit by hand in the TOML itself.
+  if [ -x "$HOME/.config/aerospace/render-layout.sh" ]; then
+    if ! "$HOME/.config/aerospace/render-layout.sh" --no-app-rules "$HOME/.aerospace.toml"; then
+      printf 'Could not re-render the workspace layout blocks of %s; the deployed config is unchanged.\n' \
+        "$HOME/.aerospace.toml" >&2
+    fi
+  fi
 fi
 
 # Writing a global macOS default and launching an app are installation steps,
