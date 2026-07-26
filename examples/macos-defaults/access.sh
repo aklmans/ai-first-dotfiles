@@ -8,8 +8,6 @@ defaults write com.apple.universalaccess mouseDriverCursorSize -float 1.5
 defaults write com.apple.CrashReporter DialogType -string none
 
 # Disable personalized advertising
-defaults com.apple.AdLib forceLimitAdTracking -bool true
-defaults com.apple.AdLib allowApplePersonalizedAdvertising -bool false
-defaults com.apple.AdLib allowIdentifierForAdvertising -bool false
-
-sudo spctl --master-disable
+defaults write com.apple.AdLib forceLimitAdTracking -bool true
+defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool false
+defaults write com.apple.AdLib allowIdentifierForAdvertising -bool false

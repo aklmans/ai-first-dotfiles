@@ -3,6 +3,12 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# A missing rg makes the assertions below pass vacuously instead of failing.
+if ! command -v rg >/dev/null 2>&1; then
+  printf 'ripgrep (rg) is required by this smoke test: brew install ripgrep\n' >&2
+  exit 1
+fi
+
 require_dir() {
   local path="$1"
   if [[ ! -d "$repo_root/$path" ]]; then
@@ -55,7 +61,7 @@ require_dir home/.config/karabiner
 require_dir home/.config/mpv
 require_dir home/.warp
 require_dir bootstrap/install
-require_dir bootstrap/macos
+require_dir examples/macos-defaults
 require_dir manifests/app-store
 require_dir home/.hammerspoon
 
@@ -142,6 +148,9 @@ require_file tests/smoke/install_script_syntax_smoke.sh
 require_file tests/smoke/install_script_side_effects_smoke.sh
 require_file tests/smoke/privacy_scan_smoke.sh
 
+require_absent bootstrap/macos
+require_absent examples/macos-defaults/disk.sh
+require_absent examples/macos-defaults/launch_services.sh
 require_absent home/.config/skhd
 require_absent home/.config/yabai
 require_absent home/.config/wezterm
