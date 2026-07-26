@@ -1,0 +1,17 @@
+# Vendored third-party assets. They are checked in for convenience but are not
+# authored here, and they must not drive GitHub's language statistics.
+#
+# Without this file the 40 Anime4K shaders (2.4 MB of GLSL) make GitHub label
+# this repository "GLSL" instead of "Shell".
+
+home/.config/mpv/shaders/** linguist-vendored
+home/.config/mpv/shaders/** -linguist-detectable
+
+# Upstream mpv scripts (modernx, playlistmanager, thumbfast, seek-to).
+home/.config/mpv/scripts/modernx.lua linguist-vendored
+home/.config/mpv/scripts/playlistmanager.lua linguist-vendored
+home/.config/mpv/scripts/thumbfast.lua linguist-vendored
+home/.config/mpv/scripts/seek-to.lua linguist-vendored
+
+# Upstream colour scheme.
+home/.config/yazi/Catppuccin-mocha.tmTheme linguist-vendored
