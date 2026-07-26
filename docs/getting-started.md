@@ -8,7 +8,9 @@ This page is the shortest practical path to bootstrap it on a clean machine.
 The recommended path is the setup entrypoint:
 
 ```bash
-cd /path/to/ai-first-dotfile
+git clone https://github.com/aklmans/ai-first-dotfiles.git
+cd ai-first-dotfiles
+./bootstrap/setup.sh all --dry-run   # print every command first
 ./bootstrap/setup.sh all
 ```
 
@@ -40,7 +42,7 @@ The repository is split into bootstrap layers:
 ### 1) Core bootstrap
 
 ```bash
-cd /path/to/ai-first-dotfile
+cd ai-first-dotfiles
 ./bootstrap/brew.sh base desktop fonts
 ./bootstrap/app-store.sh
 ```

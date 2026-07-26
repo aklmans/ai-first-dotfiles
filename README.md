@@ -70,20 +70,28 @@ Designed for developers who want fast keyboard workflows, predictable multi-disp
 │   └── install/    # Per-module install scripts
 ├── manifests/      # Package lists for optional App Store tooling
 ├── templates/      # Credential/config templates (no secrets)
+├── examples/       # Reference material that setup.sh never runs
 ├── tests/smoke/    # Repo-wide validation and privacy checks
 └── docs/           # Public documentation
 ```
+
+`examples/macos-defaults/` holds `defaults write` tweaks used on the author's
+machine. **No setup profile ever runs them** — read and run them individually if
+you want them.
 
 ---
 
 ## Installation
 
-Run the setup entrypoint from the repo root:
-
 ```bash
-cd /path/to/ai-first-dotfile
+git clone https://github.com/aklmans/ai-first-dotfiles.git
+cd ai-first-dotfiles
+./bootstrap/setup.sh all --dry-run   # print every command first — nothing is executed
 ./bootstrap/setup.sh all
 ```
+
+Run `--dry-run` first. It prints every Homebrew package and every path under `$HOME`
+the setup would touch, without changing anything.
 
 Useful variants:
 
