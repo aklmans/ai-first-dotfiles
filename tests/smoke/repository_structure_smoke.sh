@@ -67,7 +67,7 @@ require_dir home/.hammerspoon
 
 require_file home/.zshenv
 require_file home/.ideavimrc
-require_file home/Library/LaunchAgents/com.aklman.gui-path.plist
+require_file home/Library/LaunchAgents/com.ai-first-dotfiles.gui-path.plist
 require_file "home/Library/Application Support/Sublime Text/Packages/User/gui_path.py"
 require_file "home/Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings"
 require_file "home/Library/Application Support/Sublime Text/Packages/User/Default (OSX).sublime-keymap"
@@ -103,6 +103,10 @@ require_file home/.config/ai-router/providers/ollama.sh
 
 require_file home/.config/sketchybar/sketchybarrc
 require_file home/.config/sketchybar/colors.sh
+require_file home/.config/sketchybar/theme.conf
+require_file home/.config/sketchybar/lib/theme.sh
+require_file home/.config/sketchybar/lib/runtime.sh
+require_file home/.config/sketchybar/lib/workspaces.sh
 require_file home/.config/sketchybar/lib/display-resolver.sh
 require_file home/.config/sketchybar/items/ai_notifications.sh
 require_file home/.config/sketchybar/plugins/ai_app_notifications.sh
@@ -116,6 +120,7 @@ require_file home/.config/aerospace/lib/layout.sh
 require_file home/.aerospace.toml
 
 require_file home/.config/karabiner/karabiner.json
+require_file home/.config/karabiner/assets/complex_modifications/capslock-ai-lite.json
 require_file home/.config/karabiner/CapsLock-AI-Lite.md
 require_file home/.hammerspoon/init.lua
 require_file home/.hammerspoon/ai_hotkeys.lua
@@ -160,8 +165,11 @@ require_file tests/smoke/deploy_engine_smoke.sh
 require_file tests/smoke/orchestration_smoke.sh
 require_file tests/smoke/shell_layer_smoke.sh
 require_file tests/smoke/ai_router_cli_smoke.sh
+require_file tests/smoke/sketchybar_smoke.sh
 
 require_absent bootstrap/macos
+require_absent bootstrap/install/gbrain.sh
+require_absent templates
 require_absent home/.config/zsh/personal.zsh
 require_absent examples/macos-defaults/disk.sh
 require_absent examples/macos-defaults/launch_services.sh

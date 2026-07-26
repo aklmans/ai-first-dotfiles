@@ -372,7 +372,7 @@ case_dry_run_names_target_paths() {
     'a dry run must not print unresolved shell variables as paths'
 
   run_setup "$home" gui-path --dry-run
-  assert_output_matches "$last_output" "$home/Library/LaunchAgents/com\.aklman\.gui-path\.plist" \
+  assert_output_matches "$last_output" "$home/Library/LaunchAgents/com\.ai-first-dotfiles\.gui-path\.plist" \
     'a dry run must resolve a target named through a variable'
 
   # sublime.sh wraps its deploy calls across several lines; the preview has to
