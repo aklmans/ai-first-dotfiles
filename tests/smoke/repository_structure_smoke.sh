@@ -146,6 +146,7 @@ require_file tests/smoke/aerospace_workflow_smoke.sh
 require_file tests/smoke/repository_structure_smoke.sh
 require_file tests/smoke/install_script_syntax_smoke.sh
 require_file tests/smoke/install_script_side_effects_smoke.sh
+require_file tests/smoke/install_deploy_smoke.sh
 require_file tests/smoke/privacy_scan_smoke.sh
 
 require_absent bootstrap/macos
