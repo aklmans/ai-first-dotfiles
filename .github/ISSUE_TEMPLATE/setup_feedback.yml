@@ -1,0 +1,83 @@
+name: Setup experience
+description: Optional feedback about what you chose, declined, customized, and kept.
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository installs no telemetry. This optional report helps us
+        learn whether the choices fit people who are not the author. Do not
+        include real home paths, project names, accounts, notifications, or secrets.
+
+  - type: dropdown
+    id: starting-point
+    attributes:
+      label: Starting point
+      options:
+        - minimal preset
+        - developer preset
+        - author-full preset
+        - composed modules (no preset)
+        - preview only; did not install
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: selected
+    attributes:
+      label: Modules you wanted
+      options:
+        - label: workspace
+        - label: bar
+        - label: borders
+        - label: capslock
+        - label: automation
+        - label: ai
+        - label: notifications
+        - label: recording
+        - label: gestures
+        - label: terminal or warp
+        - label: shell
+        - label: sublime, media, or gui-path
+
+  - type: textarea
+    id: declined
+    attributes:
+      label: What did you decline, and why?
+      description: Cost, permission, account, taste, existing tool, or simply no need are all useful answers.
+
+  - type: input
+    id: activation-time
+    attributes:
+      label: Time to first useful outcome
+      placeholder: e.g. 12 minutes
+
+  - type: textarea
+    id: customized
+    attributes:
+      label: What did you customize first?
+      description: Tell us which preference was easy or still required editing implementation code.
+
+  - type: dropdown
+    id: retained
+    attributes:
+      label: Are you still using it after a week?
+      options:
+        - Yes
+        - Partly; I kept some modules
+        - No
+        - Not a week yet
+
+  - type: textarea
+    id: friction
+    attributes:
+      label: Biggest point of friction
+      description: One concrete moment where the preview, install, permissions, customization, doctor, or undo path was unclear.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed real paths, account names, notification text, and secrets.
+          required: true

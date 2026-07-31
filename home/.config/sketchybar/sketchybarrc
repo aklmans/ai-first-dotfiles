@@ -6,6 +6,12 @@
 source "$CONFIG_DIR/lib/theme.sh"
 source "$CONFIG_DIR/icons.sh" # Loads all defined icons
 
+AI_FIRST_PROFILE_LIB="${AI_FIRST_PROFILE_LIB:-$HOME/.config/ai-first/lib/profile.sh}"
+if [ -r "$AI_FIRST_PROFILE_LIB" ]; then
+  # shellcheck source=/dev/null
+  source "$AI_FIRST_PROFILE_LIB"
+fi
+
 ITEM_DIR="$CONFIG_DIR/items" # Directory where the items are configured
 PLUGIN_DIR="$CONFIG_DIR/plugins" # Directory where all the plugin scripts are stored
 
@@ -63,22 +69,34 @@ defaults=(
 
 sketchybar --default "${defaults[@]}"
 
-# Left
-source "$ITEM_DIR/apple.sh"
-source "$ITEM_DIR/spaces.sh"
-source "$ITEM_DIR/aerospace_layout.sh"
-source "$ITEM_DIR/front_app.sh"
+# A preset chooses surfaces, not implementation files. Missing profile config
+# preserves the original full bar for existing users; minimal and developer
+# presets can remove paid/app-specific items without maintaining a fork.
+AI_FIRST_BAR_LEFT_ITEMS="${AI_FIRST_BAR_LEFT_ITEMS-apple spaces aerospace_layout front_app}"
+AI_FIRST_BAR_CENTER_ITEMS="${AI_FIRST_BAR_CENTER_ITEMS-spotify media}"
+AI_FIRST_BAR_RIGHT_ITEMS="${AI_FIRST_BAR_RIGHT_ITEMS-clock calendar ai_notifications battery volume}"
 
-# Center
-source "$ITEM_DIR/spotify.sh"
-source "$ITEM_DIR/media.sh"
+load_item_group() {
+  local item
+  for item in $1; do
+    case "$item" in
+      *[!A-Za-z0-9_-]*|'')
+        printf 'Ignoring invalid SketchyBar item name: %s\n' "$item" >&2
+        continue
+        ;;
+    esac
+    if [ -r "$ITEM_DIR/$item.sh" ]; then
+      # shellcheck source=/dev/null
+      source "$ITEM_DIR/$item.sh"
+    else
+      printf 'SketchyBar item is configured but missing: %s\n' "$item" >&2
+    fi
+  done
+}
 
-# Right
-source "$ITEM_DIR/clock.sh"
-source "$ITEM_DIR/calendar.sh"
-source "$ITEM_DIR/ai_notifications.sh"
-source "$ITEM_DIR/battery.sh"
-source "$ITEM_DIR/volume.sh"
+load_item_group "$AI_FIRST_BAR_LEFT_ITEMS"
+load_item_group "$AI_FIRST_BAR_CENTER_ITEMS"
+load_item_group "$AI_FIRST_BAR_RIGHT_ITEMS"
 
 sketchybar --hotload on
 

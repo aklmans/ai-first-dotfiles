@@ -22,10 +22,19 @@ if should_deploy; then
   # customised one it puts the user's workspace count and monitor names back
   # without them having to remember to.
   #
-  # App placement rules are deliberately left alone: unlike the marked blocks,
-  # they are a section people do edit by hand in the TOML itself.
+  # Legacy installs may have hand-edited app rules in TOML, so they retain the
+  # old layout-only render. A named ai-first preset owns the routing choice in
+  # profile.conf; for those installs render the rule block too, including the
+  # intentionally empty block used by the minimal preset.
   if [ -x "$HOME/.config/aerospace/render-layout.sh" ]; then
-    if ! "$HOME/.config/aerospace/render-layout.sh" --no-app-rules "$HOME/.aerospace.toml"; then
+    render_status=0
+    if [ -r "$HOME/.config/ai-first/profile.conf" ] && \
+      grep -Eq '^AI_FIRST_APP_ROUTING=' "$HOME/.config/ai-first/profile.conf"; then
+      "$HOME/.config/aerospace/render-layout.sh" "$HOME/.aerospace.toml" || render_status=$?
+    else
+      "$HOME/.config/aerospace/render-layout.sh" --no-app-rules "$HOME/.aerospace.toml" || render_status=$?
+    fi
+    if [ "$render_status" -ne 0 ]; then
       printf 'Could not re-render the workspace layout blocks of %s; the deployed config is unchanged.\n' \
         "$HOME/.aerospace.toml" >&2
     fi

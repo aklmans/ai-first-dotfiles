@@ -17,7 +17,8 @@ set -euo pipefail
 #   3. --deploy-only deploys and nothing else: no app launched, no macOS default
 #      written, no brew service restarted.
 #   4. --dry-run names the paths under $HOME that would be written.
-#   5. The two opt-in layers (shell, extras) are not part of `all`.
+#   5. Legacy profiles stay compatible while new installs expose honest,
+#      composable modules and presets.
 #
 # Everything that would touch the machine (brew, open, defaults, curl, git,
 # make, ya) is stubbed on PATH, HOME is a throwaway directory, and setup.sh runs
@@ -427,8 +428,37 @@ case_all_excludes_opt_in_layers() {
   # The help text is where a stranger looks for this, so it has to say it.
   run_setup "$home" --help
   assert_output_matches "$last_output" 'extras' 'usage must document the extras profile'
-  assert_output_matches "$last_output" 'not part of "all"' \
-    'usage must explain what all leaves out'
+  assert_output_matches "$last_output" 'author-full.*paid/closed' \
+    'usage must label the complete opinionated preset honestly'
+}
+
+# --- case: choice architecture is safe before installation ------------------
+
+case_choices_are_visible_and_no_arg_is_inert() {
+  local home
+  home="$(new_home)"
+
+  run_setup "$home"
+  assert_equal 0 "$last_status" 'no-argument setup should succeed'
+  assert_output_matches "$last_output" 'Modules \(combine as needed\)' \
+    'no-argument setup must show composable choices'
+  assert_output_matches "$last_output" 'minimal.*small, free desktop starting point' \
+    'no-argument setup must show the small starting preset'
+  assert_equal '' "$(ls -A "$home" 2>/dev/null || true)" \
+    'no-argument setup must change nothing'
+  assert_equal '' "$(cat "$stub_log" 2>/dev/null || true)" \
+    'no-argument setup must execute nothing'
+
+  run_setup "$home" minimal --dry-run
+  assert_equal 0 "$last_status" 'minimal dry-run should succeed'
+  assert_output_matches "$last_output" 'cask[[:space:]]+nikitabobko/tap/aerospace|cask[[:space:]]+aerospace' \
+    'minimal preview must name the AeroSpace package'
+  assert_output_matches "$last_output" 'formula[[:space:]]+sketchybar' \
+    'minimal preview must name the SketchyBar package'
+  assert_output_lacks "$last_output" 'bettertouchtool|install/warp\.sh|install/zsh\.sh' \
+    'minimal preview must not smuggle in paid, closed, or shell choices'
+  assert_output_matches "$last_output" '\.config/ai-first/profile\.conf' \
+    'a preset preview must name its runtime preference file'
 }
 
 # --- run --------------------------------------------------------------------
@@ -440,6 +470,7 @@ case_skip_and_failure_are_reported_apart
 case_deploy_only_is_inert
 case_dry_run_names_target_paths
 case_all_excludes_opt_in_layers
+case_choices_are_visible_and_no_arg_is_inert
 
 if [[ "$failures" -gt 0 ]]; then
   printf '\norchestration_smoke.sh: %s of %s checks failed\n' "$failures" "$checks" >&2

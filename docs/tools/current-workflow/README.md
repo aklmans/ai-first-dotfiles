@@ -34,7 +34,7 @@ This document summarizes the current public architecture of this repository.
 - `Ctrl + Left/Right` cycle workspace groups
 - `Ctrl + Up` / `Ctrl + Down` trigger Mission Control / App Exposé through
   `home/.config/aerospace/macos-control.sh`, which drives BetterTouchTool. BTT
-  lives in the `extras` profile, so without it these two keys do nothing.
+  lives in the explicit `gestures` module, so without it these two keys do nothing.
 
 Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 

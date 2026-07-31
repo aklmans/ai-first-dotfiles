@@ -14,6 +14,7 @@ NOTIFICATION_DB="${NOTIFICATION_DB:-$HOME/Library/Group Containers/group.com.app
 ACTION="${1:-update}"
 
 source "$CONFIG_DIR/lib/theme.sh"
+source "$CONFIG_DIR/lib/notifications.sh"
 source "$CONFIG_DIR/icons.sh"
 
 app_item() {
@@ -37,13 +38,7 @@ popup_item() {
 }
 
 app_label() {
-  case "$1" in
-    warp) printf 'Warp' ;;
-    codex) printf 'Codex' ;;
-    idea) printf 'IntelliJ IDEA' ;;
-    goland) printf 'GoLand' ;;
-    *) return 1 ;;
-  esac
+  ai_first_notification_label "$1"
 }
 
 app_icon_name() {
@@ -84,10 +79,7 @@ ensure_state() {
 }
 
 known_app() {
-  case "$1" in
-    warp|codex|idea|goland) return 0 ;;
-    *) return 1 ;;
-  esac
+  ai_first_notification_enabled "$1"
 }
 
 lock_state() {
@@ -222,7 +214,8 @@ sync_macos_notifications() {
   ' "$STATE_FILE" > "$tmp"
   now="$(/bin/date +%s)"
 
-  for app in warp codex idea goland; do
+  while IFS= read -r app; do
+    [ -n "$app" ] || continue
     stats="$(macos_notification_stats "$app" || true)"
     [ -n "$stats" ] || continue
 
@@ -260,7 +253,7 @@ sync_macos_notifications() {
       ' "$tmp" > "$next"
     fi
     /bin/mv "$next" "$tmp"
-  done
+  done < <(ai_first_notification_apps)
 
   /bin/mv "$tmp" "$STATE_FILE"
   unlock_state
@@ -351,29 +344,21 @@ process_clear_requests() {
 }
 
 clear_all() {
-  local warp_latest codex_latest idea_latest goland_latest
+  local app latest tmp next
   ensure_state
-  warp_latest="$(latest_macos_notification_time warp)"
-  codex_latest="$(latest_macos_notification_time codex)"
-  idea_latest="$(latest_macos_notification_time idea)"
-  goland_latest="$(latest_macos_notification_time goland)"
   lock_state || return 1
   trap 'unlock_state' EXIT
-  "$JQ" -n \
-    --argjson warp "${warp_latest:-0}" \
-    --argjson codex "${codex_latest:-0}" \
-    --argjson idea "${idea_latest:-0}" \
-    --argjson goland "${goland_latest:-0}" \
-    '{
-      version: 1,
-      apps: {},
-      dismissed: {
-        warp: $warp,
-        codex: $codex,
-        idea: $idea,
-        goland: $goland
-      }
-    }' > "$STATE_FILE"
+  tmp="$(/usr/bin/mktemp "${STATE_FILE}.XXXXXX")"
+  /usr/bin/printf '{"version":1,"apps":{},"dismissed":{}}\n' > "$tmp"
+  while IFS= read -r app; do
+    [ -n "$app" ] || continue
+    latest="$(latest_macos_notification_time "$app")"
+    next="$(/usr/bin/mktemp "${STATE_FILE}.XXXXXX")"
+    "$JQ" --arg app "$app" --argjson latest "${latest:-0}" \
+      '.dismissed[$app] = $latest' "$tmp" > "$next"
+    /bin/mv "$next" "$tmp"
+  done < <(ai_first_notification_apps)
+  /bin/mv "$tmp" "$STATE_FILE"
   unlock_state
   trap - EXIT
 }
@@ -486,26 +471,19 @@ append_app_args() {
 }
 
 update_bar() {
-  local warp_count codex_count idea_count goland_count
+  local app count
   local total active_apps
   local args=()
 
-  warp_count="$(state_count warp)"
-  codex_count="$(state_count codex)"
-  idea_count="$(state_count idea)"
-  goland_count="$(state_count goland)"
-
-  total=$((warp_count + codex_count + idea_count + goland_count))
+  total=0
   active_apps=0
-  [ "$warp_count" -gt 0 ] && active_apps=$((active_apps + 1))
-  [ "$codex_count" -gt 0 ] && active_apps=$((active_apps + 1))
-  [ "$idea_count" -gt 0 ] && active_apps=$((active_apps + 1))
-  [ "$goland_count" -gt 0 ] && active_apps=$((active_apps + 1))
-
-  append_app_args warp "$warp_count"
-  append_app_args codex "$codex_count"
-  append_app_args idea "$idea_count"
-  append_app_args goland "$goland_count"
+  while IFS= read -r app; do
+    [ -n "$app" ] || continue
+    count="$(state_count "$app")"
+    total=$((total + count))
+    [ "$count" -gt 0 ] && active_apps=$((active_apps + 1))
+    append_app_args "$app" "$count"
+  done < <(ai_first_notification_apps)
 
   if [ "$active_apps" -eq 0 ]; then
     args+=(--set ai_notify.total \

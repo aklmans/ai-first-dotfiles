@@ -7,6 +7,9 @@ Start here if the [README](../README.md) sent you looking for detail.
 | Page | Read it when |
 |---|---|
 | [Getting started](getting-started.md) | You are deciding what to install and in what order |
+| [Choice architecture](choice-architecture.md) | You want modules, presets and safe preference points |
+| [Product quality scorecard](product-quality.md) | You are evaluating public readiness with an 8.5 gate |
+| [Release checklist](release-checklist.md) | You are preparing a version or public launch |
 | [Troubleshooting](troubleshooting.md) | It installed and nothing happens |
 | [Shortcut reference](shortcuts.md) | You want every binding in one page |
 | [Privacy and public safety](privacy.md) | You want to know what is excluded from this repo and why |
@@ -24,7 +27,7 @@ commands worth knowing. None of them are required reading to install.
 - [SketchyBar + Borders](tools/sketchybar/README.md) — the bar, its theme file, the workspace items
 - [Karabiner](tools/karabiner/README.md) — the CapsLock layer and why it ships disabled
 - [Hammerspoon](tools/hammerspoon/README.md) — hotkeys, choosers, screencast presets
-- [BetterTouchTool](tools/bettertouchtool/README.md) — trackpad gestures (`extras` profile)
+- [BetterTouchTool](tools/bettertouchtool/README.md) — trackpad gestures (`gestures` module)
 
 **AI**
 

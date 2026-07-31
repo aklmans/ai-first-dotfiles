@@ -3,6 +3,32 @@
 Notable changes to this project. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- A public capability catalog with composable modules and three explicit presets:
+  `minimal`, `developer`, and the opinionated `author-full` reference setup.
+- Exact Homebrew tap/formula/cask output in `--dry-run`; previews now disclose
+  package choices as well as commands and destination paths.
+- A shared, data-only preference layer for optional Hammerspoon features,
+  SketchyBar item groups, the four-app notification subset, terminal choice,
+  monitors and workspace groups.
+- Safe exact-match AeroSpace overrides in `app-routes.conf`.
+- A read-only module/preset doctor, choice-architecture regression suite, product
+  quality scorecard and release checklist.
+
+### Changed
+
+- Running `setup.sh` with no module is now inert and shows the catalog. New users
+  are guided to `minimal --dry-run` instead of the compatibility `all` profile.
+- Shared dependencies execute once when modules are composed. Presets install a
+  matching `~/.config/ai-first/profile.conf` without overwriting local edits.
+- The neutral minimal preset uses six unpinned workspaces, Terminal, and no app
+  routing, notifications, recording, AI hotkeys, paid apps or accounts.
+- Existing no-profile deployments keep their previous full behavior; the
+  `author-full` preset preserves the maintained 13-workspace desk exactly.
+
 ## [1.0.0] - 2026-07-26
 
 **The first version anyone other than the author can run.**

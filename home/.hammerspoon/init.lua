@@ -1,5 +1,73 @@
 hs.window.animationDuration = 0
 
+local aiFirstConfigDir = os.getenv("AI_FIRST_CONFIG_DIR")
+  or (os.getenv("HOME") .. "/.config/ai-first")
+local aiFirstProfilePath = os.getenv("AI_FIRST_PROFILE_PATH")
+  or (aiFirstConfigDir .. "/profile.conf")
+
+local function readAiFirstProfileFile(path, values)
+  local file = io.open(path, "r")
+  if not file then
+    return values
+  end
+  for line in file:lines() do
+    local key, value = line:match('^([A-Z0-9_]+)="([^"$`]*)"%s*$')
+    if key then
+      values[key] = value
+    end
+  end
+  file:close()
+  return values
+end
+
+local function readAiFirstProfile()
+  local values = readAiFirstProfileFile(aiFirstProfilePath, {})
+  local scope = values["AI_FIRST_PRESET"] or "custom"
+  local moduleDir = aiFirstConfigDir .. "/modules/" .. scope
+  local moduleFiles = {}
+  if hs.fs.attributes(moduleDir, "mode") == "directory" then
+    for name in hs.fs.dir(moduleDir) do
+      if name:match("%.conf$") then
+        moduleFiles[#moduleFiles + 1] = name
+      end
+    end
+  end
+  table.sort(moduleFiles)
+  for _, name in ipairs(moduleFiles) do
+    readAiFirstProfileFile(moduleDir .. "/" .. name, values)
+  end
+  return values
+end
+
+local aiFirstProfile = readAiFirstProfile()
+local function aiFirstFeatureEnabled(key, defaultValue)
+  local value = os.getenv(key) or aiFirstProfile[key]
+  if value == nil or value == "" then
+    return defaultValue
+  end
+  value = value:lower()
+  return value == "1" or value == "true" or value == "yes" or value == "on" or value == "enabled"
+end
+
+local aiFirstAIHotkeysEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_AI_HOTKEYS", true)
+local aiFirstNotificationsEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_NOTIFICATIONS", true)
+local aiFirstRecordingEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_RECORDING", true)
+local aiFirstAppRoutingEnabled = aiFirstFeatureEnabled("AI_FIRST_APP_ROUTING", true)
+local aiFirstNotificationApps = os.getenv("AI_FIRST_NOTIFICATION_APPS")
+  or aiFirstProfile["AI_FIRST_NOTIFICATION_APPS"]
+if aiFirstNotificationApps == nil then
+  aiFirstNotificationApps = "warp codex idea goland"
+end
+
+local function aiFirstListContains(list, needle)
+  for value in list:gmatch("%S+") do
+    if value == needle then
+      return true
+    end
+  end
+  return false
+end
+
 if hs.ipc then
   hs.ipc.cliInstall()
 end
@@ -30,17 +98,20 @@ local aiNotificationRefreshRunning = false
 local aiNotificationRefreshStartedAt = 0
 local aiNotificationClearTimers = {}
 local aiNotificationLastClearAt = {}
-local aiAttentionAppByBundle = {
-  ["dev.warp.Warp-Stable"] = "warp",
-  ["com.openai.codex"] = "codex",
-  ["com.jetbrains.intellij"] = "idea",
-  ["com.jetbrains.goland"] = "goland",
-}
-local fixedWorkspaceAppByBundle = {
-  ["com.blade.shadow-macos"] = "2",
-  ["com.obsproject.obs-studio"] = "11",
-  ["com.bilibili.bilibiliPC"] = "10",
-}
+local aiAttentionAppByBundle = {}
+if aiFirstListContains(aiFirstNotificationApps, "warp") then aiAttentionAppByBundle["dev.warp.Warp-Stable"] = "warp" end
+if aiFirstListContains(aiFirstNotificationApps, "codex") then aiAttentionAppByBundle["com.openai.codex"] = "codex" end
+if aiFirstListContains(aiFirstNotificationApps, "idea") then aiAttentionAppByBundle["com.jetbrains.intellij"] = "idea" end
+if aiFirstListContains(aiFirstNotificationApps, "goland") then aiAttentionAppByBundle["com.jetbrains.goland"] = "goland" end
+
+local fixedWorkspaceAppByBundle = {}
+if aiFirstAppRoutingEnabled then
+  fixedWorkspaceAppByBundle = {
+    ["com.blade.shadow-macos"] = "2",
+    ["com.obsproject.obs-studio"] = "11",
+    ["com.bilibili.bilibiliPC"] = "10",
+  }
+end
 local terminalMasterStackAppByBundle = {
   ["dev.warp.Warp-Stable"] = true,
   ["fun.tw93.kaku"] = true,
@@ -746,6 +817,9 @@ local function moveCreatedWindow(win, bundleID, title, workspaceCandidates, key)
 end
 
 local function inheritWorkspaceForCreatedWindow(win)
+  if not aiFirstAppRoutingEnabled then
+    return
+  end
   local app = win and win:application()
   local bundleID = app and app:bundleID()
   if not bundleID or bundleID == "" then
@@ -786,6 +860,9 @@ local function inheritWorkspaceForCreatedWindow(win)
 end
 
 local function repairJetBrainsSecondaryWindow(win)
+  if not aiFirstAppRoutingEnabled then
+    return
+  end
   local app = win and win:application()
   local bundleID = app and app:bundleID()
   local title = win and (win:title() or "") or ""
@@ -796,6 +873,9 @@ local function repairJetBrainsSecondaryWindow(win)
 end
 
 local function repairExistingJetBrainsSecondaryWindows()
+  if not aiFirstAppRoutingEnabled then
+    return
+  end
   listAeroWindowsAsync(function(windows)
     if not windows then
       return
@@ -841,7 +921,9 @@ hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(win)
   repairJetBrainsSecondaryWindow(win)
   scheduleRememberFocusedWindow(0.05)
   local app = win and win:application()
-  scheduleClearAINotificationForBundle(app and app:bundleID())
+  if aiFirstNotificationsEnabled then
+    scheduleClearAINotificationForBundle(app and app:bundleID())
+  end
 end)
 
 hs.window.filter.default:subscribe(hs.window.filter.windowCreated, function(win)
@@ -855,7 +937,7 @@ hs.window.filter.default:subscribe(hs.window.filter.windowDestroyed, function()
 end)
 
 local aiHotkeys = os.getenv("HOME") .. "/.hammerspoon/ai_hotkeys.lua"
-if hs.fs.attributes(aiHotkeys, "mode") == "file" then
+if aiFirstAIHotkeysEnabled and hs.fs.attributes(aiHotkeys, "mode") == "file" then
   dofile(aiHotkeys)
 end
 
@@ -870,34 +952,45 @@ if hs.fs.attributes(airForceQuit, "mode") == "file" then
 end
 
 local screencastWindow = os.getenv("HOME") .. "/.hammerspoon/screencast.lua"
-if hs.fs.attributes(screencastWindow, "mode") == "file" then
+if aiFirstRecordingEnabled and hs.fs.attributes(screencastWindow, "mode") == "file" then
   dofile(screencastWindow)
 end
 
 scheduleRememberFocusedWindow(0.05)
 scheduleExistingJetBrainsRepair(0.4)
-if _G.wowAINotificationRefreshTimer then
-  _G.wowAINotificationRefreshTimer:stop()
-end
-_G.wowAINotificationRefreshTimer = hs.timer.doEvery(5, function()
-  scheduleClearAINotificationForFrontmostApp()
-  refreshAINotifications()
-end)
-hs.timer.doAfter(1, function()
-  scheduleClearAINotificationForFrontmostApp()
-  refreshAINotifications()
-end)
-if _G.wowAIApplicationWatcher then
-  _G.wowAIApplicationWatcher:stop()
-end
-_G.wowAIApplicationWatcher = hs.application.watcher.new(function(appName, eventType, app)
-  if eventType == hs.application.watcher.activated then
-    scheduleClearAINotificationForBundle(app and app:bundleID())
-    if isJetBrainsBundle(app and app:bundleID()) then
-      scheduleExistingJetBrainsRepair(0.2)
-    end
+if aiFirstNotificationsEnabled then
+  if _G.wowAINotificationRefreshTimer then
+    _G.wowAINotificationRefreshTimer:stop()
   end
-end)
-_G.wowAIApplicationWatcher:start()
+  _G.wowAINotificationRefreshTimer = hs.timer.doEvery(5, function()
+    scheduleClearAINotificationForFrontmostApp()
+    refreshAINotifications()
+  end)
+  hs.timer.doAfter(1, function()
+    scheduleClearAINotificationForFrontmostApp()
+    refreshAINotifications()
+  end)
+  if _G.wowAIApplicationWatcher then
+    _G.wowAIApplicationWatcher:stop()
+  end
+  _G.wowAIApplicationWatcher = hs.application.watcher.new(function(appName, eventType, app)
+    if eventType == hs.application.watcher.activated then
+      scheduleClearAINotificationForBundle(app and app:bundleID())
+      if isJetBrainsBundle(app and app:bundleID()) then
+        scheduleExistingJetBrainsRepair(0.2)
+      end
+    end
+  end)
+  _G.wowAIApplicationWatcher:start()
+else
+  if _G.wowAINotificationRefreshTimer then
+    _G.wowAINotificationRefreshTimer:stop()
+    _G.wowAINotificationRefreshTimer = nil
+  end
+  if _G.wowAIApplicationWatcher then
+    _G.wowAIApplicationWatcher:stop()
+    _G.wowAIApplicationWatcher = nil
+  end
+end
 log("workspace inherit watcher started")
 hs.autoLaunch(true)

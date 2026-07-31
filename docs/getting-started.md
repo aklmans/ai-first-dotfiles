@@ -1,161 +1,140 @@
 # Getting Started
 
-The shortest practical path to bootstrap this setup on a Mac, and what each step
-actually does.
+Start with the smallest outcome you want. This project does not require its
+shell, terminal, AI tools, paid apps or the author's display layout.
 
-Requires an **Apple Silicon** Mac on macOS 13 or later, with Homebrew and the
-Xcode Command Line Tools. `setup.sh` checks all of that before it writes
-anything; `--dry-run` works on any machine.
+Requires an **Apple Silicon** Mac on macOS 13 or later. A real install also
+needs Homebrew and the Xcode Command Line Tools; previews do not.
 
-## Preview first
+## 1. Inspect the choices
 
 ```bash
 git clone https://github.com/aklmans/ai-first-dotfiles.git
 cd ai-first-dotfiles
-./bootstrap/setup.sh all --dry-run
+./bootstrap/setup.sh list
 ```
 
-`--dry-run` executes nothing. It prints every command the run would issue and,
-under each one, every path in your `$HOME` it would write, marked `new` or
-`exists`. That output is the authoritative answer to "what will this do to my
-machine" — more current than any table in these docs.
+The catalog describes outcomes rather than internal folders. Every module names
+its cost, macOS permissions and dependencies. Presets are only shortcuts:
 
-## Profiles
-
-```bash
-./bootstrap/setup.sh all         # the recommended bootstrap
-```
-
-`all` is: Homebrew packages (`base desktop fonts`), the GUI PATH helper, the
-Sublime Text integrations, the desktop layer, the AI router, and mpv.
-
-Two profiles are deliberately **not** in `all`:
-
-| Profile | Contents | Why it is opt-in |
+| Preset | Good starting point for | Modules |
 |---|---|---|
-| `shell` | zsh, Starship, Kaku, Yazi, IdeaVim | Installing it repoints `~/.zshenv` at this repo. That is the most invasive change in here and the hardest to undo by hand. Everything else works without it. |
-| `extras` | BetterTouchTool, Warp | BetterTouchTool is free for 45 days and paid afterwards; Warp is closed source and wants an account. Nothing else here depends on either. |
+| `minimal` | a free, low-commitment tiled desktop | `workspace bar` |
+| `developer` | keyboard-driven development and local AI prompts | `workspace bar capslock automation ai` |
+| `author-full` | reproducing the maintained reference desk | all modules, including paid/closed choices |
 
-The rest:
+You can ignore presets and compose modules:
 
 ```bash
-./bootstrap/setup.sh shell       # zsh, Starship, Kaku, Yazi, IdeaVim
-./bootstrap/setup.sh desktop     # Karabiner, AeroSpace, SketchyBar, Borders, Hammerspoon
-./bootstrap/setup.sh extras      # BetterTouchTool, Warp
-./bootstrap/setup.sh ai          # AI Workflow Router
-./bootstrap/setup.sh media       # mpv
-./bootstrap/setup.sh sublime     # Sublime Text Terminal package integration
-./bootstrap/setup.sh gui-path    # make Homebrew tools visible to GUI-launched apps
-./bootstrap/setup.sh packages    # Homebrew only: base desktop fonts
-./bootstrap/setup.sh app-store   # App Store apps from manifests/app-store (ships empty)
-./bootstrap/setup.sh deploy      # every tracked config, no package installation
+./bootstrap/setup.sh workspace capslock
+./bootstrap/setup.sh workspace bar automation ai terminal
+./bootstrap/setup.sh minimal ai
 ```
 
-`deploy` covers **every** module including `shell` and `extras`, because
-deploying installs nothing. If you opted into the shell layer once, a plain
-`./bootstrap/setup.sh deploy` keeps its config current.
+Dependencies are added once. For example, `bar` adds `workspace`, and
+`notifications` adds `bar` and `workspace`.
 
-## Options
+## 2. Preview the exact plan
+
+```bash
+./bootstrap/setup.sh minimal --dry-run
+```
+
+The preview executes and writes nothing. It names exact Homebrew taps,
+formulae/casks, module commands, target paths, costs and permissions. Use the
+same command with your intended modules; that output is more authoritative than
+a package count copied into documentation.
+
+Paid and closed-source choices appear only when explicitly selected:
+
+```bash
+./bootstrap/setup.sh gestures --dry-run   # BetterTouchTool, paid after trial
+./bootstrap/setup.sh warp --dry-run       # Warp, closed source/account
+```
+
+## 3. Install
+
+```bash
+./bootstrap/setup.sh minimal
+```
+
+Useful flags:
 
 | Flag | Effect |
 |---|---|
-| `--dry-run` | Print what would run, including the `$HOME` paths. Executes nothing. |
-| `--no-brew` | Skip Homebrew commands, keep the non-brew setup steps. |
-| `--deploy-only` | Deploy config only. Installs nothing, starts nothing, changes no macOS settings. |
-| `--install-only` | Install packages and external dependencies only; write nothing to `$HOME`. |
+| `--dry-run` | exact plan; execute nothing and write nothing |
+| `--no-brew` | skip Homebrew, keep applicable non-brew setup |
+| `--deploy-only` | copy config only; install/start nothing and change no macOS setting |
+| `--install-only` | install packages/external dependencies; write nothing to `$HOME` |
 
-Environment:
+`DOTFILES_FORCE=1` replaces protected local changes or symlinked targets only
+after backing them up. It is not needed for normal updates.
 
-- `DOTFILES_SKIP_PREFLIGHT=1` — skip the Apple Silicon / brew / git / Xcode CLT checks.
-- `DOTFILES_FORCE=1` — replace symlinked targets and local edits, backing up whatever is replaced.
+Everything deploys as copies, never symlinks. One failed module is reported at
+the end without preventing independent modules from being attempted. Re-running
+the same command is expected and safe.
 
-## What happens if a step fails
-
-Nothing stops. Every step's exit code is captured, the run continues to the end,
-and the failures are listed together at the bottom. A partial install is
-reported as one, and every step here is safe to run again.
-
-Exit `0` means every step ran, or some paths were deliberately left untouched.
-Exit `1` means at least one step failed — read the list at the end.
-
-## Running modules by hand
-
-You do not need `setup.sh`. Each module script stands alone and takes
-`--deploy-only`, `--install-only`, `--no-brew`, `--no-deploy` and `--force`.
+## 4. Grant only the permissions for your modules
 
 ```bash
-# 1. packages
-./bootstrap/brew.sh base desktop fonts
-./bootstrap/install/gui-path.sh
-
-# 2. desktop
-./bootstrap/install/karabiner.sh
-./bootstrap/install/aerospace.sh
-./bootstrap/install/sketchybar.sh
-./bootstrap/install/borders.sh
-./bootstrap/install/hammerspoon.sh
-
-# 3. AI workflow
-./bootstrap/install/ai-router.sh
-
-# 4. shell and terminal (opt-in — repoints ~/.zshenv)
-./bootstrap/install/zsh.sh
-./bootstrap/install/starship.sh
-./bootstrap/install/kaku.sh
-./bootstrap/install/yazi.sh
-./bootstrap/install/ideavim.sh
-
-# 5. optional
-./bootstrap/install/sublime.sh
-./bootstrap/install/mpv.sh
-./bootstrap/install/bettertouchtool.sh
-./bootstrap/install/warp.sh
+./bootstrap/setup.sh doctor minimal
 ```
 
-Install the desktop modules together — Karabiner, AeroSpace, SketchyBar and
-Borders share workspace state, and half of them installed looks broken rather
-than partial. Everything else can go in any order, any time.
+The doctor is read-only. It checks installed outcomes and separates missing
+files/commands from manual permissions or cost notes.
 
-## After installing
+- `workspace`: AeroSpace Accessibility
+- `capslock`: Karabiner Driver Extension and Input Monitoring
+- `automation`: Hammerspoon Accessibility and Automation
+- `notifications`: Full Disk Access for SketchyBar
+- `gestures`: BetterTouchTool Accessibility and Input Monitoring
 
-Two things the installer cannot do for you:
+The Karabiner CapsLock rule is deployed disabled. Enable it under
+Karabiner-Elements → Complex Modifications only if you want CapsLock tap Esc /
+hold Hyper.
 
-1. **Grant macOS permissions.** AeroSpace needs Accessibility, Karabiner needs a
-   driver extension and Input Monitoring, Hammerspoon needs Accessibility. Until
-   you grant them the apps run and do nothing. See the permissions table in the
-   [README](../README.md#macos-permissions).
-2. **Enable the CapsLock rules.** They are installed as a Karabiner
-   complex-modification asset, not written into your profile. Turn them on under
-   Karabiner-Elements → Complex Modifications → Add rule.
+## 5. Make the result yours
 
-Then check nothing drifted:
+Named presets copy a data-only file to `~/.config/ai-first/profile.conf`.
+Changing it does not fork implementation code. It controls feature flags, bar
+item groups, supported notification apps, terminal preference, workspace groups
+and optional display names.
 
-```bash
-bash tests/smoke/repository_structure_smoke.sh
-bash tests/smoke/install_script_syntax_smoke.sh
-bash tests/smoke/ai_router_exports_smoke.sh
-```
+Other safe preference points:
 
-## Keeping local changes local
+- `~/.config/aerospace/app-routes.conf` — exact app workspace/layout overrides
+- `~/.config/aerospace/displays.conf` and `workspaces.conf` — desk topology
+- `~/.config/sketchybar/theme.conf` — bar fonts, geometry and color roles
+- `~/.config/zsh/private.zsh` — machine-local shell values and secrets
+- `~/.config/ai-router/config.json` and `prompts/` — provider and prompt choices
 
-The deploy engine already protects files you edit: once a target differs and the
-repo copy has not moved since it was deployed, it is kept and reported as
-`Kept local change`. Even so, prefer the designated override points rather than
-editing tracked files — see **Make it yours** in the [README](../README.md#make-it-yours).
+The deploy engine preserves local changes. See
+[Choice architecture](choice-architecture.md) for every setting and example.
 
-- `~/.config/zsh/private.zsh` for machine-specific shell variables and secrets.
-- `~/.config/aerospace/displays.conf` and `workspaces.conf` for your desk.
-- `~/.config/sketchybar/theme.conf` for the bar's appearance.
+## Compatibility commands
+
+Older automation can still use `all`, `desktop`, `extras`, `packages`,
+`packages-all`, `shell`, `ai`, `media`, `app-store` and `deploy`. `all` is no
+longer the recommended entry point. It preserves its previous behavior and does
+not mean “every possible module.”
+
+Each `bootstrap/install/*.sh` script also remains independently runnable with
+the common flags.
 
 ## Undoing it
 
 ```bash
-./bootstrap/uninstall.sh            # prints the plan, changes nothing
-./bootstrap/uninstall.sh --apply
+./bootstrap/uninstall.sh            # plan only
+./bootstrap/uninstall.sh --apply    # restore/remove deployed files safely
 ```
+
+The uninstaller replays the backup ledger. It removes only unchanged repository
+copies, moves edited files aside, never follows symlinks, and leaves Homebrew
+packages alone because another workflow may use them.
 
 ## Next
 
-- [Troubleshooting](troubleshooting.md) — it installed and nothing happens
-- [Shortcut reference](shortcuts.md) — every binding
-- [All documentation](README.md)
+- [Choice architecture](choice-architecture.md)
+- [Troubleshooting](troubleshooting.md)
+- [Shortcut reference](shortcuts.md)
+- [Product quality scorecard](product-quality.md)

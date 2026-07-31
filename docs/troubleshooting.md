@@ -14,8 +14,9 @@ behalf and the apps fail silently when they lack it.
 | CapsLock is installed but does nothing | The rules ship disabled on purpose | Karabiner-Elements → Complex Modifications → Add rule → **CapsLock AI Lite (ai-first-dotfiles)** → Enable All |
 | AI hotkeys do nothing | Hammerspoon has no Accessibility permission | System Settings → Privacy & Security → Accessibility → enable **Hammerspoon**, then reload its config |
 | Prompts render but the selection is always empty | Hammerspoon was denied Automation → System Events | System Settings → Privacy & Security → Automation → allow **Hammerspoon** to control **System Events** |
-| Trackpad gestures do nothing | BetterTouchTool is in the `extras` profile and is not installed by `all` | `./bootstrap/setup.sh extras`, then grant it Accessibility |
-| `Ctrl + ↑` / `Ctrl + ↓` do nothing | They route Mission Control and App Exposé through BetterTouchTool | `./bootstrap/setup.sh extras` |
+| AI notification badge stays empty | SketchyBar cannot read the notification database | Grant `/opt/homebrew/bin/sketchybar` Full Disk Access, then restart SketchyBar |
+| Trackpad gestures do nothing | BetterTouchTool is an explicit paid-after-trial module | `./bootstrap/setup.sh gestures`, then grant Accessibility/Input Monitoring |
+| `Ctrl + ↑` / `Ctrl + ↓` do nothing | They route Mission Control and App Exposé through BetterTouchTool | `./bootstrap/setup.sh gestures` |
 
 Restart each app after granting a permission. macOS does not apply it to a
 running process.

@@ -17,6 +17,67 @@ if [ -r "$_app_defaults_dir/lib/layout.sh" ]; then
     . "$_app_defaults_dir/lib/layout.sh"
 fi
 
+_ai_first_profile_lib="${AI_FIRST_PROFILE_LIB:-$HOME/.config/ai-first/lib/profile.sh}"
+if [ -r "$_ai_first_profile_lib" ]; then
+    # shellcheck source=/dev/null
+    . "$_ai_first_profile_lib"
+fi
+
+aerospace_app_routing_enabled() {
+    case "${AI_FIRST_APP_ROUTING:-1}" in
+        1|true|TRUE|yes|YES|on|ON|enabled|ENABLED) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+aerospace_app_routes_file() {
+    printf '%s\n' "${AI_FIRST_APP_ROUTES_FILE:-$HOME/.config/aerospace/app-routes.conf}"
+}
+
+# Print workspace and layout for the first valid exact-match user override.
+# This intentionally accepts no regex or executable shell: app-routes.conf is
+# data, not another startup script.
+aerospace_user_route() {
+    local app_id="${1:-}"
+    local app_name="${2:-}"
+    local routes_file kind value workspace layout
+
+    routes_file="$(aerospace_app_routes_file)"
+    [ -r "$routes_file" ] || return 1
+
+    while IFS='|' read -r kind value workspace layout _rest; do
+        case "$kind" in ''|'#'*) continue ;; esac
+        [ -z "${_rest:-}" ] || continue
+        case "$kind" in
+            id) [ "$value" = "$app_id" ] || continue ;;
+            name) [ "$value" = "$app_name" ] || continue ;;
+            *) continue ;;
+        esac
+        case "$value" in ''|*"'"*) continue ;; esac
+        case "$workspace" in -|'') workspace='' ;; *[!0-9]*) continue ;; esac
+        case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) continue ;; esac
+        [ -n "$workspace$layout" ] || continue
+        printf '%s|%s\n' "$workspace" "$layout"
+        return 0
+    done < "$routes_file"
+
+    return 1
+}
+
+aerospace_user_route_field() {
+    local route
+    route="$(aerospace_user_route "$1" "$2")" || return 1
+    case "$3" in
+        workspace) printf '%s\n' "${route%%|*}" ;;
+        layout) printf '%s\n' "${route#*|}" ;;
+        *) return 1 ;;
+    esac
+}
+
+aerospace_regex_escape() {
+    printf '%s' "${1:-}" | /usr/bin/sed 's/[][\\.^$*+?(){}|]/\\&/g'
+}
+
 # Copied out of a deployment without its library, this file still has to be a
 # usable set of rules rather than a syntax error waiting to happen.
 if ! type aerospace_layout_clamp_workspace >/dev/null 2>&1; then
@@ -110,6 +171,15 @@ should_float_window() {
     local app_name="${2:-}"
     local title="${3:-}"
 
+    aerospace_app_routing_enabled || return 1
+
+    local user_layout
+    user_layout="$(aerospace_user_route_field "$app_id" "$app_name" layout 2>/dev/null || true)"
+    case "$user_layout" in
+        floating) return 0 ;;
+        tiling) return 1 ;;
+    esac
+
     if is_context_dialog_title "$title"; then
         return 0
     fi
@@ -155,6 +225,15 @@ should_tile_window() {
     local app_id="${1:-}"
     local app_name="${2:-}"
     local title="${3:-}"
+
+    aerospace_app_routing_enabled || return 1
+
+    local user_layout
+    user_layout="$(aerospace_user_route_field "$app_id" "$app_name" layout 2>/dev/null || true)"
+    case "$user_layout" in
+        tiling) return 0 ;;
+        floating) return 1 ;;
+    esac
 
     if should_float_window "$app_id" "$app_name" "$title"; then
         return 1
@@ -207,6 +286,15 @@ default_workspace_rule_for_window() {
     local app_id="${1:-}"
     local app_name="${2:-}"
     local title="${3:-}"
+
+    aerospace_app_routing_enabled || return 1
+
+    local user_workspace
+    user_workspace="$(aerospace_user_route_field "$app_id" "$app_name" workspace 2>/dev/null || true)"
+    if [ -n "$user_workspace" ]; then
+        printf '%s' "$user_workspace"
+        return 0
+    fi
 
     if is_context_dialog_title "$title"; then
         return 1
@@ -340,7 +428,51 @@ default_workspace_rule_for_window() {
 }
 
 emit_on_window_detected_rules() {
-    emit_on_window_detected_rules_raw | aerospace_layout_clamp_workspace_stream
+    if ! aerospace_app_routing_enabled; then
+        printf '%s\n' '# Application placement and floating rules.'
+        printf '%s\n' '# Disabled by ~/.config/ai-first/profile.conf (AI_FIRST_APP_ROUTING="0").'
+        return 0
+    fi
+    {
+        emit_user_on_window_detected_rules
+        emit_on_window_detected_rules_raw
+    } | aerospace_layout_clamp_workspace_stream
+}
+
+emit_user_on_window_detected_rules() {
+    local routes_file kind value workspace layout rest
+    local run_layout run_workspace
+
+    routes_file="$(aerospace_app_routes_file)"
+    [ -r "$routes_file" ] || return 0
+
+    while IFS='|' read -r kind value workspace layout rest; do
+        case "$kind" in ''|'#'*) continue ;; esac
+        [ -z "${rest:-}" ] || continue
+        case "$kind" in id|name) ;; *) continue ;; esac
+        case "$value" in ''|*"'"*) continue ;; esac
+        case "$workspace" in -|'') workspace='' ;; *[!0-9]*) continue ;; esac
+        case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) continue ;; esac
+        [ -n "$workspace$layout" ] || continue
+
+        printf '%s\n' '[[on-window-detected]]'
+        if [ "$kind" = id ]; then
+            printf "    if.app-id = '%s'\n" "$value"
+        else
+            printf "    if.app-name-regex-substring = '^%s$'\n" "$(aerospace_regex_escape "$value")"
+        fi
+        run_layout=''
+        run_workspace=''
+        [ -n "$layout" ] && run_layout="'layout $layout'"
+        [ -n "$workspace" ] && run_workspace="'move-node-to-workspace $workspace'"
+        if [ -n "$run_layout" ] && [ -n "$run_workspace" ]; then
+            printf '    run = [%s, %s]\n\n' "$run_layout" "$run_workspace"
+        elif [ -n "$run_layout" ]; then
+            printf '    run = %s\n\n' "$run_layout"
+        else
+            printf '    run = %s\n\n' "$run_workspace"
+        fi
+    done < "$routes_file"
 }
 
 emit_on_window_detected_rules_raw() {

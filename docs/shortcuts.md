@@ -17,7 +17,9 @@ In this document, `CapsLock + key` means hold `CapsLock`, then press `key`.
 
 ## Workspaces
 
-Workspace behavior is owned by `home/.aerospace.toml`.
+Workspace behavior is owned by `home/.aerospace.toml`. `minimal` creates neutral
+workspaces 1–6 and disables automatic app placement. The role table below is the
+`author-full` reference map, not a requirement for other presets.
 
 | Workspace | Default role |
 |---|---|
@@ -37,16 +39,15 @@ Workspace behavior is owned by `home/.aerospace.toml`.
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl + 1..0` | Switch to workspace `1..10` |
-| `Ctrl + [` / `Ctrl + ]` | Switch to workspace `11` / `12` |
-| `Ctrl + \` | Switch to workspace `13` |
-| `Ctrl + Shift + 1..0` | Move focused window to workspace `1..10` and follow it |
-| `Ctrl + Shift + [` / `Ctrl + Shift + ]` | Move focused window to workspace `11` / `12` and follow it |
-| `Ctrl + Shift + \` | Move focused window to workspace `13` and follow it |
+| `Ctrl + 1..6` | Switch to workspace `1..6` in every preset |
+| `Ctrl + 7..0` | Switch to workspace `7..10` when configured |
+| `Ctrl + [` / `Ctrl + ]` | Switch to workspace `11` / `12` when configured |
+| `Ctrl + \` | Switch to workspace `13` when configured |
+| `Ctrl + Shift + <workspace key>` | Move the focused window to that configured workspace and follow it |
 | `Ctrl + Left` / `Ctrl + Right` | Move to previous / next workspace group |
 | `Alt + Tab` | Toggle back to the previously focused workspace |
-| `Ctrl + Up` | Mission Control — **requires BetterTouchTool** (`setup.sh extras`) |
-| `Ctrl + Down` | App Exposé — **requires BetterTouchTool** (`setup.sh extras`) |
+| `Ctrl + Up` | Mission Control — **requires BetterTouchTool** (`setup.sh gestures`) |
+| `Ctrl + Down` | App Exposé — **requires BetterTouchTool** (`setup.sh gestures`) |
 
 ## Window Focus And Layout
 

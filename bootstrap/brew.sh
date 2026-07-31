@@ -18,6 +18,9 @@ Profiles:
   apps       optional GUI apps used on this machine
   quicklook  optional Finder preview plugins
   all        install every profile above
+
+Options:
+  --plan     Print every tap, formula and cask; run no Homebrew command.
 EOF
 }
 
@@ -94,7 +97,18 @@ install_all() {
   install_quicklook
 }
 
-profile_args=("$@")
+profile_args=()
+for arg in "$@"; do
+  case "$arg" in
+    --plan)
+      DOTFILES_BREW_PLAN=1
+      ;;
+    *)
+      profile_args+=("$arg")
+      ;;
+  esac
+done
+
 if [[ "${#profile_args[@]}" -eq 0 ]]; then
   profile_args=(base)
 fi

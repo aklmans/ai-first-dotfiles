@@ -159,13 +159,24 @@ should_brew() {
 ensure_brew_tap() {
   local tap="$1"
   should_brew || return 0
+  if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
+    printf '    tap      %s\n' "$tap"
+    return 0
+  fi
   if ! brew tap | grep -Fx "$tap" >/dev/null 2>&1; then
     brew tap "$tap"
   fi
 }
 
 brew_install() {
+  local formula
   should_brew || return 0
+  if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
+    for formula in "$@"; do
+      printf '    formula  %s\n' "$formula"
+    done
+    return 0
+  fi
   brew install "$@"
 }
 
@@ -225,6 +236,13 @@ brew_install_cask() {
   should_brew || return 0
 
   local cask token
+  if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
+    for cask in "$@"; do
+      printf '    cask     %s\n' "$cask"
+    done
+    return 0
+  fi
+
   for cask in "$@"; do
     token="${cask##*/}"
 

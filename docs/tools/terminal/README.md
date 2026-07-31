@@ -6,9 +6,8 @@ This module covers the shell-first terminal stack: the `zsh` base environment,
 > **Which profile installs what.** `zsh`, `Starship`, `Kaku` and `Yazi` are the
 > `shell` profile, which is opt-in because it repoints `~/.zshenv` at this repo:
 > `./bootstrap/setup.sh shell`. **Warp is not in it.** Warp is closed source and
-> wants an account, so it lives in `extras` alongside BetterTouchTool:
-> `./bootstrap/setup.sh extras`. Neither profile is part of
-> `./bootstrap/setup.sh all`.
+> wants an account, so it is a separate explicit module:
+> `./bootstrap/setup.sh warp`. Kaku is the free/open `terminal` module.
 
 ![Kaku and Warp terminal workflow](../../../assets/screenshots/kaku-warp-terminal.png)
 
@@ -30,7 +29,8 @@ This module covers the shell-first terminal stack: the `zsh` base environment,
 
 ```bash
 ./bootstrap/setup.sh shell    # zsh, Starship, Kaku, Yazi, IdeaVim
-./bootstrap/setup.sh extras   # Warp (and BetterTouchTool)
+./bootstrap/setup.sh terminal # Kaku
+./bootstrap/setup.sh warp     # Warp only
 ```
 
 Or one module at a time:

@@ -48,6 +48,7 @@ require_dir "home/Library/Application Support/Sublime Text"
 require_dir "home/Library/Application Support/Sublime Text/Packages"
 require_dir "home/Library/Application Support/Sublime Text/Packages/User"
 require_dir home/.config
+require_dir home/.config/ai-first
 require_dir home/.config/ai-router
 require_dir home/.config/kaku
 require_dir home/.config/yazi
@@ -61,6 +62,8 @@ require_dir home/.config/karabiner
 require_dir home/.config/mpv
 require_dir home/.warp
 require_dir bootstrap/install
+require_dir bootstrap/modules
+require_dir bootstrap/presets
 require_dir examples/macos-defaults
 require_dir manifests/app-store
 require_dir home/.hammerspoon
@@ -85,6 +88,7 @@ require_file home/.config/ai-router/ai-router.sh
 require_file home/.config/ai-router/README.md
 require_file home/.config/ai-router/ROADMAP.md
 require_file home/.config/ai-router/config.json
+require_file home/.config/ai-first/lib/profile.sh
 
 require_file home/.config/kaku/kaku.lua
 require_file home/.config/kaku/assistant.toml
@@ -107,11 +111,13 @@ require_file home/.config/sketchybar/theme.conf
 require_file home/.config/sketchybar/lib/theme.sh
 require_file home/.config/sketchybar/lib/runtime.sh
 require_file home/.config/sketchybar/lib/workspaces.sh
+require_file home/.config/sketchybar/lib/notifications.sh
 require_file home/.config/sketchybar/lib/display-resolver.sh
 require_file home/.config/sketchybar/items/ai_notifications.sh
 require_file home/.config/sketchybar/plugins/ai_app_notifications.sh
 require_file home/.config/borders/bordersrc
 require_file home/.config/aerospace/app-defaults.sh
+require_file home/.config/aerospace/app-routes.conf
 require_file home/.config/aerospace/reveal-app.sh
 require_file home/.config/aerospace/displays.conf
 require_file home/.config/aerospace/workspaces.conf
@@ -128,6 +134,20 @@ require_file home/.hammerspoon/app_reveal.lua
 require_file home/.config/mpv/mpv.conf
 require_file home/.config/mpv/input.conf
 require_file bootstrap/brew.sh
+require_file bootstrap/catalog.sh
+require_file bootstrap/doctor.sh
+require_file bootstrap/modules/base.conf
+require_file bootstrap/modules/workspace.conf
+require_file bootstrap/modules/bar.conf
+require_file bootstrap/modules/automation.conf
+require_file bootstrap/modules/ai.conf
+require_file bootstrap/modules/notifications.conf
+require_file bootstrap/modules/recording.conf
+require_file bootstrap/modules/terminal.conf
+require_file bootstrap/modules/warp.conf
+require_file bootstrap/presets/minimal.conf
+require_file bootstrap/presets/developer.conf
+require_file bootstrap/presets/author-full.conf
 require_file bootstrap/setup.sh
 require_file bootstrap/app-store.sh
 require_file bootstrap/uninstall.sh
@@ -153,6 +173,9 @@ require_file manifests/app-store/mas-large.txt
 require_file LICENSE
 require_file README.md
 require_file docs/shortcuts.md
+require_file docs/choice-architecture.md
+require_file docs/product-quality.md
+require_file docs/release-checklist.md
 
 require_file tests/smoke/ai_router_exports_smoke.sh
 require_file tests/smoke/aerospace_workflow_smoke.sh
@@ -166,6 +189,7 @@ require_file tests/smoke/orchestration_smoke.sh
 require_file tests/smoke/shell_layer_smoke.sh
 require_file tests/smoke/ai_router_cli_smoke.sh
 require_file tests/smoke/sketchybar_smoke.sh
+require_file tests/smoke/choice_architecture_smoke.sh
 
 require_absent bootstrap/macos
 require_absent bootstrap/install/gbrain.sh

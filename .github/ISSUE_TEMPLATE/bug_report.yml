@@ -38,20 +38,21 @@ body:
       description: Pick the one closest to the failure. Choose "setup.sh itself" if the run never reached a module.
       options:
         - setup.sh itself (orchestration, preflight, dry-run)
+        - workspace (AeroSpace)
+        - bar / notifications (SketchyBar)
+        - borders
+        - capslock (Karabiner)
+        - automation / recording (Hammerspoon)
+        - ai (AI router)
+        - gestures (BetterTouchTool)
+        - terminal / warp
+        - shell
         - uninstall.sh
         - deploy engine (backups, skipped paths, kept local changes)
-        - aerospace
-        - sketchybar / borders
-        - karabiner
-        - hammerspoon
-        - ai-router
-        - zsh / starship
-        - kaku / warp / yazi
         - gui-path
         - sublime
         - ideavim
         - mpv
-        - bettertouchtool
         - brew.sh / app-store.sh
         - docs
         - other / not sure
@@ -79,7 +80,7 @@ body:
         most useful thing in a report — it shows which paths the run targets on
         your machine.
       render: shell
-      placeholder: "$ ./bootstrap/setup.sh desktop --dry-run"
+      placeholder: "$ ./bootstrap/setup.sh <your modules or preset> --dry-run"
     validations:
       required: true
 

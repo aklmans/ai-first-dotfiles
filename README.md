@@ -1,6 +1,7 @@
 # AI-First macOS Dotfiles
 
-**Thirteen tiled workspaces, a CapsLock AI layer, and an installer that prints every package and every file it will touch — before it touches one.**
+**A composable macOS workspace system: take two modules or the whole desk, see
+every cost and permission first, and keep your own preferences.**
 
 [![CI](https://github.com/aklmans/ai-first-dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/aklmans/ai-first-dotfiles/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -11,62 +12,65 @@
 
 <sub>One <code>Ctrl</code> chord switched to that workspace, AeroSpace tiled both windows, SketchyBar drew the row on top. No window was dragged, no space was swiped.</sub>
 
-<!-- TODO(author): record assets/demo.gif — ~10s: Ctrl+1..4 through workspaces,
-     Alt+H/L to move focus, then CapsLock+Space to open the AI palette.
-     Then replace the line below with:
-     <img src="assets/demo.gif" alt="Switching workspaces and opening the AI palette" width="100%"> -->
+This repository is the author's complete setup, but the product is not “become
+the author.” Workspace management, the bar, CapsLock, automation, AI, shell,
+terminals and paid extras are independent choices. The complete 13-workspace
+desk remains available as a reference preset.
 
-## Try it without installing anything
+## See your choices without installing anything
 
 ```bash
 git clone https://github.com/aklmans/ai-first-dotfiles.git
 cd ai-first-dotfiles
-./bootstrap/setup.sh all --dry-run
+./bootstrap/setup.sh list
+./bootstrap/setup.sh minimal --dry-run
 ```
 
-`--dry-run` executes nothing and needs no Homebrew. It prints every command and
-every path under your `$HOME` the real run would write, one line each. Read that
-list. If you do not like it, delete the clone and you are exactly where you
-started.
+`list` shows each independent outcome, its cost, permissions and dependencies.
+`--dry-run` executes nothing and needs no Homebrew; it prints the exact taps,
+formulae, casks, commands and paths the real run would use.
 
 When you are ready:
 
 ```bash
-./bootstrap/setup.sh all        # or: shell / desktop / ai — see below
+./bootstrap/setup.sh minimal                 # workspace + bar
+./bootstrap/setup.sh capslock automation ai  # compose only what you want
 ```
 
----
+## Choose an outcome, not someone else's taste
 
-## What it costs
+Presets are shortcuts, not product tiers. You can start with one and add any
+module, or ignore presets entirely.
 
-Most dotfiles repos tell you what they give you. Here is what they take.
+| Preset | Includes | It deliberately leaves out |
+|---|---|---|
+| `minimal` | AeroSpace workspace management + SketchyBar | app routing, CapsLock takeover, AI, notifications, recording, shell, accounts and paid apps |
+| `developer` | `minimal` + CapsLock + Hammerspoon + local AI workflows | notifications, recording, shell, paid and closed-source apps |
+| `author-full` | the maintained 13-workspace desk and every integration | nothing; explicitly includes BetterTouchTool (paid after trial), Warp (closed source/account) and shell takeover |
 
-| Profile | Homebrew packages | Writes to `$HOME` | macOS permissions | Restart | Takes over | Reversible |
-|---|---|---|---|---|---|---|
-| `ai` | 0 | 1 path (`~/.config/ai-router`, ~80 files) | none | no | nothing | yes |
-| `shell` | 25 | 6 paths (~24 files) | none | new shell | `~/.zshenv` — points `ZDOTDIR` at this repo | yes |
-| `desktop` | 13 | 6 paths (~58 files) | Accessibility, Input Monitoring, a Karabiner driver extension | yes, for the driver | `Ctrl+1..0`, `Ctrl+[ ] \`, `Alt`+letters; `CapsLock` once you enable the rule | yes |
-| `all` | 55 | 10 paths (~193 files) | same as `desktop` | yes, for the driver | same as `desktop`, plus the `PATH` GUI apps inherit | yes |
+Modules are the stable public interface:
 
-Package counts are the unique formulae and casks each profile installs, read out
-of [`bootstrap/brew.sh`](bootstrap/brew.sh) and the `brew_install` lines in
-`bootstrap/install/`. File counts come from the `deploy_repo_path` calls in the
-same scripts — `./bootstrap/setup.sh <profile> --dry-run` prints the exact list
-for your machine, and that output is the authority, not this table.
+| Outcome | Module | Dependency / trade-off |
+|---|---|---|
+| predictable tiled workspaces | `workspace` | AeroSpace; Accessibility |
+| workspace/app status | `bar` | adds `workspace`; no special permission |
+| focused-window border | `borders` | adds `workspace`; service stays stopped by default |
+| CapsLock tap Esc / hold Hyper | `capslock` | Karabiner driver + Input Monitoring; rule remains disabled until you enable it |
+| window and chooser automation | `automation` | adds `workspace`; Hammerspoon Accessibility/Automation |
+| local prompts/provider adapters | `ai` | no account required by the router; providers are your choice |
+| four-app attention badge | `notifications` | adds `bar`; SketchyBar Full Disk Access; choose any subset of Warp, Codex, IntelliJ IDEA, GoLand |
+| screencast window presets | `recording` | adds `automation`; capture permission is separate |
+| trackpad workspace gestures | `gestures` | BetterTouchTool, paid after trial |
+| terminal integrations | `terminal` / `warp` | Kaku is free/open; Warp is separate, closed/account-based opt-in |
+| shell, editors and media | `shell`, `sublime`, `media` | `shell` changes `ZDOTDIR`; the others stand alone |
 
-**`all` is not everything.** It deliberately leaves out two profiles:
+Run `./bootstrap/setup.sh list` for the authoritative catalog. See
+[Choice architecture](docs/choice-architecture.md) for composition examples,
+profile settings and the boundary between a preference and an implementation.
 
-- **`shell`** repoints `~/.zshenv` at this repo. That is the most invasive thing
-  in here and the hardest to undo by hand, so it is opt-in:
-  `./bootstrap/setup.sh shell`.
-- **`extras`** is BetterTouchTool (free for 45 days, paid after) and Warp
-  (closed source, wants an account). Nothing else here depends on either:
-  `./bootstrap/setup.sh extras`.
-
-Everything is copied, never symlinked. A redeploy skips unchanged files, keeps
-files you edited yourself, refuses to write through a symlink another dotfiles
-manager owns, and backs up anything it does replace — with a ledger that
-[`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay.
+Everything is copied, never symlinked. A redeploy keeps local edits, refuses to
+write through another manager's symlink, and backs up replacements in a ledger
+that [`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay.
 
 ---
 
@@ -74,12 +78,12 @@ manager owns, and backs up anything it does replace — with a ledger that
 
 | Module | Tools | What it actually does |
 |---|---|---|
-| Workspaces | [AeroSpace](https://github.com/nikitabobko/AeroSpace) | 13 tiled workspaces, one `Ctrl` chord each, apps land on the same workspace every time |
+| Workspaces | [AeroSpace](https://github.com/nikitabobko/AeroSpace) | 6 neutral workspaces in `minimal`, or the author's 13-workspace/multi-display map in `author-full` |
 | Desktop UI | [SketchyBar](https://github.com/FelixKratz/SketchyBar), [JankyBorders](https://github.com/FelixKratz/JankyBorders) | Workspace row with live app icons, a border around the focused window |
 | Keyboard layer | [Karabiner-Elements](https://karabiner-elements.pqrs.org) | CapsLock: tap for `Esc`, hold for Hyper, plus arrow/delete chords under the home row |
 | Automation | [Hammerspoon](https://www.hammerspoon.org) | Turns those chords into actions: AI palette, agent chooser, screencast window presets |
 | AI workflows | `ai-router` | 18 prompts, selection capture, provider fallback, Raycast snippet export — all local files |
-| Terminal | [Kaku](https://github.com/tw93/kaku), zsh, [Starship](https://starship.rs), [Yazi](https://yazi-rs.github.io) | Shell config, prompt, terminal file manager |
+| Terminal | Terminal.app, [Kaku](https://github.com/tw93/kaku), Warp, zsh, [Starship](https://starship.rs), [Yazi](https://yazi-rs.github.io) | choose the terminal separately from the workflow; Warp is never implied by AI |
 | Editors / media | IdeaVim, Sublime Text, [mpv](https://mpv.io) | Vim bindings in JetBrains IDEs, open-in-terminal from Sublime, media player config |
 
 > **`ai-router` is on its way out of this repo.** It has grown past "a dotfiles
@@ -118,7 +122,8 @@ does nothing, which reads exactly like a broken config.
 | **Hammerspoon** | Automation → System Events | Privacy & Security → Automation (prompts on first use) | Prompts render but never pick up your selection. |
 | **SketchyBar** | none for the bar itself | — | — |
 | **SketchyBar** | Automation → Spotify | prompts the first time you click the media item | The media item does nothing. Everything else on the bar is fine. |
-| **BetterTouchTool** *(`extras`)* | Accessibility + Input Monitoring | Privacy & Security | Trackpad gestures do nothing. |
+| **SketchyBar** *(`notifications`)* | Full Disk Access | Privacy & Security → Full Disk Access | The four-app attention badge cannot read macOS notification metadata. |
+| **BetterTouchTool** *(`gestures`)* | Accessibility + Input Monitoring | Privacy & Security | Trackpad gestures do nothing. |
 | Any app | Screen Recording | Privacy & Security | Only needed if you bind the screenshot/OCR chords to a capture tool. |
 
 ---
@@ -154,8 +159,8 @@ your back. Turn the rules on yourself:
 > **CapsLock AI Lite (ai-first-dotfiles)** → Enable All
 
 **`Ctrl + ↑` / `Ctrl + ↓` need BetterTouchTool.** They route Mission Control and
-App Exposé through BTT, which lives in the `extras` profile. Without it those two
-keys silently do nothing.
+App Exposé through BTT, which is the explicit `gestures` module. Without it those
+two keys silently do nothing.
 
 ---
 
@@ -165,8 +170,9 @@ keys silently do nothing.
 
 | Keys | Action |
 |---|---|
-| `Ctrl + 1..0` | Switch to workspace 1–10 |
-| `Ctrl + [` / `Ctrl + ]` / `Ctrl + \` | Switch to workspace 11 / 12 / 13 |
+| `Ctrl + 1..6` | Switch to workspace 1–6 (all presets) |
+| `Ctrl + 7..0` | Switch to workspace 7–10 when configured (`developer`/`author-full`) |
+| `Ctrl + [` / `Ctrl + ]` / `Ctrl + \` | Switch to workspace 11 / 12 / 13 when configured (`author-full`) |
 | `Ctrl + Shift + <same>` | Move the focused window there and follow it |
 | `Ctrl + ←` / `Ctrl + →` | Cycle workspace groups |
 | `Alt + H/J/K/L` | Move focus inside the tiled layout |
@@ -196,14 +202,17 @@ presets: **[docs/shortcuts.md](docs/shortcuts.md)**.
 
 ## Make it yours
 
-Every module has one file meant for your edits. The deploy engine notices when
-you have changed one and stops overwriting it, so these survive updates.
+Common choices have designated data files. The deploy engine notices when you
+have changed one and stops overwriting it, so these survive updates.
 
 | You want to change | Edit | Then |
 |---|---|---|
-| Which monitor is `main` / `side` / `stage` | `~/.config/aerospace/displays.conf` | `~/.config/aerospace/render-layout.sh` |
-| How many workspaces exist, and where | `~/.config/aerospace/workspaces.conf` | `~/.config/aerospace/render-layout.sh` |
-| Which app opens on which workspace | `~/.config/aerospace/app-defaults.sh` | `~/.config/aerospace/render-app-rules.sh` |
+| Which capabilities are visible or active | `~/.config/ai-first/profile.conf` | reload the affected app |
+| Which monitor is `main` / `side` / `stage` | profile values or `~/.config/aerospace/displays.conf` | `~/.config/aerospace/render-layout.sh` |
+| How many workspaces exist, and where | profile values or `~/.config/aerospace/workspaces.conf` | `~/.config/aerospace/render-layout.sh` |
+| Override an app's workspace/layout | `~/.config/aerospace/app-routes.conf` | `~/.config/aerospace/render-app-rules.sh` |
+| Which supported notification apps are shown | `AI_FIRST_NOTIFICATION_APPS` in `profile.conf` | `brew services restart sketchybar` |
+| Which terminal receives AI prompts | `AI_FIRST_TERMINAL_APP` in `profile.conf` | reload Hammerspoon |
 | Bar font, height, colors | `~/.config/sketchybar/theme.conf` | `brew services restart sketchybar` |
 | Focused-window border color and width | `~/.config/borders/bordersrc` | `brew services restart borders` |
 | Machine-local shell vars, API keys, `PATH` | `~/.config/zsh/private.zsh` | new shell |
@@ -214,6 +223,8 @@ One display works out of the box: leave `displays.conf` empty and `main`, `side`
 and `stage` all resolve to whatever screen is actually connected.
 
 Run `~/.config/aerospace/doctor.sh` when the desk and the config disagree.
+Run `./bootstrap/setup.sh doctor <module|preset>` for a read-only install and
+permission checklist.
 
 ---
 
@@ -263,10 +274,10 @@ Details: [docs/privacy.md](docs/privacy.md).
 ```
 .
 ├── home/           # Source of truth — copied into your home directory
-├── bootstrap/      # setup.sh, uninstall.sh, brew.sh, per-module installers
+├── bootstrap/      # catalog, setup/doctor/uninstall, presets, module installers
 ├── manifests/      # Package lists for optional App Store tooling
 ├── examples/       # Reference material no profile ever runs
-├── tests/smoke/    # 12 suites: deploy engine, orchestration, privacy, module behavior
+├── tests/smoke/    # regression suites: deploy, choices, orchestration, privacy, behavior
 └── docs/           # Documentation
 ```
 
@@ -275,6 +286,8 @@ Details: [docs/privacy.md](docs/privacy.md).
 ## Docs
 
 - **[Getting started](docs/getting-started.md)** — install paths, profiles, what runs when
+- **[Choice architecture](docs/choice-architecture.md)** — modules, presets and safe preference points
+- **[Product quality scorecard](docs/product-quality.md)** — the 8.5 release gate and evidence
 - **[Troubleshooting](docs/troubleshooting.md)** — it installed but nothing happens
 - **[Shortcut reference](docs/shortcuts.md)** — every binding in one page
 - **[Privacy & public safety](docs/privacy.md)** — what is excluded and why

@@ -21,7 +21,7 @@ bash home/.config/ai-router/tests/run.sh   # the router's own tests
 That is exactly what [CI](.github/workflows/ci.yml) runs on `macos-latest`, so a
 green local run is a green PR.
 
-Twelve suites cover the repo:
+The smoke suites cover the repo:
 
 | Suite | Covers |
 |---|---|
@@ -32,6 +32,7 @@ Twelve suites cover the repo:
 | `install_deploy_smoke.sh` | Module scripts run for real against a throwaway `$HOME` |
 | `deploy_engine_smoke.sh` | The four deploy guarantees: per-file, keep-local, back-up, never-follow-symlinks |
 | `orchestration_smoke.sh` | `setup.sh` profiles, flag handling, failure isolation, preflight |
+| `choice_architecture_smoke.sh` | catalog validity, preset behavior, cost boundaries and copy deployment |
 | `shell_layer_smoke.sh` | `~/.zshenv` takeover, `ZDOTDIR`, not clobbering an existing `~/.zshrc` |
 | `aerospace_workflow_smoke.sh` | Renderers, display resolution, workspace math |
 | `sketchybar_smoke.sh` | Theme sourcing, display resolution, running without AeroSpace |
@@ -86,12 +87,11 @@ it twice must be boring.
 
 ## What is unlikely to be merged
 
-- **New GUI apps in `brew.sh base` / `desktop` / `fonts`.** Those three are what
-  `setup.sh all` installs and the count is already the first thing a stranger
-  reads in the README. Optional apps go in `apps`, or in `extras`.
-- **Anything that makes `all` more invasive.** `shell` and `extras` are out of
-  `all` on purpose. Moving something into it needs an argument about what breaks
-  without it.
+- **New GUI apps in a neutral preset.** Optional software gets its own outcome-
+  named module, with cost and permissions in `bootstrap/catalog.sh`.
+- **Anything that makes `minimal` implicit or more invasive.** No-argument setup
+  stays inert. A dependency belongs in a preset only when that preset's promised
+  outcome cannot work without it.
 - **Personal inventories.** App lists, machine-specific workspace maps, your
   monitor names. `displays.conf`, `workspaces.conf` and `theme.conf` exist so
   those live on your machine and not in this repo.
@@ -111,9 +111,8 @@ it twice must be boring.
   rather than growing the README's link list.
 - The README is for a stranger deciding whether to run this. Keep it concrete:
   numbers, paths, and what breaks.
-- If you change what a profile installs, update the cost table in the README.
-  The numbers are supposed to be countable from `bootstrap/brew.sh` and the
-  `deploy_repo_path` calls.
+- If you change a public module, update `bootstrap/catalog.sh`, the choice docs
+  and the choice-architecture test. Package/path truth comes from `--dry-run`.
 
 ## Commits and PRs
 

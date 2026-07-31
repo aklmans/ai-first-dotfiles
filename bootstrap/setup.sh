@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/lib/common.sh"
+source "$script_dir/catalog.sh"
 repo_root="$(repo_root_dir)"
 
 dry_run=0
@@ -12,40 +13,51 @@ install_only=0
 
 usage() {
   cat <<'EOF'
-Usage: ./bootstrap/setup.sh [profile...] [options]
+Usage: ./bootstrap/setup.sh <module|preset>... [options]
 
-Profiles:
-  all           Recommended bootstrap: packages, GUI PATH, Sublime, desktop, ai, media
-  packages      Homebrew packages required by the recommended setup
-  packages-all  Every Homebrew profile in bootstrap/brew.sh
+Start here:
+  list          Show independent modules, costs, permissions and presets
+  doctor        Read-only health check; accepts an optional module or preset
+  minimal       Free desktop starting point: workspace + bar
+  developer     Keyboard desktop plus local AI workflows
+  author-full   The author's complete, opinionated setup (includes paid/closed choices)
+
+Modules can be combined in one run:
+  workspace     AeroSpace tiled workspaces
+  bar           SketchyBar workspace and app status (adds workspace dependency)
+  borders       Focused-window border; installed stopped by default
+  capslock      Karabiner CapsLock tap Esc / hold Hyper rule
+  automation    Hammerspoon window and chooser automation
+  ai            Local AI prompts, snippets and provider adapters
+  notifications SketchyBar attention badge (adds bar dependency)
+  recording     Hammerspoon screencast presets (adds automation dependency)
+  gestures      BetterTouchTool gestures (paid after trial; explicit opt-in)
+  terminal      Kaku terminal integration
+  warp          Warp integration (closed source/account; explicit opt-in)
+  shell         zsh, Starship, Yazi and IdeaVim; changes ZDOTDIR
+  sublime       Sublime Text terminal integration
+  media         mpv configuration
   gui-path      Make Homebrew tools visible to GUI-launched apps
-  shell         zsh, Starship, Kaku, Yazi, IdeaVim
-  sublime       Sublime Text Terminal package integration
+
+Compatibility profiles:
+  all           Previous bootstrap behavior; retained, no longer the default
+  packages      Previous base + desktop + font package set
+  packages-all  Every Homebrew profile in bootstrap/brew.sh
   desktop       Karabiner, AeroSpace, SketchyBar, Borders, Hammerspoon
   extras        BetterTouchTool, Warp
-  ai            AI Workflow Router
-  media         mpv
   app-store     App Store apps from manifests/app-store
   deploy        Deploy all tracked config without package installation
 
-Deliberately not part of "all":
-  shell     Installing it points ~/.zshenv at this repo, which is the most
-            invasive thing in here and the hardest to undo by hand. Everything
-            else works without it. Ask for it: ./bootstrap/setup.sh shell
-  extras    BetterTouchTool is free for 45 days and paid after that; Warp is
-            closed source and asks you to sign in. Nothing else here depends on
-            either: ./bootstrap/setup.sh extras
-  app-store Nothing here needs an App Store app, and the manifests ship empty.
-            Fill in manifests/app-store/mas-default.txt first, then ask for it:
-            ./bootstrap/setup.sh app-store
+Running with no module prints this help and changes nothing. `all` remains for
+old automation, but new users should choose modules or a preset explicitly.
 
 Options:
   --no-brew       Skip Homebrew commands where possible.
   --deploy-only   Deploy config only. Installs nothing, starts nothing, and
                   changes no macOS settings.
   --install-only  Install packages/external dependencies only.
-  --dry-run       Print what would run, including the paths under $HOME that
-                  would be written. Nothing is executed.
+  --dry-run       Print every package, command and path, plus module cost and
+                  permissions. Nothing is installed or written.
   -h, --help      Show this help.
 
 Requires an Apple Silicon Mac. The desktop layer hard-codes the /opt/homebrew
@@ -87,6 +99,11 @@ EOF
 # ---------------------------------------------------------------------------
 skipped_modules=0
 failed_steps=()
+executed_install_modules=$'\n'
+resolved_capabilities=$'\n'
+selected_preset=''
+ai_first_shared_deployed=0
+capability_base_planned=0
 
 step_label() {
   local label="${1#"$repo_root/"}"
@@ -105,6 +122,7 @@ run_cmd() {
   printf '\n'
 
   if [[ "$dry_run" -eq 1 ]]; then
+    preview_brew_requirements "$1"
     # --install-only writes nothing under $HOME, so listing deploy targets there
     # would promise something the real run does not do.
     if [[ "$install_only" -eq 0 ]]; then
@@ -262,6 +280,64 @@ preview_deploy_targets() {
   done <"$script"
 }
 
+# Module installers are intentionally simple shell scripts. Their literal
+# ensure_brew_tap/brew_install/brew_install_cask calls are the same source the
+# real run executes, so read those calls for a dry-run instead of maintaining a
+# second package list that can drift. bootstrap/brew.sh is handled by its own
+# --plan mode because it contains several selectable profiles.
+preview_brew_requirements() {
+  local script="$1"
+  local line logical kind values value
+  local tap_pattern='^[[:space:]]*ensure_brew_tap[[:space:]]+([^#;]+)'
+  local cask_pattern='^[[:space:]]*brew_install_cask[[:space:]]+([^#;]+)'
+  local formula_pattern='^[[:space:]]*brew_install[[:space:]]+([^#;]+)'
+
+  [[ "$install_only" -eq 1 || "$deploy_only" -eq 0 ]] || return 0
+  [[ "$no_brew" -eq 0 ]] || return 0
+  [[ -f "$script" ]] || return 0
+  [[ "${script##*/}" != "brew.sh" ]] || return 0
+
+  logical=""
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == *\\ ]]; then
+      logical="$logical${line%\\} "
+      continue
+    fi
+    logical="$logical$line"
+
+    kind=""
+    values=""
+    if [[ "$logical" =~ $tap_pattern ]]; then
+      kind="tap"
+      values="${BASH_REMATCH[1]}"
+    elif [[ "$logical" =~ $cask_pattern ]]; then
+      kind="cask"
+      values="${BASH_REMATCH[1]}"
+    elif [[ "$logical" =~ $formula_pattern ]]; then
+      kind="formula"
+      values="${BASH_REMATCH[1]}"
+    fi
+
+    if [[ -n "$kind" ]]; then
+      for value in $values; do
+        value="${value#\"}"
+        value="${value%\"}"
+        value="${value#\'}"
+        value="${value%\'}"
+        case "$value" in
+          ''|*'$'*|'then'|'do'|'done'|'||'|'&&')
+            ;;
+          *)
+            printf '    %-8s %s\n' "$kind" "$value"
+            ;;
+        esac
+      done
+    fi
+
+    logical=""
+  done <"$script"
+}
+
 report_skipped_modules() {
   [[ "$skipped_modules" -gt 0 ]] || return 0
   printf '\n%s module(s) left some paths untouched; see the notes above.\n' "$skipped_modules" >&2
@@ -303,6 +379,13 @@ run_module() {
   local module="$1"
   shift || true
 
+  case "$executed_install_modules" in
+    *$'\n'"$module"$'\n'*)
+      return 0
+      ;;
+  esac
+  executed_install_modules="${executed_install_modules}${module}"$'\n'
+
   local -a flags
   flags=()
   while IFS= read -r flag; do
@@ -324,7 +407,14 @@ run_brew_profile() {
     return 0
   fi
 
-  run_cmd "$repo_root/bootstrap/brew.sh" "${profiles[@]}"
+  if [[ "$dry_run" -eq 1 ]]; then
+    printf '+'
+    printf ' %q' "$repo_root/bootstrap/brew.sh" --plan "${profiles[@]}"
+    printf '\n'
+    "$repo_root/bootstrap/brew.sh" --plan "${profiles[@]}"
+  else
+    run_cmd "$repo_root/bootstrap/brew.sh" "${profiles[@]}"
+  fi
 }
 
 profile_packages() {
@@ -411,6 +501,141 @@ profile_all() {
   profile_media
 }
 
+run_capability() {
+  local capability="$1"
+  local dependency module
+
+  case "$resolved_capabilities" in
+    *$'\n'"$capability"$'\n'*)
+      return 0
+      ;;
+  esac
+
+  for dependency in $(catalog_module_dependencies "$capability"); do
+    [[ -n "$dependency" ]] || continue
+    run_capability "$dependency"
+  done
+
+  resolved_capabilities="${resolved_capabilities}${capability}"$'\n'
+  printf '\n==> %s: %s\n' "$capability" "$(catalog_module_description "$capability")"
+  printf '    cost: %s\n' "$(catalog_module_cost "$capability")"
+  printf '    permissions: %s\n' "$(catalog_module_permissions "$capability")"
+
+  apply_capability_config "$capability"
+
+  for module in $(catalog_module_scripts "$capability"); do
+    run_module "$module"
+  done
+}
+
+capability_is_in_selected_preset() {
+  local capability="$1" preset_capability
+  [ -n "$selected_preset" ] || return 1
+  for preset_capability in $(catalog_preset_modules "$selected_preset"); do
+    [ "$preset_capability" = "$capability" ] && return 0
+  done
+  return 1
+}
+
+ensure_ai_first_shared_config() {
+  local stamp status
+  [ "$ai_first_shared_deployed" -eq 0 ] || return 0
+  ai_first_shared_deployed=1
+
+  if [ "$dry_run" -eq 1 ]; then
+    printf '    %s (shared profile reader; 2 files from home/.config/ai-first)\n' \
+      "$HOME/.config/ai-first"
+    return 0
+  fi
+
+  stamp="$(date +%Y%m%d_%H%M%S)"
+  status=0
+  deploy_repo_path "$repo_root" "home/.config/ai-first" "$HOME/.config/ai-first" "$stamp" || status=$?
+  if [ "$status" -eq 3 ]; then
+    skipped_modules=$((skipped_modules + 1))
+  elif [ "$status" -ne 0 ]; then
+    failed_steps+=("shared ai-first preference reader (exit $status)")
+  fi
+}
+
+apply_capability_config() {
+  local capability="$1"
+  local source_rel="bootstrap/modules/$capability.conf"
+  local overlay_scope="${selected_preset:-custom}"
+  local target="$HOME/.config/ai-first/modules/$overlay_scope/$capability.conf"
+  local base_target="$HOME/.config/ai-first/modules/custom/00-base.conf"
+  local stamp status
+
+  [ "$install_only" -eq 0 ] || return 0
+  [ -f "$repo_root/$source_rel" ] || return 0
+  capability_is_in_selected_preset "$capability" && return 0
+
+  ensure_ai_first_shared_config
+  if [ "$dry_run" -eq 1 ]; then
+    if [ -z "$selected_preset" ] && [ "$capability_base_planned" -eq 0 ]; then
+      printf '    %s (neutral base for module-only composition)\n' "$base_target"
+      capability_base_planned=1
+    fi
+    printf '    %s (module preference overlay from %s)\n' "$target" "$source_rel"
+    return 0
+  fi
+
+  stamp="$(date +%Y%m%d_%H%M%S)"
+  if [ -z "$selected_preset" ] && [ ! -e "$base_target" ]; then
+    status=0
+    deploy_repo_path "$repo_root" "bootstrap/modules/base.conf" "$base_target" "$stamp" || status=$?
+    if [ "$status" -eq 3 ]; then
+      skipped_modules=$((skipped_modules + 1))
+    elif [ "$status" -ne 0 ]; then
+      failed_steps+=("neutral module preference base (exit $status)")
+    fi
+  fi
+  status=0
+  deploy_repo_path "$repo_root" "$source_rel" "$target" "$stamp" || status=$?
+  if [ "$status" -eq 3 ]; then
+    skipped_modules=$((skipped_modules + 1))
+  elif [ "$status" -ne 0 ]; then
+    failed_steps+=("module $capability preference overlay (exit $status)")
+  fi
+}
+
+run_preset() {
+  local preset="$1"
+  local capability
+
+  printf 'Preset: %s — %s\n' "$preset" "$(catalog_preset_description "$preset")"
+  apply_preset_config "$preset"
+  for capability in $(catalog_preset_modules "$preset"); do
+    run_capability "$capability"
+  done
+}
+
+apply_preset_config() {
+  local preset="$1"
+  local source_rel="bootstrap/presets/$preset.conf"
+  local target="$HOME/.config/ai-first/profile.conf"
+  local stamp status
+
+  [[ "$install_only" -eq 0 ]] || return 0
+
+  if [[ "$dry_run" -eq 1 ]]; then
+    printf '    %s (preset preferences from %s)\n' "$target" "$source_rel"
+    ensure_ai_first_shared_config
+    return 0
+  fi
+
+  ensure_ai_first_shared_config
+
+  stamp="$(date +%Y%m%d_%H%M%S)"
+  status=0
+  deploy_repo_path "$repo_root" "$source_rel" "$target" "$stamp" || status=$?
+  if [[ "$status" -eq 3 ]]; then
+    skipped_modules=$((skipped_modules + 1))
+  elif [[ "$status" -ne 0 ]]; then
+    failed_steps+=("preset $preset profile.conf (exit $status)")
+  fi
+}
+
 profiles=()
 
 while [[ "$#" -gt 0 ]]; do
@@ -443,6 +668,42 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
+preset_count=0
+for profile in ${profiles[@]+"${profiles[@]}"}; do
+  if catalog_preset_exists "$profile"; then
+    preset_count=$((preset_count + 1))
+    selected_preset="$profile"
+  fi
+done
+if [[ "$preset_count" -gt 1 ]]; then
+  printf 'Choose one preset per run, then add any independent modules you want.\n' >&2
+  exit 64
+fi
+
+# Listing choices is deliberately available on any machine. It does not inspect
+# prerequisites because it installs and writes nothing.
+if [[ "${#profiles[@]}" -eq 1 && "${profiles[0]}" == "list" ]]; then
+  catalog_print
+  exit 0
+fi
+
+if [[ "${#profiles[@]}" -gt 0 && "${profiles[0]}" == "doctor" ]]; then
+  doctor_args=()
+  doctor_index=1
+  while [[ "$doctor_index" -lt "${#profiles[@]}" ]]; do
+    doctor_args+=("${profiles[$doctor_index]}")
+    doctor_index=$((doctor_index + 1))
+  done
+  exec "$repo_root/bootstrap/doctor.sh" ${doctor_args[@]+"${doctor_args[@]}"}
+fi
+
+if [[ "${#profiles[@]}" -eq 0 ]]; then
+  usage
+  printf '\n'
+  catalog_print
+  exit 0
+fi
+
 # Runs after argument parsing so `--help` still works on a machine that has
 # nothing installed yet, and before any profile so the failure is one readable
 # message instead of a broken half-install. --dry-run only warns: README tells
@@ -453,13 +714,20 @@ else
   require_prerequisites
 fi
 
-if [[ "${#profiles[@]}" -eq 0 ]]; then
-  profiles=(all)
-fi
-
 for profile in "${profiles[@]}"; do
+  if catalog_preset_exists "$profile"; then
+    run_preset "$profile"
+    continue
+  fi
+
+  if catalog_module_exists "$profile"; then
+    run_capability "$profile"
+    continue
+  fi
+
   case "$profile" in
     all)
+      printf 'Compatibility profile: all. New installs should choose modules or a named preset.\n'
       profile_all
       ;;
     packages)

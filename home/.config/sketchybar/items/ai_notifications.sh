@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$CONFIG_DIR/lib/notifications.sh"
+
 ai_total=(
   icon=$BELL_DOT
   icon.font="$THEME_FONT_BADGE_ICON"
@@ -63,65 +65,34 @@ sketchybar --add item ai_notify.total right             \
            --subscribe ai_notify.total system_woke      \
                                             mouse.clicked
 
-sketchybar --add item ai_notify.warp right              \
-           --set ai_notify.warp "${ai_app_common[@]}"   \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "Warp")" \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal warp" \
-           --subscribe ai_notify.warp system_woke       \
-                                           mouse.clicked \
-                                                        \
-           --add item ai_notify.codex right             \
-           --set ai_notify.codex "${ai_app_common[@]}"  \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "Codex")" \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal codex" \
-           --subscribe ai_notify.codex system_woke      \
-                                            mouse.clicked \
-                                                        \
-           --add item ai_notify.idea right              \
-           --set ai_notify.idea "${ai_app_common[@]}"   \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "IntelliJ IDEA")" \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal idea" \
-           --subscribe ai_notify.idea system_woke       \
-                                            mouse.clicked \
-                                                        \
-           --add item ai_notify.goland right            \
-           --set ai_notify.goland "${ai_app_common[@]}" \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "GoLand")" \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal goland" \
-           --subscribe ai_notify.goland system_woke     \
-                                             mouse.clicked
+ai_notification_items=(ai_notify.total)
+while IFS= read -r app; do
+  [ -n "$app" ] || continue
+  label="$(ai_first_notification_label "$app")"
+  sketchybar --add item "ai_notify.$app" right \
+             --set "ai_notify.$app" "${ai_app_common[@]}" \
+                  icon="$("$PLUGIN_DIR/icon_map.sh" "$label")" \
+                  click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal $app" \
+             --subscribe "ai_notify.$app" system_woke mouse.clicked
+  ai_notification_items+=("ai_notify.$app")
+done < <(ai_first_notification_apps)
 
-sketchybar --add item ai_notify.popup.empty popup.ai_notify.total       \
-           --set ai_notify.popup.empty "${ai_popup_common[@]}"          \
-                icon=$BELL                                              \
-                label="No AI attention"                                 \
-                                                        \
-           --add item ai_notify.popup.warp popup.ai_notify.total        \
-           --set ai_notify.popup.warp "${ai_popup_common[@]}"           \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "Warp")"              \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal warp" \
-                                                        \
-           --add item ai_notify.popup.codex popup.ai_notify.total       \
-           --set ai_notify.popup.codex "${ai_popup_common[@]}"          \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "Codex")"             \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal codex" \
-                                                        \
-           --add item ai_notify.popup.idea popup.ai_notify.total        \
-           --set ai_notify.popup.idea "${ai_popup_common[@]}"           \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "IntelliJ IDEA")"     \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal idea" \
-                                                        \
-           --add item ai_notify.popup.goland popup.ai_notify.total      \
-           --set ai_notify.popup.goland "${ai_popup_common[@]}"         \
-                icon="$("$PLUGIN_DIR/icon_map.sh" "GoLand")"            \
-                click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal goland"
+sketchybar --add item ai_notify.popup.empty popup.ai_notify.total \
+           --set ai_notify.popup.empty "${ai_popup_common[@]}" \
+                icon=$BELL \
+                label="No AI attention"
+
+while IFS= read -r app; do
+  [ -n "$app" ] || continue
+  label="$(ai_first_notification_label "$app")"
+  sketchybar --add item "ai_notify.popup.$app" popup.ai_notify.total \
+             --set "ai_notify.popup.$app" "${ai_popup_common[@]}" \
+                  icon="$("$PLUGIN_DIR/icon_map.sh" "$label")" \
+                  click_script="$PLUGIN_DIR/ai_app_notifications.sh reveal $app"
+done < <(ai_first_notification_apps)
 
 sketchybar --add bracket ai_notify.bracket              \
-             ai_notify.total                            \
-             ai_notify.warp                             \
-             ai_notify.codex                            \
-             ai_notify.idea                             \
-             ai_notify.goland                           \
+             "${ai_notification_items[@]}"              \
            --set ai_notify.bracket                      \
              background.drawing=on                      \
              background.height=$THEME_ITEM_HEIGHT                       \

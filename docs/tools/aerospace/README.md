@@ -12,7 +12,7 @@ It provides predictable workspace keys, quick window movement, and deterministic
 - `home/.config/aerospace/workspaces.conf` - how many workspaces exist and where they live
 - `home/.config/aerospace/lib/layout.sh` - the library every script reads those two through
 - `home/.config/aerospace/render-layout.sh` - renders both into `~/.aerospace.toml`
-- `home/.config/aerospace/render-app-rules.sh` - renders `app-defaults.sh` into the app-placement block of `~/.aerospace.toml`
+- `home/.config/aerospace/render-app-rules.sh` - renders user `app-routes.conf` overrides and shipped defaults into `~/.aerospace.toml`
 - `home/.config/aerospace/doctor.sh` - reports where the desk, the config and the TOML disagree
 - `home/.config/aerospace/*.sh`
 - `bootstrap/install/aerospace.sh` installs `aerospace`, deploys config, re-renders the generated blocks from your `displays.conf` / `workspaces.conf`, enables native ctrl-drag behavior, and tries a dry-run reload.
@@ -27,7 +27,7 @@ edited by hand.
 | Script | Reads | Writes into `~/.aerospace.toml` |
 |---|---|---|
 | `render-layout.sh` | `displays.conf`, `workspaces.conf` | Persistent workspace list, workspace-to-monitor assignment, the `Ctrl + N` and `Ctrl + Shift + N` bindings. Then calls `render-app-rules.sh` unless given `--no-app-rules`. |
-| `render-app-rules.sh` | `app-defaults.sh` | The per-app placement and floating rules |
+| `render-app-rules.sh` | `app-routes.conf`, then `app-defaults.sh` | User overrides followed by shipped placement/floating rules |
 
 `render-layout.sh --check` reports drift, exits 1 when the TOML is out of date,
 and changes nothing — usually the fastest answer to "did my edit take?":
@@ -39,7 +39,7 @@ and changes nothing — usually the fastest answer to "did my edit take?":
 `render-app-rules.sh` takes an optional path and always writes; it keeps the
 previous file next to the target as `.bak-<timestamp>-render-app-rules`.
 
-Edit the `.conf` files and `app-defaults.sh`, not the generated blocks — the next
+Edit the `.conf` files, especially `app-routes.conf`, not generated blocks — the next
 render replaces them.
 
 ## What it does

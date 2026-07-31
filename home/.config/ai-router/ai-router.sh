@@ -33,6 +33,12 @@ exports_dir="$config_dir/exports"
 lib_dir="$config_dir/lib"
 router_tools="$lib_dir/router_tools.py"
 
+ai_first_profile_lib="${AI_FIRST_PROFILE_LIB:-$home_dir/.config/ai-first/lib/profile.sh}"
+if [ -r "$ai_first_profile_lib" ]; then
+  # shellcheck source=/dev/null
+  . "$ai_first_profile_lib"
+fi
+
 # Runtime output (generated catalogs, caches, usage state, logs) is not
 # configuration and does not belong in ~/.config. It lives under the XDG state
 # directory instead. An explicit AI_ROUTER_HOME keeps everything in one tree so
@@ -208,6 +214,11 @@ load_runtime_config() {
         ;;
     esac
   done < <(python3 "$router_tools" config-runtime "$config_json" 2>/dev/null || true)
+
+  # A selected machine preset outranks the repository's provider config. This
+  # lets the free presets use Terminal.app while author-full keeps Warp, without
+  # forking config.json or changing provider definitions.
+  [ -z "${AI_FIRST_TERMINAL_APP:-}" ] || cfg_terminal_app="$AI_FIRST_TERMINAL_APP"
 }
 
 sanitize_error_text() {

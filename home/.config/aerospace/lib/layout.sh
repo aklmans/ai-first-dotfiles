@@ -66,7 +66,7 @@ aerospace_layout_normalize_list() {
 aerospace_layout_load_config() {
     local env_main_monitor env_side_monitor env_stage_monitor
     local env_main_workspaces env_side_workspaces env_stage_workspaces
-    local config_file
+    local config_file profile_lib
 
     if [ "${AEROSPACE_LAYOUT_CONFIG_LOADED:-0}" = "1" ]; then
         return 0
@@ -92,6 +92,18 @@ aerospace_layout_load_config() {
             . "$AEROSPACE_CONFIG_DIR/$config_file.conf"
         fi
     done
+
+    # A named installer preset is a machine-owned layer above the shipped
+    # AeroSpace defaults. It can collapse the author setup to six workspaces or
+    # pin the author's three displays without editing the implementation files
+    # that receive upstream fixes. Direct environment values still win below.
+    profile_lib="${AI_FIRST_PROFILE_LIB:-$HOME/.config/ai-first/lib/profile.sh}"
+    if [ -r "$profile_lib" ]; then
+        # shellcheck source=/dev/null
+        AI_FIRST_PROFILE_OVERRIDE_AEROSPACE=1
+        . "$profile_lib"
+        unset AI_FIRST_PROFILE_OVERRIDE_AEROSPACE
+    fi
 
     [ -z "$env_main_monitor" ] || AEROSPACE_MAIN_MONITOR_NAME="$env_main_monitor"
     [ -z "$env_side_monitor" ] || AEROSPACE_SIDE_MONITOR_NAME="$env_side_monitor"
