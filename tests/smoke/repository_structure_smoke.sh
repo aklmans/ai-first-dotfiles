@@ -118,6 +118,7 @@ require_file home/.config/sketchybar/plugins/ai_app_notifications.sh
 require_file home/.config/borders/bordersrc
 require_file home/.config/aerospace/app-defaults.sh
 require_file home/.config/aerospace/app-routes.conf
+require_file home/.config/aerospace/app-route.sh
 require_file home/.config/aerospace/reveal-app.sh
 require_file home/.config/aerospace/displays.conf
 require_file home/.config/aerospace/workspaces.conf

@@ -124,7 +124,7 @@ Default role split:
 | `8` | Atlas browser | ChatGPT Atlas |
 | `9` | Writing and notes | Typora, MiaoYan, Markdown, MarkEditor |
 | `10` | IM | WeChat, WeCom, QQ, DingTalk, Feishu/Lark, Discord |
-| `11` | macOS system | Finder, System Settings, Activity Monitor, Mail, Preview, Photos, App Store |
+| `11` | macOS system | System Settings, Activity Monitor, Mail, Photos, App Store |
 | `12` | Background utilities | Clash for Windows, Logi Options+, Docker Desktop, Loopback |
 | `13` | Recording / meeting / presentation stage | Camtasia, Snagit, Zoom, Lark Meetings |
 
@@ -144,15 +144,22 @@ These are the workspace-level shortcuts documented in this repo:
 - `Alt + Shift + A` -> toggle the focused app's current-workspace windows floating/tiling
 - `Alt + Shift + W` -> toggle all windows in the current workspace floating/tiling
 - `Alt + Shift + R` -> repair current workspace: default tiling/floating, flatten tree, tiles layout, balance sizes
+- `Option + Shift + B` -> bind the focused app to the current workspace
+- `Option + Shift + U` -> let the focused app follow the workspace where it is opened
 - `Option + Shift + Space` -> hide/show SketchyBar on the main display and compact/restore that display's AeroSpace outer gaps
 
-The layout toggles are intentionally temporary one-shot commands. They help fix or adjust the current workspace without changing the default app rules used after restart or app relaunch. Repair preserves known utility/status windows as floating so they do not take half of a terminal or editor workspace.
+The layout toggles are intentionally temporary one-shot commands. They help fix or adjust the current workspace without changing the default app rules used after restart or app relaunch. The two app-route shortcuts are persistent: they update `app-routes.conf`, keep a backup, render and reload the config. Finder and Preview default to following the workspace that opened them while remaining floating. Repair preserves known utility/status windows as floating so they do not take half of a terminal or editor workspace.
 
 Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 
 ## Useful commands
 
 ```bash
+~/.config/aerospace/app-route.sh bind-here  # pin focused app here
+~/.config/aerospace/app-route.sh follow     # stay where opened
+~/.config/aerospace/app-route.sh forget     # restore shipped default
+~/.config/aerospace/app-route.sh list       # inspect custom routes
+
 bash -n home/.config/aerospace/*.sh
 HOME="$PWD/home" bash home/.config/aerospace/app-defaults.sh
 HOME="$PWD/home" bash home/.config/aerospace/check-display-layout.sh
@@ -174,6 +181,7 @@ aerospace reload-config --dry-run --no-gui
 - App placement defaults are intentionally generated from tracked config, not from local session state.
 - Agent launch shortcuts use the tracked AI Router `agent` command, which opens a new Warp tab and pastes the command without executing it.
 - `home/.config/aerospace/layout-control.sh` owns temporary layout repair/toggle actions so shortcuts do not rely on multi-command inline AeroSpace chains.
+- `home/.config/aerospace/app-route.sh` captures the focused app for persistent bind/follow choices, with an exact-match data rule and backup on every change.
 - `home/.config/aerospace/reveal-app.sh` jumps to and focuses the workspace window for a bundle id. SketchyBar AI attention badges use it for app reveal actions.
 - `home/.config/aerospace/toggle-sketchybar-space.sh` keeps SketchyBar visibility and AeroSpace `outer.top` in sync. The default shortcut targets the main display only for livestream capture. Explicit `hide` / `show` modes still hide or restore all displays for Recording Mode and scripted workflows.
 - `home/.config/ai-router/...` runtime data is intentionally excluded.

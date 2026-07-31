@@ -118,6 +118,11 @@ assert_contains "$toml" "com.bilibili.bilibiliPC" "Bilibili workspace binding"
 assert_contains "$toml" "move-node-to-workspace 10" "Bilibili workspace target"
 assert_contains "$toml" "com.blade.shadow-macos" "Shadow workspace binding"
 assert_contains "$toml" "ShadowPCDisplay" "Shadow app-name fallback"
+assert_contains "$toml" "if.app-id = 'com.apple.finder'" "Finder follow-current route"
+assert_contains "$toml" "if.app-id = 'com.apple.Preview'" "Preview follow-current route"
+assert_contains "$toml" ".config/aerospace/app-route.sh bind-here" "focused app bind shortcut"
+assert_contains "$toml" ".config/aerospace/app-route.sh follow" "focused app follow shortcut"
+assert_not_contains "$toml" "^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Archive Utility|归档实用工具|App Store)$" "Finder and Preview fallback workspace placement"
 
 # The tracked config must be desk-independent. A monitor model number here is
 # the bug this whole layer exists to remove: it ships one person's hardware to
@@ -133,6 +138,8 @@ assert_contains "$hammerspoon" 'jetbrainsDefaultWorkspace = "2"' "Hammerspoon Je
 assert_contains "$hammerspoon" '["com.obsproject.obs-studio"] = "11"' "Hammerspoon OBS fixed workspace skip"
 assert_contains "$hammerspoon" '["com.bilibili.bilibiliPC"] = "10"' "Hammerspoon Bilibili fixed workspace skip"
 assert_contains "$hammerspoon" '["com.blade.shadow-macos"] = "2"' "Hammerspoon Shadow fixed workspace skip"
+assert_contains "$hammerspoon" '["com.apple.finder"] = true' "Finder must skip per-app workspace inheritance"
+assert_contains "$hammerspoon" '["com.apple.Preview"] = true' "Preview must skip per-app workspace inheritance"
 
 screencast="$(cat "$repo_root/home/.hammerspoon/screencast.lua")"
 assert_contains "$screencast" "AEROSPACE_STAGE_WORKSPACES" "Recording workspace read from workspaces.conf"
@@ -143,6 +150,12 @@ assert_contains "$rules" "Refactor" "JetBrains floating dialog matcher"
 assert_contains "$rules" "com.obsproject.obs-studio" "Generated OBS workspace binding"
 assert_contains "$rules" "com.bilibili.bilibiliPC" "Generated Bilibili workspace binding"
 assert_contains "$rules" "com.blade.shadow-macos" "Generated Shadow workspace binding"
+
+context_rules="$(HOME="$sandbox_root/context-home" \
+  AI_FIRST_APP_ROUTES_FILE="$repo_root/home/.config/aerospace/app-routes.conf" \
+  "$repo_root/home/.config/aerospace/app-defaults.sh" --toml)"
+assert_contains "$context_rules" "if.app-id = 'com.apple.finder'" "Generated Finder follow-current binding"
+assert_contains "$context_rules" "if.app-id = 'com.apple.Preview'" "Generated Preview follow-current binding"
 
 # The shipped .aerospace.toml has to be exactly what the shipped config renders,
 # or doctor.sh reports drift on a machine nobody has touched yet.

@@ -72,11 +72,27 @@ rule implementation:
 id|com.microsoft.VSCode|3|tiling
 name|Safari|6|tiling
 id|com.example.Utility|-|floating
+id|com.apple.finder|current|floating
 ```
 
-Only exact `id` or `name` matches, numeric workspaces, and `tiling`/`floating`
-layouts are accepted. Overrides win over built-ins and are rendered into the
+Only exact `id` or `name` matches, numeric workspaces or `current`, and
+`tiling`/`floating` layouts are accepted. `current` means that new windows stay
+on the workspace where they were opened; it explicitly suppresses a shipped
+placement rule. Overrides win over built-ins and are rendered into the
 AeroSpace TOML. Invalid records are ignored.
+
+For the focused app, use the quick editor instead of looking up its bundle id:
+
+```bash
+~/.config/aerospace/app-route.sh bind-here
+~/.config/aerospace/app-route.sh follow
+~/.config/aerospace/app-route.sh forget
+```
+
+`Option + Shift + B` runs `bind-here`; `Option + Shift + U` runs `follow`.
+Each change backs up the route file, renders and validates the AeroSpace config,
+then reloads it. Finder and Preview ship as `current|floating`: they stay where
+they are opened without taking over the tiled layout.
 
 ## Preset behavior
 
@@ -89,6 +105,8 @@ AeroSpace TOML. Invalid records are ignored.
   Codex, IntelliJ IDEA and GoLand.
 
 The author preset also preserves OBS → 11, Bilibili → 10, and Shadow → 2 tiled.
+Finder and Preview deliberately follow the workspace that opened them instead
+of joining the workspace 11 system-app group.
 Borders installs stopped by default in every path. Option+Shift+Space retains
 the main-display bar/gap toggle, and the bar retains `shadow=off` and
 `blur_radius=0`.

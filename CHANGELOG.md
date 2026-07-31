@@ -15,6 +15,8 @@ Notable changes to this project. Format loosely follows
   SketchyBar item groups, the four-app notification subset, terminal choice,
   monitors and workspace groups.
 - Safe exact-match AeroSpace overrides in `app-routes.conf`.
+- A focus-first app route command and shortcuts for binding an app to the current
+  workspace or letting it follow where it was opened.
 - A read-only module/preset doctor, choice-architecture regression suite, product
   quality scorecard and release checklist.
 
@@ -28,6 +30,8 @@ Notable changes to this project. Format loosely follows
   routing, notifications, recording, AI hotkeys, paid apps or accounts.
 - Existing no-profile deployments keep their previous full behavior; the
   `author-full` preset preserves the maintained 13-workspace desk exactly.
+- Finder and Preview now follow the workspace that opened them while remaining
+  floating, instead of being globally pinned to workspace 11.
 
 ## [1.0.0] - 2026-07-26
 

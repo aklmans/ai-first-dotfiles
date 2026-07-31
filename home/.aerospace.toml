@@ -71,6 +71,13 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 
 # Application placement and floating rules.
 # Keep this block aligned with ~/.config/aerospace/app-defaults.sh.
+[[on-window-detected]]
+    if.app-id = 'com.apple.finder'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.apple.Preview'
+    run = 'layout floating'
 
 # Common secondary/dialog windows should stay with the workspace that opened them.
 [[on-window-detected]]
@@ -207,10 +214,6 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'move-node-to-workspace 12'
 
 [[on-window-detected]]
-    if.app-id = 'com.apple.finder'
-    run = 'move-node-to-workspace 11'
-
-[[on-window-detected]]
     if.app-id = 'com.apple.systempreferences'
     run = 'move-node-to-workspace 11'
 
@@ -252,7 +255,7 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Archive Utility|归档实用工具|App Store)$'
+    if.app-name-regex-substring = '^(System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Archive Utility|归档实用工具|App Store)$'
     run = 'move-node-to-workspace 11'
 
 [[on-window-detected]]
@@ -310,6 +313,8 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     alt-shift-a = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh toggle-app'
     alt-shift-w = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh toggle-workspace'
     alt-shift-v = 'exec-and-forget /bin/bash $HOME/.config/aerospace/layout-control.sh tiles'
+    alt-shift-b = 'exec-and-forget /bin/bash $HOME/.config/aerospace/app-route.sh bind-here'
+    alt-shift-u = 'exec-and-forget /bin/bash $HOME/.config/aerospace/app-route.sh follow'
 
     ctrl-alt-f = ['fullscreen', 'exec-and-forget /bin/bash $HOME/.config/sketchybar/plugins/aerospace_spaces_refresh.sh']
     ctrl-alt-left = 'resize width -50'

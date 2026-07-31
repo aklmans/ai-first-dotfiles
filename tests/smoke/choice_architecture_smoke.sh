@@ -102,6 +102,83 @@ rendered_override="$(env HOME="$sandbox_root/home-route-render" AI_FIRST_APP_ROU
   /bin/bash -c 'source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"; emit_user_on_window_detected_rules')"
 assert_contains "$rendered_override" "'^Example\\.App \\(Beta\\)$'" 'app names must be escaped before becoming TOML regexes'
 
+printf '%s\n' 'id|com.obsproject.obs-studio|current|floating' > "$routes"
+follow_override="$(env HOME="$sandbox_root/home-route-current" AI_FIRST_APP_ROUTES_FILE="$routes" AEROSPACE_CONFIG_DIR="$aerospace_dir" \
+  /bin/bash -c '
+    source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
+    if default_workspace_rule_for_window com.obsproject.obs-studio OBS title >/dev/null; then printf moved; else printf current; fi
+    printf "|"
+    should_float_window com.obsproject.obs-studio OBS title && printf floating
+  ')"
+assert_equal 'current|floating' "$follow_override" 'current must suppress a shipped workspace without losing layout'
+rendered_follow="$(env HOME="$sandbox_root/home-route-current-render" AI_FIRST_APP_ROUTES_FILE="$routes" AEROSPACE_CONFIG_DIR="$aerospace_dir" \
+  /bin/bash -c 'source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"; emit_user_on_window_detected_rules')"
+assert_contains "$rendered_follow" "if.app-id = 'com.obsproject.obs-studio'" 'current route must render an exact app matcher'
+assert_contains "$rendered_follow" "run = 'layout floating'" 'current route must render layout without a workspace move'
+assert_missing "$rendered_follow" 'move-node-to-workspace' 'current route must not render a workspace move'
+
+shipped_routes="$repo_root/home/.config/aerospace/app-routes.conf"
+context_apps="$(env HOME="$sandbox_root/home-context-apps" AI_FIRST_APP_ROUTES_FILE="$shipped_routes" AEROSPACE_CONFIG_DIR="$aerospace_dir" \
+  /bin/bash -c '
+    source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
+    for app in "com.apple.finder|Finder" "com.apple.Preview|Preview"; do
+      app_id="${app%%|*}"; app_name="${app#*|}"
+      if default_workspace_rule_for_window "$app_id" "$app_name" title >/dev/null; then printf moved; else printf current; fi
+      should_float_window "$app_id" "$app_name" title && printf ":floating"
+      printf "\n"
+    done
+  ')"
+assert_equal $'current:floating\ncurrent:floating' "$context_apps" 'Finder and Preview must follow the opening workspace and float'
+
+# The focus-first editor captures app identity and workspace without asking the
+# user to find a bundle id. All side effects are redirected to the sandbox.
+route_cli="$repo_root/home/.config/aerospace/app-route.sh"
+route_cli_dir="$sandbox_root/app-route-cli"
+mkdir -p "$route_cli_dir"
+route_cli_routes="$route_cli_dir/app-routes.conf"
+route_cli_config="$route_cli_dir/aerospace.toml"
+route_cli_log="$route_cli_dir/aerospace.log"
+route_cli_render_log="$route_cli_dir/render.log"
+printf '%s\n' '# match|value|workspace|layout' > "$route_cli_routes"
+printf '%s\n' '[mode.main.binding]' > "$route_cli_config"
+cat > "$route_cli_dir/aerospace" <<'STUB'
+#!/bin/bash
+case "${1:-}" in
+  list-windows) printf 'xcom.example.Editor\tExample Editor\t5\tfloating\n' ;;
+  reload-config) printf '%s\n' "$*" >> "$APP_ROUTE_CLI_LOG" ;;
+  *) exit 1 ;;
+esac
+STUB
+cat > "$route_cli_dir/render" <<'STUB'
+#!/bin/bash
+printf '%s\n' "$1" >> "$APP_ROUTE_RENDER_LOG"
+STUB
+chmod +x "$route_cli_dir/aerospace" "$route_cli_dir/render"
+
+route_cli_env=(
+  HOME="$sandbox_root/home-route-cli"
+  APP_ROUTE_NOTIFY=0
+  AEROSPACE="$route_cli_dir/aerospace"
+  APP_ROUTES_FILE="$route_cli_routes"
+  RENDER_APP_RULES="$route_cli_dir/render"
+  AEROSPACE_CONFIG_PATH="$route_cli_config"
+  APP_ROUTE_CLI_LOG="$route_cli_log"
+  APP_ROUTE_RENDER_LOG="$route_cli_render_log"
+)
+env "${route_cli_env[@]}" /bin/bash "$route_cli" bind-here >/dev/null
+assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|5|floating' 'bind-here must capture focused app workspace and layout'
+if find "$route_cli_dir" -name 'app-routes.conf.backup-*' -print -quit | grep -q .; then pass; else fail 'app route changes must keep a backup'; fi
+env "${route_cli_env[@]}" /bin/bash "$route_cli" follow >/dev/null
+assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|current|floating' 'follow must replace the fixed workspace with current'
+route_cli_list="$(env "${route_cli_env[@]}" /bin/bash "$route_cli" list)"
+assert_contains "$route_cli_list" 'com.example.Editor' 'list must expose saved routes'
+assert_contains "$route_cli_list" 'current' 'list must expose follow-current state'
+env "${route_cli_env[@]}" /bin/bash "$route_cli" forget >/dev/null
+assert_missing "$(cat "$route_cli_routes")" 'com.example.Editor' 'forget must restore the shipped default by removing the override'
+assert_contains "$(cat "$route_cli_log")" 'reload-config --dry-run --no-gui' 'route changes must validate AeroSpace before reload'
+assert_contains "$(cat "$route_cli_log")" 'reload-config' 'route changes must reload AeroSpace'
+assert_contains "$(cat "$route_cli_render_log")" "$route_cli_config" 'route changes must render the selected AeroSpace config'
+
 # Notification selection accepts a subset but never expands beyond support.
 notify="$(env HOME="$sandbox_root/home-notify" AI_FIRST_NOTIFICATION_APPS='codex unknown goland' \
   /bin/bash -c 'source "$1"; ai_first_notification_apps' _ "$repo_root/home/.config/sketchybar/lib/notifications.sh")"

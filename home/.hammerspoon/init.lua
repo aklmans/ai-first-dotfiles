@@ -112,6 +112,10 @@ if aiFirstAppRoutingEnabled then
     ["com.bilibili.bilibiliPC"] = "10",
   }
 end
+local workspaceLocalAppByBundle = {
+  ["com.apple.finder"] = true,
+  ["com.apple.Preview"] = true,
+}
 local terminalMasterStackAppByBundle = {
   ["dev.warp.Warp-Stable"] = true,
   ["fun.tw93.kaku"] = true,
@@ -823,6 +827,12 @@ local function inheritWorkspaceForCreatedWindow(win)
   local app = win and win:application()
   local bundleID = app and app:bundleID()
   if not bundleID or bundleID == "" then
+    return
+  end
+
+  -- Context tools should stay on the workspace that created the window.
+  -- Reusing their older focus history here would make them globally pinned.
+  if workspaceLocalAppByBundle[bundleID] then
     return
   end
 

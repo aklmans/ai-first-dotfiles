@@ -33,7 +33,7 @@ workspaces 1–6 and disables automatic app placement. The role table below is t
 | `8` | ChatGPT Atlas |
 | `9` | Writing apps |
 | `10` | IM apps |
-| `11` | Finder and macOS system apps |
+| `11` | macOS system apps; Finder and Preview follow the current workspace |
 | `12` | Background utilities |
 | `13` | Recording / meeting / presentation stage |
 
@@ -72,8 +72,14 @@ workspaces 1–6 and disables automatic app placement. The role table below is t
 | `Ctrl + Alt + F` | Toggle AeroSpace fullscreen |
 | `Alt + Shift + F` | Toggle native macOS fullscreen |
 | `Alt + Shift + R` | Repair current workspace: restore default tiling/floating, flatten tree, tiles layout, balance sizes |
+| `Option + Shift + B` | Persistently bind the focused app to the current workspace |
+| `Option + Shift + U` | Persistently unpin the focused app so new windows stay where opened |
 
-These layout commands are one-shot operations. They do not change app default placement or default floating/tiling rules; restarting an app or reloading placement rules returns windows to the tracked defaults. Repair keeps known utility/status windows floating so they do not consume tiling space.
+The layout commands are one-shot operations. `Option + Shift + B/U` are the
+exception: they update the focused app's persistent route, back up the old route
+file, render the AeroSpace rules and reload them. Finder and Preview ship as
+unpin/follow-current while remaining floating. Repair keeps known utility/status
+windows floating so they do not consume tiling space.
 
 ## Displays And Desktop UI
 

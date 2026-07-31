@@ -54,7 +54,7 @@ aerospace_user_route() {
             *) continue ;;
         esac
         case "$value" in ''|*"'"*) continue ;; esac
-        case "$workspace" in -|'') workspace='' ;; *[!0-9]*) continue ;; esac
+        case "$workspace" in current) ;; -|'') workspace='' ;; *[!0-9]*) continue ;; esac
         case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) continue ;; esac
         [ -n "$workspace$layout" ] || continue
         printf '%s|%s\n' "$workspace" "$layout"
@@ -289,11 +289,14 @@ default_workspace_rule_for_window() {
 
     aerospace_app_routing_enabled || return 1
 
-    local user_workspace
-    user_workspace="$(aerospace_user_route_field "$app_id" "$app_name" workspace 2>/dev/null || true)"
-    if [ -n "$user_workspace" ]; then
-        printf '%s' "$user_workspace"
-        return 0
+    local user_route user_workspace
+    if user_route="$(aerospace_user_route "$app_id" "$app_name" 2>/dev/null)"; then
+        user_workspace="${user_route%%|*}"
+        case "$user_workspace" in
+            current) return 1 ;;
+            '') ;;
+            *) printf '%s' "$user_workspace"; return 0 ;;
+        esac
     fi
 
     if is_context_dialog_title "$title"; then
@@ -362,7 +365,7 @@ default_workspace_rule_for_window() {
             printf '10'
             return 0
             ;;
-        com.apple.finder|com.apple.systempreferences|com.apple.SystemSettings|com.apple.ActivityMonitor|com.apple.Preview|com.apple.Photos|com.apple.archiveutility|com.apple.AppStore|com.apple.mail)
+        com.apple.systempreferences|com.apple.SystemSettings|com.apple.ActivityMonitor|com.apple.Photos|com.apple.archiveutility|com.apple.AppStore|com.apple.mail)
             printf '11'
             return 0
             ;;
@@ -394,7 +397,7 @@ default_workspace_rule_for_window() {
         "Bilibili"|"哔哩哔哩")
             printf '10'
             ;;
-        "Finder"|"访达"|"System Settings"|"System Preferences"|"系统设置"|"Activity Monitor"|"监视器"|"Stats"|"Mail"|"邮件"|"Photos"|"照片"|"Preview"|"预览"|"Archive Utility"|"归档实用工具"|"App Store")
+        "System Settings"|"System Preferences"|"系统设置"|"Activity Monitor"|"监视器"|"Stats"|"Mail"|"邮件"|"Photos"|"照片"|"Archive Utility"|"归档实用工具"|"App Store")
             printf '11'
             ;;
         "OBS"|"OBS Studio")
@@ -434,6 +437,8 @@ emit_on_window_detected_rules() {
         return 0
     fi
     {
+        printf '%s\n' '# Application placement and floating rules.'
+        printf '%s\n' '# Keep this block aligned with ~/.config/aerospace/app-defaults.sh.'
         emit_user_on_window_detected_rules
         emit_on_window_detected_rules_raw
     } | aerospace_layout_clamp_workspace_stream
@@ -451,7 +456,7 @@ emit_user_on_window_detected_rules() {
         [ -z "${rest:-}" ] || continue
         case "$kind" in id|name) ;; *) continue ;; esac
         case "$value" in ''|*"'"*) continue ;; esac
-        case "$workspace" in -|'') workspace='' ;; *[!0-9]*) continue ;; esac
+        case "$workspace" in current) ;; -|'') workspace='' ;; *[!0-9]*) continue ;; esac
         case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) continue ;; esac
         [ -n "$workspace$layout" ] || continue
 
@@ -464,7 +469,13 @@ emit_user_on_window_detected_rules() {
         run_layout=''
         run_workspace=''
         [ -n "$layout" ] && run_layout="'layout $layout'"
-        [ -n "$workspace" ] && run_workspace="'move-node-to-workspace $workspace'"
+        case "$workspace" in
+            current)
+                [ -n "$run_layout" ] || run_workspace="'exec-and-forget /usr/bin/true'"
+                ;;
+            '') ;;
+            *) run_workspace="'move-node-to-workspace $workspace'" ;;
+        esac
         if [ -n "$run_layout" ] && [ -n "$run_workspace" ]; then
             printf '    run = [%s, %s]\n\n' "$run_layout" "$run_workspace"
         elif [ -n "$run_layout" ]; then
@@ -477,9 +488,6 @@ emit_user_on_window_detected_rules() {
 
 emit_on_window_detected_rules_raw() {
     cat <<'TOML'
-# Application placement and floating rules.
-# Keep this block aligned with ~/.config/aerospace/app-defaults.sh.
-
 # Common secondary/dialog windows should stay with the workspace that opened them.
 [[on-window-detected]]
     if.window-title-regex-substring = '^(Settings|Preferences|Options|Licenses|Choose|Select|Open|Save|Save As|Export|Import|Find|Replace|Print|Search|Keyboard Shortcuts|Extensions|Plugins|Account|Profile|Sign in|Login|设置|偏好设置|选项|关于|打开|保存|导出|导入|查找|替换|打印|账户|登录)( |$|:|-)'
@@ -615,10 +623,6 @@ emit_on_window_detected_rules_raw() {
     run = 'move-node-to-workspace 12'
 
 [[on-window-detected]]
-    if.app-id = 'com.apple.finder'
-    run = 'move-node-to-workspace 11'
-
-[[on-window-detected]]
     if.app-id = 'com.apple.systempreferences'
     run = 'move-node-to-workspace 11'
 
@@ -660,7 +664,7 @@ emit_on_window_detected_rules_raw() {
     run = 'move-node-to-workspace 10'
 
 [[on-window-detected]]
-    if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Archive Utility|归档实用工具|App Store)$'
+    if.app-name-regex-substring = '^(System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Archive Utility|归档实用工具|App Store)$'
     run = 'move-node-to-workspace 11'
 
 [[on-window-detected]]

@@ -179,6 +179,8 @@ two keys silently do nothing.
 | `Alt + Shift + H/J/K/L` | Swap the focused window |
 | `Alt + Shift + T` | Float / tile the focused window |
 | `Alt + Shift + R` | Repair this workspace: default placement, flatten, balance |
+| `Option + Shift + B` | Bind the focused app to the current workspace |
+| `Option + Shift + U` | Unpin the focused app; new windows stay where opened |
 | `Option + Shift + Space` | Hide SketchyBar on the main display and reclaim its gap |
 
 ### AI layer — CapsLock
@@ -210,7 +212,9 @@ have changed one and stops overwriting it, so these survive updates.
 | Which capabilities are visible or active | `~/.config/ai-first/profile.conf` | reload the affected app |
 | Which monitor is `main` / `side` / `stage` | profile values or `~/.config/aerospace/displays.conf` | `~/.config/aerospace/render-layout.sh` |
 | How many workspaces exist, and where | profile values or `~/.config/aerospace/workspaces.conf` | `~/.config/aerospace/render-layout.sh` |
-| Override an app's workspace/layout | `~/.config/aerospace/app-routes.conf` | `~/.config/aerospace/render-app-rules.sh` |
+| Bind the focused app to this workspace | any app window | `~/.config/aerospace/app-route.sh bind-here` |
+| Let the focused app follow the current workspace | any app window | `~/.config/aerospace/app-route.sh follow` |
+| Batch-edit app workspace/layout choices | `~/.config/aerospace/app-routes.conf` | `~/.config/aerospace/render-app-rules.sh` |
 | Which supported notification apps are shown | `AI_FIRST_NOTIFICATION_APPS` in `profile.conf` | `brew services restart sketchybar` |
 | Which terminal receives AI prompts | `AI_FIRST_TERMINAL_APP` in `profile.conf` | reload Hammerspoon |
 | Bar font, height, colors | `~/.config/sketchybar/theme.conf` | `brew services restart sketchybar` |

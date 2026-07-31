@@ -103,6 +103,8 @@ and optional display names.
 Other safe preference points:
 
 - `~/.config/aerospace/app-routes.conf` — exact app workspace/layout overrides
+- `~/.config/aerospace/app-route.sh bind-here|follow` — capture the focused app
+  without finding its bundle id; Finder and Preview default to `follow`
 - `~/.config/aerospace/displays.conf` and `workspaces.conf` — desk topology
 - `~/.config/sketchybar/theme.conf` — bar fonts, geometry and color roles
 - `~/.config/zsh/private.zsh` — machine-local shell values and secrets
