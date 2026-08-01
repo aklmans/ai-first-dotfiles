@@ -1,88 +1,36 @@
-function zen() {
-     ~/.config/sketchybar/plugins/zen.sh $1
-}
+# Shell functions.
+#
+# Each one is defined only when the thing it drives is installed, so a shell on
+# a machine without SketchyBar or Yazi does not carry names that fail.
+#
+# `kill` is deliberately absent. This file used to redefine it so that a single
+# non-numeric argument became `pkill -x`, which means `kill nginx` silently did
+# something the manual page for `kill` does not describe - and on a shared or
+# unfamiliar machine, shadowing a builtin that ends processes is the wrong place
+# to be clever. Use `pkill` when you mean pkill.
 
-function kill() {
-	if [[ $# -eq 1 && $1 != -* && $1 != %* && $1 != <-> && -n "$1" ]]; then
-		if command -v pkill >/dev/null 2>&1; then
-			command pkill -x "$1"
-			return
-		fi
-	fi
+# Toggle the SketchyBar zen/focus mode. Part of the `bar` module.
+if [[ -x "$HOME/.config/sketchybar/plugins/zen.sh" ]]; then
+  zen() {
+    "$HOME/.config/sketchybar/plugins/zen.sh" "$@"
+  }
+fi
 
-	builtin kill "$@"
-}
+# Open Yazi and cd to wherever it was left. Part of the `shell` module.
+if command -v yazi >/dev/null 2>&1; then
+  yy() {
+    # Yazi sets YAZI_LEVEL in the shell it spawns; without this guard `yy` from
+    # inside Yazi's own shell would nest another one.
+    if [[ -n "$YAZI_LEVEL" ]]; then
+      exit
+    fi
 
-function yy() {
-	if [ -n "$YAZI_LEVEL" ]; then
-		exit
-	fi
-
-	local tmp="$(mktemp -t "yazi-cwd.XXXXX")"
-	yazi "$@" --cwd-file="$tmp"
-	if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-		cd -- "$cwd"
-	fi
-	rm -f -- "$tmp"
-}
-
-# Codex task profiles. Functions keep non-interactive compatibility; aliases below
-# shadow them in interactive shells so Warp can identify Codex sessions.
-cx() {
-	codex "$@"
-}
-
-cxgh() {
-	codex -c 'plugins."github@openai-curated".enabled=true' "$@"
-}
-
-
-cxg() {
-	local gbrain_bin="${GBRAIN_BIN:-$HOME/.local/bin/gbrain}"
-	local gbrain_command_config="mcp_servers.gbrain.command=$gbrain_bin"
-	codex \
-		-c "$gbrain_command_config" \
-		-c 'mcp_servers.gbrain.args=["serve"]' \
-		-c 'mcp_servers.gbrain.enabled_tools=["search","get","query"]' \
-		"$@"
-}
-
-cxweb() {
-	codex \
-		-c 'plugins."build-web-apps@openai-curated".enabled=true' \
-		-c 'plugins."browser-use@openai-bundled".enabled=true' \
-		"$@"
-}
-
-cxdesign() {
-	codex -c 'plugins."figma@openai-curated".enabled=true' "$@"
-}
-
-cxppt() {
-	codex -c 'plugins."presentations@openai-primary-runtime".enabled=true' "$@"
-}
-
-cxdata() {
-	codex -c 'plugins."spreadsheets@openai-primary-runtime".enabled=true' "$@"
-}
-
-cxmac() {
-	codex \
-		-c 'plugins."build-macos-apps@openai-curated".enabled=true' \
-		-c 'plugins."build-ios-apps@openai-curated".enabled=true' \
-		"$@"
-}
-
-cxgui() {
-	codex -c 'plugins."computer-use@openai-bundled".enabled=true' "$@"
-}
-
-alias cx='codex'
-alias cxgh='codex -c '\''plugins."github@openai-curated".enabled=true'\'''
-alias cxg='codex -c "mcp_servers.gbrain.command=${GBRAIN_BIN:-$HOME/.local/bin/gbrain}" -c '\''mcp_servers.gbrain.args=["serve"]'\'' -c '\''mcp_servers.gbrain.enabled_tools=["search","get","query"]'\'''
-alias cxweb='codex -c '\''plugins."build-web-apps@openai-curated".enabled=true'\'' -c '\''plugins."browser-use@openai-bundled".enabled=true'\'''
-alias cxdesign='codex -c '\''plugins."figma@openai-curated".enabled=true'\'''
-alias cxppt='codex -c '\''plugins."presentations@openai-primary-runtime".enabled=true'\'''
-alias cxdata='codex -c '\''plugins."spreadsheets@openai-primary-runtime".enabled=true'\'''
-alias cxmac='codex -c '\''plugins."build-macos-apps@openai-curated".enabled=true'\'' -c '\''plugins."build-ios-apps@openai-curated".enabled=true'\'''
-alias cxgui='codex -c '\''plugins."computer-use@openai-bundled".enabled=true'\'''
+    local tmp cwd
+    tmp="$(mktemp -t 'yazi-cwd.XXXXX')"
+    yazi "$@" --cwd-file="$tmp"
+    if cwd="$(cat -- "$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+      cd -- "$cwd"
+    fi
+    rm -f -- "$tmp"
+  }
+fi

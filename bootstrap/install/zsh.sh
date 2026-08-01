@@ -147,6 +147,7 @@ if should_deploy; then
   # Template only. private.zsh itself is never tracked and never deployed, so
   # whatever the user puts in it survives every update of this repo.
   deploy_repo_path "$repo_root" "home/.config/zsh/private.zsh.example" "$HOME/.config/zsh/private.zsh.example" "$stamp"
+  deploy_repo_path "$repo_root" "home/.config/zsh/aliases.local.zsh.example" "$HOME/.config/zsh/aliases.local.zsh.example" "$stamp"
   deploy_repo_path "$repo_root" "home/.config/zsh/completions/_openclaw" "$HOME/.config/zsh/completions/_openclaw" "$stamp"
 fi
 

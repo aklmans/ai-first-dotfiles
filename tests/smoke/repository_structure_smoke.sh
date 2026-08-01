@@ -82,6 +82,7 @@ require_file home/.config/zsh/aliases.zsh
 require_file home/.config/zsh/functions.zsh
 require_file home/.config/zsh/codex-widget.zsh
 require_file home/.config/zsh/private.zsh.example
+require_file home/.config/zsh/aliases.local.zsh.example
 require_file home/.config/zsh/completions/_openclaw
 
 require_file home/.config/ai-router/ai-router.sh

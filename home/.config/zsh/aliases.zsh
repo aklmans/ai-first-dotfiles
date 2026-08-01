@@ -1,7 +1,15 @@
-# Proxy toggles. No endpoint is hard-coded: a port that happens to be right on
-# the machine this repo grew up on is a silent misconfiguration everywhere else.
-# Export PROXY_URL (and PROXY_SOCKS_URL if your proxy also speaks SOCKS) in
-# ~/.config/zsh/private.zsh; private.zsh.example shows the usual shape.
+# Aliases that make sense on any Mac.
+#
+# Anything tied to one person's projects, editors, database or app choices lives
+# in aliases.local.zsh, which this repo ships only as an example and never
+# deploys over. An alias whose tool is optional is defined only when that tool is
+# installed: a shell full of names that fail with "command not found" is worse
+# than not having them.
+
+# --- proxy ------------------------------------------------------------------
+# No endpoint is hard-coded: a port that happens to be right on the machine this
+# repo grew up on is a silent misconfiguration everywhere else. Export PROXY_URL
+# (and PROXY_SOCKS_URL if your proxy also speaks SOCKS) in private.zsh.
 proxy() {
   local http_url="${PROXY_URL:-}"
   local socks_url="${PROXY_SOCKS_URL:-$PROXY_URL}"
@@ -22,35 +30,16 @@ unproxy() {
   unset all_proxy http_proxy https_proxy no_proxy
 }
 
-# Navigation aliases
+# --- navigation -------------------------------------------------------------
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
 alias .....="cd ../../../.."
-alias ~="cd ~"
 alias home="cd ~"
 
-# Workspace roots (can be overridden locally).
-: "${WORKFLOW_WORKSPACE_DIR:=$HOME/Workspace}"
-: "${WORKFLOW_PROJECTS_DIR:=$WORKFLOW_WORKSPACE_DIR/Projects}"
-: "${WORKFLOW_DIR:=$WORKFLOW_PROJECTS_DIR/workflow}"
-# This repository's own checkout, defaulting to where `git clone` puts it under
-# the projects root. Set DOTFILES_DIR in private.zsh if yours lives elsewhere.
-: "${DOTFILES_DIR:=$WORKFLOW_PROJECTS_DIR/ai-first-dotfiles}"
-: "${GBRAIN_DIR_LOCAL:=${XDG_DATA_HOME:-$HOME/.local/share}/gbrain}"
-
-# Directory aliases
-alias workspace="cd $WORKFLOW_WORKSPACE_DIR"
-alias projects="cd $WORKFLOW_PROJECTS_DIR"
-alias codes="cd $WORKFLOW_PROJECTS_DIR"
-alias sites="cd $WORKFLOW_PROJECTS_DIR"
-alias workflow="cd $WORKFLOW_DIR"
-alias gbrainp="cd $GBRAIN_DIR_LOCAL"
-alias gopath="cd $HOME/.local/share/go"
-alias gobin="cd $GOBIN"
-alias localbin="cd $HOME/.local/bin"
-alias odw="cd $HOME/Downloads && open ."
-alias dw="cd $HOME/Downloads"
+# This repository's own checkout. Set DOTFILES_DIR in private.zsh if yours lives
+# somewhere other than the default clone location.
+: "${DOTFILES_DIR:=$HOME/Workspace/Projects/ai-first-dotfiles}"
 
 # A function rather than an alias so a checkout somewhere else says what to fix
 # instead of failing with a bare "no such file or directory".
@@ -63,37 +52,9 @@ dotfiles() {
   cd "$DOTFILES_DIR"
 }
 
-# PHP aliases
-alias art='php artisan '
-alias phpunit='./vendor/bin/phpunit'
-alias pest='./vendor/bin/pest'
-alias sail="./vendor/bin/sail "
-
-# Application aliases
-alias typora='open -a Typora.app'
-alias edge='open -a "Microsoft Edge"'
-
-# Database aliases
-alias redis='redis-cli'
-alias mysqll='mysql -uroot -p'
-
-# Utility aliases
-alias ip='curl ipinfo.io'
-
-# VSCode alias
-alias vs='code'
-
-# Vim aliases
-alias vi="nvim"
-alias vim="nvim"
-
-# Git and Docker aliases
-alias lg='lazygit'
-alias lzd='lazydocker'
-
-# File listing aliases. macOS ships BSD ls, which has no --all and no --tree at
-# all, so those two are defined only when something that understands them is
-# installed. -A is the flag both BSD and GNU ls accept.
+# --- files ------------------------------------------------------------------
+# macOS ships BSD ls, which has neither --all nor --tree. -A is the one flag
+# both BSD and GNU accept.
 alias ll='ls -alF'
 alias lsa='ls -A'
 if command -v eza >/dev/null 2>&1; then
@@ -103,43 +64,53 @@ elif command -v tree >/dev/null 2>&1; then
   alias lst='tree'
 fi
 
-# System update aliases
-alias upgrade="sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm install npm -g; npm update -g"
-alias update='brew update; brew upgrade --greedy-auto-updates; brew cleanup --prune=all; mas upgrade;npm install npm -g; npm update -g'
-alias updates='topgrade --dry-run'
-alias upall='topgrade'
+alias cp='cp -i'
+alias mv='mv -i'
+alias mkd='mkdir -p'
+alias untar='tar xvf'
 
-# Finder aliases
+# --- shell ------------------------------------------------------------------
+alias c='clear'
+alias q='exit'
+alias path='print -l ${(s/:/)PATH}'
+alias cwd='pwd | tr -d "\r\n" | pbcopy'
+
+# $EDITOR rather than a named editor: env.zsh already picked the first one this
+# machine actually has.
+alias hosts='sudo $EDITOR /etc/hosts'
+
+if command -v nvim >/dev/null 2>&1; then
+  alias vi='nvim'
+  alias vim='nvim'
+fi
+
+# --- macOS ------------------------------------------------------------------
 alias show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
 alias hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
+alias ip='curl ipinfo.io'
 
-# System cleanup placeholder. Put machine-specific destructive cleanup in
-# ~/.config/zsh/private.zsh if you need it.
+# Kept as a stub on purpose. This name used to be an alias that emptied the
+# Trash without asking, which is not something a shell config should hand a
+# stranger by default.
 emptytrash() {
   printf 'emptytrash is disabled in the public config; use Finder or a private override.\n' >&2
   return 64
 }
 
-# Utility aliases
-alias path='print -l ${(s/:/)PATH}'
-alias hosts='sudo vim /etc/hosts'
-alias cwd='pwd | tr -d "\r\n" | pbcopy'
-alias cp='cp -i'
-alias mv='mv -i'
-alias mkd='mkdir -p'
-alias untar='tar xvf'
-alias c='clear'
-alias q='exit'
+# --- development ------------------------------------------------------------
+command -v lazygit >/dev/null 2>&1 && alias lg='lazygit'
+command -v lazydocker >/dev/null 2>&1 && alias lzd='lazydocker'
 
-# Python aliases
-alias jnb='jupyter notebook'
+# One maintenance alias, not four. `mas` joins the chain only when it is
+# installed, since a missing App Store CLI would otherwise fail the whole run.
+if command -v mas >/dev/null 2>&1; then
+  alias update='brew update && brew upgrade && brew cleanup && mas upgrade'
+else
+  alias update='brew update && brew upgrade && brew cleanup'
+fi
 
-# Sketchybar Service
-alias skp='brew services stop felixkratz/formulae/sketchybar'
-alias skt='brew services start felixkratz/formulae/sketchybar'
-
-# AI Service
-alias cc='claude'
-alias gm='gemini'
-alias km='kimi'
-alias jn='junie'
+# --- your own ---------------------------------------------------------------
+# aliases.local.zsh is sourced by .zshrc when it exists, and is never tracked or
+# deployed. Start one from the example next to this file:
+#
+#     cp ~/.config/zsh/aliases.local.zsh.example ~/.config/zsh/aliases.local.zsh

@@ -1,0 +1,48 @@
+# ═══════════════════════════════════════════════════════════════
+# Aklman Warm Light · v4 Working Surface (Light) — Recording Edition
+# 
+# 这是录屏优化版, 针对以下场景提升对比度:
+#   - 视频录制 (H.264/H.265 压缩)
+#   - 屏幕分享 / Zoom / 投影
+#   - 远距离观看 / 演讲场景
+#   - 第二次压缩 (YouTube/Bilibili)
+# 
+# 改动相对于原版:
+#   - bright black:  #9A9A9A → #5A5A5A  (对比度 2.8:1 → 7.2:1)
+#   - 主色全部降低 5-10% 明度, 提高饱和度
+#   - 暖橙 accent 微降明度避免在白底上"晕"
+# 
+# 设计参考: Selenized (CIE Lab 色彩空间 + 明度统一)
+# ═══════════════════════════════════════════════════════════════
+
+name: Aklman Warm Light
+details: lighter
+
+# —— 核心色 ——
+accent: '#B85535'        # 暖橙 (略沉, 录屏不晕)  原 #C95F3D
+background: '#F5F2EC'    # 暖白纸感 (保持)
+foreground: '#1A1A1A'    # 近黑主文字
+cursor: '#B85535'
+
+# —— ANSI 16 色 ——
+# 关键改动: 所有颜色降明度 + 提饱和度
+# 录屏 H.264 压缩对低对比度区域损失严重, 必须确保 WCAG AAA (7:1) 对比度
+terminal_colors:
+  normal:
+    black:   '#2A2A2A'   # 原 #3A3A3A → 加深, 在 ls 块上更"实"
+    red:     '#A83838'   # 原 #C04848 → 砖红, 录屏稳
+    green:   '#3D6428'   # 原 #4F7A38 → 深苔藓绿
+    yellow:  '#7A560F'   # 原 #9C6F1A → 深橄榄黄, 警告更醒目
+    blue:    '#2A4A8C'   # 原 #3A5FAA → 深普鲁士蓝
+    magenta: '#653588'   # 原 #7C4BA8 → 深紫罗兰
+    cyan:    '#1C5E50'   # 原 #2E7A6A → 深松石青
+    white:   '#B0B0B0'   # 原 #C0BFBA → ls 块色, 略深确保可见
+  bright:
+    black:   '#5A5A5A'   # 原 #9A9A9A ★ → 关键改动, 注释/弱文字对比度 7.2:1
+    red:     '#C04848'   # 原 #D88080 → 略亮砖红
+    green:   '#4F7A38'   # 原 #6A9555 → 略亮苔藓
+    yellow:  '#B85535'   # 原 #C95F3D → 暖橙 ★ v4 核心签名色 (略沉)
+    blue:    '#3D6FA0'   # 原 #5A7FBA → 略亮普鲁士蓝
+    magenta: '#7C4BA8'   # 原 #9968BC → 略亮紫罗兰
+    cyan:    '#2E7A6A'   # 原 #4A9080 → 略亮松石青
+    white:   '#1A1A1A'   # 主文字最亮态

@@ -1,5 +1,13 @@
 ---
-"workspace:toggle_ai_assistant": ctrl-shift-I
-"terminal:ask_ai_assistant": none
 "input:toggle_workflows": ctrl-shift-R
+"terminal:select_all_blocks": cmd-a
+"workspace:left_panel_project_explorer": none
+"terminal:ask_ai_assistant": none
 "workspace:open_warp_drive": alt-2
+"workspace:toggle_project_explorer": alt-2
+"workspace:left_panel_agent_conversations": none
+"workspace:toggle_conversation_list_view": alt-1
+"workspace:left_panel_warp_drive": alt-4
+"workspace:toggle_ai_assistant": ctrl-shift-I
+"workspace:activate_fifth_tab": cmd-5
+"workspace:left_panel_global_search": alt-3

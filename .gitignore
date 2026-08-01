@@ -63,6 +63,10 @@ home/.config/ai-router/logs/
 **/state/
 home/.config/zsh/private.zsh
 home/.config/zsh/private.zprofile
+# Your own aliases. aliases.zsh ships only what makes sense on any Mac; the
+# project-, database- and application-specific ones live here and are never
+# tracked or deployed. Start from aliases.local.zsh.example.
+home/.config/zsh/aliases.local.zsh
 # personal.zsh was shipped empty and deployed, so every update overwrote
 # whatever had been written into it. It is no longer tracked or deployed;
 # private.zsh is the file that survives updates.
@@ -81,3 +85,9 @@ home/.config/wezterm/
 home/.config/oh-my-posh/
 bootstrap/install/warp-launch-agent.sh
 home/.config/aerospace/warp-launch-agent.sh
+
+# Warp saved-tab layouts are session state, not configuration: each one pins an
+# absolute directory and a tab name taken from whoever created it, so it cannot
+# work on another machine and it publishes a username. Warp rewrites this
+# directory as you use it.
+home/.warp/tab_configs/

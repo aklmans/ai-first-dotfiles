@@ -1,0 +1,47 @@
+# ═══════════════════════════════════════════════════════════════
+# Aklman Warm Dark · v4 Working Surface (Dark) — Recording Edition
+# 
+# 这是录屏优化版, 针对以下场景提升对比度:
+#   - 视频录制 (H.264/H.265 压缩)
+#   - 屏幕分享 / Zoom / 投影
+#   - 远距离观看 / 演讲场景
+#   - 第二次压缩 (YouTube/Bilibili)
+# 
+# 改动相对于原版:
+#   - bright black:  #5E5953 → #A8A29A  (对比度 3.2:1 → 7.4:1)
+#   - 所有粉彩色提升明度 + 微降饱和度 (录屏后仍清晰)
+#   - 暖橙保持 #E8835B (在深底上录屏表现已经够好)
+# 
+# 设计参考: Selenized (CIE Lab 色彩空间 + 明度统一)
+# ═══════════════════════════════════════════════════════════════
+
+name: Aklman Warm Dark
+details: darker
+
+# —— 核心色 ——
+accent: '#E8835B'        # 夜里篝火 (保持)
+background: '#1C1A18'    # 暖深背景
+foreground: '#F8F4ED'    # 略提主文字明度  原 #F5F0E8
+cursor: '#E8835B'
+
+# —— ANSI 16 色 ——
+# 关键改动: 所有粉彩色提升明度到 ~82%, 录屏后保留更多细节
+terminal_colors:
+  normal:
+    black:   '#2A2723'   # surface (保持, ls 块色)
+    red:     '#F2A5A5'   # 原 #E89090 → 略亮砖红粉彩
+    green:   '#B8D8A5'   # 原 #A8C895 → 略亮苔藓粉彩
+    yellow:  '#F2D095'   # 原 #E8C485 → 略亮橄榄粉彩
+    blue:    '#A8C0E8'   # 原 #95B0E0 → 略亮普鲁士粉彩
+    magenta: '#D6B8E8'   # 原 #C5A8E0 → 略亮紫罗兰粉彩
+    cyan:    '#9CD8C5'   # 原 #8BC8B8 → 略亮松石粉彩
+    white:   '#D5CCBE'   # 原 #C8C0B4 → 副文字略亮
+  bright:
+    black:   '#A8A29A'   # 原 #5E5953 ★ → 关键改动, 注释对比度 7.4:1
+    red:     '#F5BABA'   # 原 #F2A8A8 → 更亮砖红
+    green:   '#CCE0BC'   # 原 #BFD8AC → 更亮苔藓
+    yellow:  '#E8835B'   # 原 #E8835B → 暖橙 ★ v4 核心签名色 (保持)
+    blue:    '#BCD0F0'   # 原 #A8C0E8 → 更亮普鲁士
+    magenta: '#E2CCF0'   # 原 #D6BFE8 → 更亮紫罗兰
+    cyan:    '#BAE2D2'   # 原 #A8D8C8 → 更亮松石
+    white:   '#F8F4ED'   # main 主文字最亮态

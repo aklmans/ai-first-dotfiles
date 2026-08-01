@@ -13,6 +13,7 @@ This repository uses `zsh` as the primary shell environment, with `Starship` for
 - `home/.config/zsh/functions.zsh`
 - `home/.config/zsh/codex-widget.zsh`
 - `home/.config/zsh/private.zsh.example`
+- `home/.config/zsh/aliases.local.zsh.example`
 - `home/.config/starship.toml`
 - `bootstrap/install/zsh.sh`
 - `bootstrap/install/starship.sh`
@@ -70,8 +71,26 @@ Move whatever you want to keep from `.zshrc.pre-dotfiles` into
 
 - `env.zsh`
 - Kaku integration (`~/.config/kaku/zsh/kaku.zsh`) when available
-- `plugins.zsh`, `aliases.zsh`, `functions.zsh`
+- `plugins.zsh`, `aliases.zsh`, `aliases.local.zsh`, `functions.zsh`
 - `private.zsh`, last, so your overrides win
+
+Nothing in `env.zsh`, `aliases.zsh` or `functions.zsh` is unconditional. A PATH
+entry is added only when that directory exists, and an alias or function is
+defined only when the tool behind it is installed — a shell full of names that
+fail with "command not found" is worse than not having them. `EDITOR` is the
+first of `nvim`, `vim`, `vi` that this machine actually has, rather than a fixed
+name that breaks `git commit` when it is missing.
+
+Two things are deliberately absent from the shipped files:
+
+- **`kill` is not redefined.** This config used to shadow the builtin so a single
+  non-numeric argument became `pkill -x`. Shadowing the command that ends
+  processes, so that it does something its own manual page does not describe, is
+  the wrong place to save four keystrokes. Use `pkill`.
+- **`codex-widget.zsh` binds no key.** It used to claim `Ctrl+X`, which is zsh's
+  emacs prefix key — the one in front of `Ctrl+X Ctrl+E` and the rest of that
+  family — so it removed a whole set of shortcuts rather than one. Choose a key
+  in `private.zsh`; see below.
 
 ## Starship
 
@@ -96,9 +115,29 @@ cp ~/.config/zsh/private.zsh.example ~/.config/zsh/private.zsh
 - package-manager mirrors (`GOPROXY`, `PUB_HOSTED_URL`, `RUSTUP_DIST_SERVER`, ...),
   which are off by default because silently changing where someone's toolchain
   downloads from is not a default a dotfiles repo gets to pick
-- `DOTFILES_DIR` and the workspace roots the directory helpers use
+- `DOTFILES_DIR`, when your checkout is not at the default location
+- Homebrew PHP and OpenSSL build flags, which apply to every compile in every
+  shell rather than only to PHP extensions
+- a key for the Codex command-line widget (`CODEX_WIDGET_KEY`)
 - launcher aliases for tools this repo does not install
 - tokens and other secrets
+
+## Your own aliases: `aliases.local.zsh`
+
+`aliases.zsh` ships what makes sense on any Mac: navigation, file listing,
+`$EDITOR`-based helpers, one Homebrew `update`. Anything naming a particular
+project layout, database, editor or application lives in `aliases.local.zsh`,
+which is git-ignored and never deployed, and which `.zshrc` sources right after
+the shipped set so it wins.
+
+```bash
+cp ~/.config/zsh/aliases.local.zsh.example ~/.config/zsh/aliases.local.zsh
+```
+
+The example carries everything that used to be in the deployed `aliases.zsh`:
+the Laravel shortcuts, the workspace `cd` aliases, `typora` / `edge`, the MySQL
+and Redis helpers, the four AI-CLI shortcuts, the SketchyBar service aliases and
+the three other update paths. Uncomment what you use.
 
 For login-shell blocks that vendor CLIs add to `~/.config/zsh/.zprofile`, use
 `~/.config/zsh/private.zprofile` instead. `.zprofile` sources it, and unlike

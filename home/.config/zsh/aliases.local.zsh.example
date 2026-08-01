@@ -1,0 +1,75 @@
+# Your own aliases: copy this file to aliases.local.zsh and edit it.
+#
+#     cp ~/.config/zsh/aliases.local.zsh.example ~/.config/zsh/aliases.local.zsh
+#
+# aliases.local.zsh is git-ignored and never deployed, so nothing here is
+# published and no update of this repo can overwrite it. .zshrc sources it right
+# after aliases.zsh, so anything here wins over the shipped set.
+#
+# Everything below used to live in the deployed aliases.zsh. It was moved here
+# because it names one person's projects, database, editor and applications -
+# true for one machine, not for everyone who clones this repo. Uncomment what
+# you actually want.
+
+# --- where you keep things --------------------------------------------------
+# alias workspace="cd $HOME/Workspace"
+# alias projects="cd $HOME/Workspace/Projects"
+# alias codes="cd $HOME/Workspace/Projects"
+# alias sites="cd $HOME/Workspace/Projects"
+# alias workflow="cd $HOME/Workspace/Projects/workflow"
+# alias gopath="cd ${XDG_DATA_HOME:-$HOME/.local/share}/go"
+# alias gobin="cd ${GOBIN:-${XDG_DATA_HOME:-$HOME/.local/share}/go/bin}"
+# alias localbin="cd $HOME/.local/bin"
+# alias dw="cd $HOME/Downloads"
+# alias odw="cd $HOME/Downloads && open ."
+
+# --- PHP / Laravel ----------------------------------------------------------
+# The last three are project-local binaries, so they only work inside a project
+# that has them in vendor/bin.
+# alias art='php artisan '
+# alias phpunit='./vendor/bin/phpunit'
+# alias pest='./vendor/bin/pest'
+# alias sail='./vendor/bin/sail '
+
+# Homebrew PHP and OpenSSL build flags. These apply to *every* compile in every
+# shell, not only to PHP extensions, which is why they are not in the deployed
+# config. Uncomment only if you build native extensions.
+# export LDFLAGS="-L/opt/homebrew/opt/php/lib"
+# export CPPFLAGS="-I/opt/homebrew/opt/php/include"
+# export PKG_CONFIG_PATH="/opt/homebrew/opt/openssl@3/lib/pkgconfig"
+
+# --- databases --------------------------------------------------------------
+# alias redis='redis-cli'
+# alias mysqll='mysql -uroot -p'
+
+# --- applications -----------------------------------------------------------
+# alias typora='open -a Typora.app'
+# alias edge='open -a "Microsoft Edge"'
+# alias vs='code'
+
+# --- AI CLIs ----------------------------------------------------------------
+# Each is a separate tool you sign into yourself; this repo installs none of
+# them and stores no credentials for any of them.
+# alias cc='claude'
+# alias gm='gemini'
+# alias km='kimi'
+# alias jn='junie'
+#
+# `cx` was both a function and an alias in the deployed config. The function
+# existed for non-interactive shells, the alias so Warp could recognise a Codex
+# session by its command line. One name defined twice is a thing to explain
+# rather than a thing to ship, so it is here as whichever one you want.
+# alias cx='codex'
+
+# --- SketchyBar service -----------------------------------------------------
+# alias skp='brew services stop felixkratz/formulae/sketchybar'
+# alias skt='brew services start felixkratz/formulae/sketchybar'
+
+# --- other update paths -----------------------------------------------------
+# aliases.zsh ships one `update`. These were the other three.
+# alias upgrade='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup'
+# alias updates='topgrade --dry-run'
+# alias upall='topgrade'
+
+# --- Jupyter ----------------------------------------------------------------
+# alias jnb='jupyter notebook'

@@ -3,6 +3,9 @@
 [[ -f "$HOME/.config/kaku/zsh/kaku.zsh" ]] && source "$HOME/.config/kaku/zsh/kaku.zsh"
 [[ -f "$ZDOTDIR/plugins.zsh" ]] && source "$ZDOTDIR/plugins.zsh"
 [[ -f "$ZDOTDIR/aliases.zsh" ]] && source "$ZDOTDIR/aliases.zsh"
+# Your own aliases, right after the shipped set so they win over it. Never
+# tracked, never deployed; start one from aliases.local.zsh.example.
+[[ -f "$ZDOTDIR/aliases.local.zsh" ]] && source "$ZDOTDIR/aliases.local.zsh"
 [[ -f "$ZDOTDIR/functions.zsh" ]] && source "$ZDOTDIR/functions.zsh"
 
 # personal.zsh used to be shipped by this repo: an empty file, tracked in git,

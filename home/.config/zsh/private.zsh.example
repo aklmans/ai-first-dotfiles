@@ -49,6 +49,21 @@
 # alias ph="$HOME/.jetbrains/ps"
 # alias rr="$HOME/.jetbrains/rr"
 
+# --- aliases ----------------------------------------------------------------
+# Aliases have their own file, so this one stays about environment and secrets:
+#
+#     cp ~/.config/zsh/aliases.local.zsh.example ~/.config/zsh/aliases.local.zsh
+#
+# .zshrc sources it right after the shipped aliases.zsh. That is where the
+# Laravel, database, application and AI-CLI shortcuts went.
+
+# --- the Codex command-line widget ------------------------------------------
+# codex-widget.zsh turns the current command line into the prompt for a `codex`
+# session. It binds no key unless you choose one here, because it used to take
+# Ctrl+X - zsh's emacs prefix key, in front of Ctrl+X Ctrl+E and the rest.
+# export CODEX_WIDGET_KEY='^]'
+# codex_widget_bind
+
 # --- secrets ----------------------------------------------------------------
 # Tokens belong here rather than in any tracked file.
 # export SOME_API_KEY="..."
