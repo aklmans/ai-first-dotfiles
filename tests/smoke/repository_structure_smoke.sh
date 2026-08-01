@@ -192,6 +192,9 @@ require_file docs/shortcuts.md
 require_file docs/choice-architecture.md
 require_file docs/product-quality.md
 require_file docs/release-checklist.md
+require_file docs/comparison.md
+require_file SECURITY.md
+require_file .github/PULL_REQUEST_TEMPLATE.md
 
 require_file tests/smoke/ai_router_exports_smoke.sh
 require_file tests/smoke/aerospace_workflow_smoke.sh

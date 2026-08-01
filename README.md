@@ -12,10 +12,29 @@ every cost and permission first, and keep your own preferences.**
 
 <sub>One <code>Ctrl</code> chord switched to that workspace, AeroSpace tiled both windows, SketchyBar drew the row on top. No window was dragged, no space was swiped.</sub>
 
+<!-- GIF slot. Fifteen seconds: Ctrl+5 away, answer a message, Ctrl+1 back with
+     the cursor where it was. Storyboard and recording commands are in
+     docs/screenshots.md. Replace this comment with the <img> when it exists. -->
+
+Three things before the details, because they are the three questions people ask:
+
+- **It will not touch the dotfiles you already have.** Every file is copied,
+  never symlinked; a path another manager owns is refused rather than written
+  through; anything replaced is backed up first and listed in a ledger the
+  uninstaller can replay. [Check each of those claims before you install
+  anything.](docs/coexisting.md)
+- **You see the whole plan first.** `--dry-run` prints every tap, package, file
+  under `$HOME` and macOS permission, and installs nothing.
+- **It is not a window manager.** It configures [AeroSpace][aerospace] and the
+  things that have to agree with it. If you are still deciding whether you want
+  tiling at all, [start with the comparison](docs/comparison.md).
+
 This repository is the author's complete setup, but the product is not “become
 the author.” Workspace management, the bar, CapsLock, automation, AI, shell,
 terminals and paid extras are independent choices. The complete 13-workspace
 desk remains available as a reference preset.
+
+[aerospace]: https://github.com/nikitabobko/AeroSpace
 
 ## See your choices without installing anything
 
@@ -44,13 +63,23 @@ When you are ready:
 ./bootstrap/setup.sh capslock automation ai  # compose only what you want
 ```
 
-**What `minimal` costs you, measured.** On a clean macOS with nothing but
-Homebrew installed: about **one minute** of downloading, one `brew trust` you
-have to type yourself (see Prerequisites), and one Accessibility checkbox in
-System Settings. After that, `Ctrl+1`…`Ctrl+6` switch workspaces and windows
-tile themselves. Two Homebrew taps and roughly 60 files under `~/.config` are
-what stays behind, and `./bootstrap/uninstall.sh` lists every one of them before
-removing anything.
+## The smallest thing that works
+
+`minimal` is two modules — a tiling window manager and a bar that shows its
+workspaces — and this is what it costs, measured on a clean macOS with nothing
+but Homebrew installed:
+
+| | |
+|---|---|
+| Time | About **one minute** of downloading |
+| Typed by you | One `brew trust`, because Homebrew will not install from a third-party tap on your say-so alone (see [Prerequisites](#prerequisites)) |
+| Clicked by you | One Accessibility checkbox in System Settings |
+| Left behind | Two Homebrew taps and roughly 60 files under `~/.config` |
+| To undo | `./bootstrap/uninstall.sh`, which lists every one of them before removing anything |
+
+What you get for it: `Ctrl+1`…`Ctrl+6` switch workspaces, and windows tile
+themselves as they open. Nothing else changes — not your shell, not CapsLock,
+not your keyboard.
 
 ## Choose an outcome, not someone else's taste
 
@@ -89,12 +118,9 @@ Run `./bootstrap/setup.sh list` for the authoritative catalog. See
 [Choice architecture](docs/choice-architecture.md) for composition examples,
 profile settings and the boundary between a preference and an implementation.
 
-Everything is copied, never symlinked. A redeploy keeps local edits, refuses to
-write through another manager's symlink, and backs up replacements in a ledger
-that [`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay. If you
-already run Stow, chezmoi or your own repo, see
-[Coexisting with your dotfiles](docs/coexisting.md) — including how to check the
-claim before you install anything.
+Already running Stow, chezmoi or your own repo? The four rules the deploy engine
+follows, and how to verify each one on your machine before installing anything,
+are in [Coexisting with your dotfiles](docs/coexisting.md).
 
 ---
 
@@ -356,11 +382,14 @@ Details: [docs/privacy.md](docs/privacy.md).
 ## Docs
 
 - **[Getting started](docs/getting-started.md)** — install paths, profiles, what runs when
+- **[Compared to yabai, Amethyst, Rectangle](docs/comparison.md)** — and when this is the wrong thing to install
+- **[Coexisting with your dotfiles](docs/coexisting.md)** — the four deploy rules, and how to check them first
 - **[Choice architecture](docs/choice-architecture.md)** — modules, presets and safe preference points
 - **[Product quality scorecard](docs/product-quality.md)** — the 8.5 release gate and evidence
 - **[Troubleshooting](docs/troubleshooting.md)** — it installed but nothing happens
 - **[Shortcut reference](docs/shortcuts.md)** — every binding in one page
 - **[Privacy & public safety](docs/privacy.md)** — what is excluded and why
+- **[Security policy](SECURITY.md)** — what counts as a vulnerability here, and where to send one
 - **[All documentation](docs/README.md)** — per-module notes, screenshots, architecture
 
 ## Contributing

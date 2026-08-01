@@ -79,6 +79,154 @@ Use public demo windows and avoid any real names, project paths, logs, tickets, 
 
 ![Karabiner CapsLock AI Lite profile](../assets/screenshots/karabiner-profile.png)
 
+## Capture briefs
+
+Four things are missing or stale. Each brief below is meant to be followed
+without deciding anything: the shot list, the exact keys, and the commands.
+
+### Before any of them
+
+1. **Pick one display and record only that.** A 4K panel at 2x scaling records
+   at 3840x2160, which is four times the pixels anyone will look at. Record a
+   region instead — the commands below all take one.
+2. **Close what does not belong on the internet.** Mail, Messages, any browser
+   with tabs, anything with a customer's name in the title bar. Quit them rather
+   than hiding them: AeroSpace's workspace row shows an icon per running app.
+3. **Turn off notifications.** System Settings → Notifications → Do Not Disturb,
+   or `Focus` in the menu bar. A banner mid-recording means starting over.
+4. **Use demo content.** `demo-workspace`, `sample-repo`, placeholder text. The
+   sanitization rules below are the full list.
+5. **Check the desktop wallpaper.** It is in every frame.
+
+### 1. The hero GIF — 15 seconds, README first screen
+
+This is the one that has to earn a stranger's attention, and the thing worth
+showing is not tiling — everybody has seen tiling. It is that switching away and
+back costs nothing: no animation to sit through, no window to find again, the
+cursor still where it was.
+
+| Time | What you do | What has to be visible |
+|---|---|---|
+| 0:00–0:02 | Nothing. Hold still on workspace 1 with two windows tiled — an editor with a visible cursor in the middle of a line, and anything beside it | The SketchyBar row across the top, `1` highlighted |
+| 0:02–0:03 | Press `Ctrl+5` | The row's highlight jumps to `5`. Do not move the mouse |
+| 0:03–0:08 | On workspace 5, type a short reply in a chat-shaped window and send it | That the workspace changed completely, not that a window moved |
+| 0:08–0:09 | Press `Ctrl+1` | Highlight jumps back to `1` |
+| 0:09–0:12 | Type three or four characters where the cursor was | **The cursor is exactly where you left it.** This is the whole point of the clip |
+| 0:12–0:15 | Hold still | — |
+
+Record it:
+
+```bash
+mkdir -p ~/Desktop/gif && cd ~/Desktop/gif
+screencapture -v -R 0,0,1920,1080 demo.mov
+```
+
+`-R x,y,w,h` is the region in points. Recording stops on `Ctrl+C` in that
+terminal — so start the recording, switch to the desk, do the fifteen seconds,
+then come back. Trim the ends afterwards rather than trying to be exact:
+
+```bash
+ffmpeg -ss 3 -t 15 -i demo.mov -c copy trimmed.mov
+```
+
+`-ss 3` drops the first three seconds — adjust until it starts on the still
+frame. Then to GIF, palette-generated so the colours survive:
+
+```bash
+ffmpeg -i trimmed.mov -vf "fps=15,scale=1000:-1:flags=lanczos,palettegen" -y /tmp/pal.png
+ffmpeg -i trimmed.mov -i /tmp/pal.png \
+  -lavfi "fps=15,scale=1000:-1:flags=lanczos [x]; [x][1:v] paletteuse" \
+  -y ../ai-first-dotfile/assets/screenshots/workspace-switch.gif
+```
+
+Check the size — GitHub will serve anything but a reader on a phone will not
+wait for it:
+
+```bash
+ls -lh assets/screenshots/workspace-switch.gif   # aim for under 5 MB
+```
+
+If it is too big, in this order: shorten the clip, drop to `fps=12`, then
+`scale=800`. If it is still too big, `brew install gifski` and use that instead
+of the second ffmpeg command — it is markedly better at this:
+
+```bash
+mkdir -p /tmp/frames
+ffmpeg -i trimmed.mov -vf "fps=15,scale=1000:-1:flags=lanczos" /tmp/frames/f%04d.png
+gifski -o assets/screenshots/workspace-switch.gif --fps 15 --quality 90 /tmp/frames/f*.png
+```
+
+Then replace the `<!-- GIF slot -->` comment near the top of `README.md` with:
+
+```html
+<img src="assets/screenshots/workspace-switch.gif" alt="Pressing Ctrl+5 switches to another workspace, a message is answered there, and Ctrl+1 returns to the first workspace with the text cursor still where it was" width="100%">
+```
+
+### 2. `capslock-chooser.png` — stale, re-shoot
+
+The current file shows the prompt catalog with Chinese descriptions. The
+shipped set is English; the Chinese set moved to
+`home/.config/ai-router/prompts/zh/`.
+
+1. Select a sentence of placeholder text anywhere.
+2. Press the CapsLock chooser binding (`docs/shortcuts.md` has it for your
+   profile).
+3. Capture just the chooser window, not the whole screen:
+
+```bash
+screencapture -w -o ~/Desktop/capslock-chooser.png
+```
+
+`-w` captures a window, `-o` leaves off the drop shadow. Click the chooser when
+the cursor turns into a camera.
+
+The prompt list has to be the English one. If it is not, the deployed router is
+older than the repository — re-run `./bootstrap/setup.sh ai --deploy-only` first.
+
+### 3. `karabiner-profile.png` — stale, re-shoot
+
+The current file shows a Karabiner *profile*. The install ships a
+complex-modification rule you enable yourself, so the screen a new user actually
+meets is a different one.
+
+Capture **Karabiner-Elements → Complex Modifications → Add rule**, with the
+`CapsLock AI Lite` rules from this repository visible in the list.
+
+```bash
+screencapture -w -o ~/Desktop/karabiner-rules.png
+```
+
+Save it as `assets/screenshots/karabiner-rules.png` — a new name, because it is
+a different screen — and update the two references to `karabiner-profile.png`
+in this file and in `docs/tools/karabiner/README.md`, then delete the old file.
+
+### 4. Social preview card — 1280x640
+
+GitHub shows this whenever a link to the repository is posted anywhere. There is
+no such image yet, so those links currently render as a grey box with the repo
+name.
+
+Nothing here is a screenshot: it is a composed card. The simplest version that
+works is a crop of the desk with the title over it.
+
+1. Set up the desk the way the hero shot has it — bar visible, two windows
+   tiled, no personal content.
+2. `Cmd+Shift+4`, then Space, then click the screen to capture it whole.
+3. Crop to exactly **1280x640** — Preview → Tools → Adjust Size, or:
+
+```bash
+sips -c 640 1280 ~/Desktop/social.png --out assets/screenshots/social-preview.png
+```
+
+`sips -c` crops from the centre, which is usually where the interesting part
+is not — check the result and re-crop from Preview if the bar got cut off.
+
+4. Upload it at **Settings → General → Social preview** in the repository. It is
+   not committed by GitHub automatically, so commit the file as well.
+
+Keep the important content in the middle: link previews on some sites crop the
+edges.
+
 ## Screenshot sanitization rules
 
 When you create screenshots for this repository:
