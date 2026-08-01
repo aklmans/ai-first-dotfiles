@@ -82,29 +82,12 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
     if.window-title-regex-substring = '^(Welcome to|Settings|Preferences|Project Structure|Run/Debug Configurations|Edit Configuration|Plugins|Tip of the Day|New Project|Open File or Project|Attach Directory|About|Licenses|Choose|Select|Import|Export|Find|Replace|Search Everywhere|Local History|Commit|Push|Pull|Merge|Rebase|Checkout|Branch|Clone Repository|Refactor|Extract|Inline|Change Signature|Delete|Rename|Remove|Move|Copy|Add File to Git|Edit Commit Message|Confirm|Discard|Overwrite|File Already Exists|Resolve Conflicts)'
     run = 'layout floating'
 
-# Float apps that should behave like utility/dialog surfaces, then continue to placement rules.
+# Float the macOS surfaces that behave like utility windows, then continue to
+# placement rules. Named apps - chat clients, media players, the author's own
+# tools - are rendered from the selected routing pack further down instead, so
+# that a pack of `none` really does ship no app placement.
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Microsoft PowerPoint|Keynote.*)$'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(微信|WeChat|企业微信|WeCom|QQ|钉钉|DingTalk|飞书|Feishu|Lark|Lark Meetings|zoom\.us|Mattermost|Messenger|Discord|BaiduIM)$'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Dash|Navicat Premium|1Password|Alfred Preferences|Karabiner-Elements|Karabiner-EventViewer|Things|Pieces|Loopback|Downie 4|CleanMyMac X|Tencent Lemon|AppCleaner|Clash for Windows|Logi Options\+|Logi Options Plus|Docker|Docker Desktop)$'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-id = 'now.typeless.desktop'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|Bilibili|哔哩哔哩|mpv|Podcasts|播客)$'
     check-further-callbacks = true
     run = 'layout floating'
 
@@ -499,6 +482,138 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'
 [[on-window-detected]]
     if.app-name-regex-substring = '^Loopback$'
     run = ['layout floating', 'move-node-to-workspace 12']
+
+[[on-window-detected]]
+    if.app-id = 'com.1password.1password'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^1Password$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.runningwithcrayons.Alfred-Preferences'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Alfred Preferences$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'org.pqrs.Karabiner-Elements.Settings'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Karabiner-Elements$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Karabiner-EventViewer$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.macpaw.CleanMyMac-setapp'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^CleanMyMac X$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.tencent.Lemon'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Tencent Lemon$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.fiplab.appcleaner'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^AppCleaner$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.culturedcode.ThingsMac'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Things$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.pieces.osx'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Pieces$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.charliemonroe.Downie-4'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Downie 4$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'now.typeless.desktop'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Typeless$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Dash$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Navicat Premium$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.spotify.client'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Spotify$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^NeteaseMusic$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.apple.Music'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Music$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^音乐$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-id = 'com.apple.podcasts'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^Podcasts$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^播客$'
+    run = 'layout floating'
+
+[[on-window-detected]]
+    if.app-name-regex-substring = '^mpv$'
+    run = 'layout floating'
 
 [[on-window-detected]]
     if.app-id = 'us.zoom.xos'

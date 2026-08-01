@@ -203,6 +203,8 @@ require_file tests/smoke/advisor_displays_smoke.sh
 require_file tests/smoke/route_merge_smoke.sh
 require_file tests/smoke/portability_smoke.sh
 require_file tests/smoke/overlay_scope_smoke.sh
+require_file tests/smoke/config_injection_smoke.sh
+require_file tests/smoke/cross_tool_consistency_smoke.sh
 require_file tests/smoke/lib/assert.sh
 
 require_absent bootstrap/macos

@@ -211,16 +211,20 @@ remove_route() {
   apply_route_file "$candidate" "$value → shipped default"
 }
 
+# The app value goes last. printf pads by bytes, so `微信` inside a `%-38s`
+# counts as six and drags every column after it out of line; keeping the one
+# field that can hold wide characters at the end of the row means only ASCII
+# gets padded.
 list_routes() {
   ensure_routes_file
-  printf '%-6s %-38s %-14s %-8s %s\n' MATCH APP TARGET POLICY LAYOUT
+  printf '%-6s %-14s %-8s %-8s %s\n' MATCH TARGET POLICY LAYOUT APP
   /usr/bin/awk -F '|' '
     $1 ~ /^(id|name)$/ && NF == 5 {
-      printf "%-6s %-38s %-14s %-8s %s\n", $1, $2, $3, $4, $5
+      printf "%-6s %-14s %-8s %-8s %s\n", $1, $3, $4, $5, $2
     }
     $1 ~ /^(id|name)$/ && NF == 4 {
       policy = ($3 == "current" ? "follow" : ($3 == "-" ? "inherit" : "fixed"))
-      printf "%-6s %-38s %-14s %-8s %s\n", $1, $2, $3, policy, $4
+      printf "%-6s %-14s %-8s %-8s %s\n", $1, $3, policy, $4, $2
     }
   ' "$APP_ROUTES_FILE"
 }
@@ -307,6 +311,7 @@ apply_captured_route_file() {
 capture_current_routes() {
   local apply=0 single_policy='prefer' layout_mode='preserve'
   local windows_file='' owned_windows=0 aggregated candidate user_file
+  local dropped_file dropped=0
   local kind value app_name workspace captured_layout target policy count=0
 
   shift
@@ -343,11 +348,18 @@ capture_current_routes() {
 
   aggregated="$(mktemp "${TMPDIR:-/tmp}/aerospace-capture-aggregated.XXXXXX")"
   candidate="$(mktemp "${TMPDIR:-/tmp}/aerospace-captured-routes.XXXXXX")"
+  dropped_file="$(mktemp "${TMPDIR:-/tmp}/aerospace-capture-dropped.XXXXXX")"
   user_file="$APP_ROUTES_FILE"
   [ -r "$user_file" ] || user_file='/dev/null'
 
-  /usr/bin/awk -F '\t' -v user_routes="$user_file" '
+  # The filter below is load-bearing: an app name holding `|` or a newline would
+  # write a route file that no longer parses as one record per line, and a
+  # workspace name outside [A-Za-z0-9_-] would render an AeroSpace command that
+  # cannot run. What it must not do is drop those windows in silence, so the
+  # count comes back out through a file and is reported with the preview.
+  /usr/bin/awk -F '\t' -v user_routes="$user_file" -v drop_file="$dropped_file" '
     BEGIN {
+      dropped = 0
       while ((getline line < user_routes) > 0) {
         split(line, fields, "|")
         if (fields[1] == "id" || fields[1] == "name") user[fields[1] SUBSEP fields[2]] = 1
@@ -357,8 +369,8 @@ capture_current_routes() {
     {
       id=$1; sub(/^x/, "", id)
       name=$2; workspace=$3; layout=$4
-      if (id == "" && name == "") next
-      if (name ~ /[|\r\n]/ || id ~ /[|\r\n]/ || workspace !~ /^[A-Za-z0-9_-]+$/) next
+      if (id == "" && name == "") { dropped++; next }
+      if (name ~ /[|\r\n]/ || id ~ /[|\r\n]/ || workspace !~ /^[A-Za-z0-9_-]+$/) { dropped++; next }
       kind=(id != "" ? "id" : "name")
       value=(id != "" ? id : name)
       key=kind SUBSEP value
@@ -379,8 +391,13 @@ capture_current_routes() {
         workspace=(distinct[key] > 1 ? "current" : first_workspace[key])
         printf "%s|%s|%s|%s|%s\n", pair[1], pair[2], app_name[key], workspace, layout
       }
+      printf "%s\n", dropped > drop_file
+      close(drop_file)
     }
   ' "$windows_file" | LC_ALL=C sort >"$aggregated"
+  dropped="$(cat "$dropped_file" 2>/dev/null || printf '0')"
+  case "$dropped" in ''|*[!0-9]*) dropped=0 ;; esac
+  rm -f "$dropped_file"
 
   {
     printf '# Generated locally by app-route.sh capture-current.\n'
@@ -417,11 +434,15 @@ capture_current_routes() {
   rm -f "$aggregated"
 
   printf 'Captured route proposal (%s app(s))\n\n' "$count"
+  printf '  %-5s %-14s %-7s %-8s %s\n' MATCH TARGET POLICY LAYOUT APP
   /usr/bin/awk -F '|' '$1 == "id" || $1 == "name" {
-    printf "  %-5s %-38s target=%-14s policy=%-7s layout=%s\n", $1, $2, $3, $4, $5
+    printf "  %-5s %-14s %-7s %-8s %s\n", $1, $3, $4, $5, $2
   }' "$candidate"
   printf '\nThis is a one-time local snapshot; no background tracking was enabled.\n'
   printf 'Handwritten routes in %s were skipped.\n' "$APP_ROUTES_FILE"
+  if [ "$dropped" -gt 0 ]; then
+    printf '%s window(s) ignored: unusable app name or workspace.\n' "$dropped"
+  fi
 
   if [ "$apply" -eq 0 ]; then
     rm -f "$candidate"

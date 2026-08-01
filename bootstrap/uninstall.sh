@@ -28,7 +28,16 @@ restored=0
 removed=0
 kept=0
 skipped=0
+pending_dirs=0
 system_actions=0
+
+# The one system tool this script reads state back from, so it is also the only
+# one a test has to stand in for. Everything else is fire-and-forget.
+launchctl_bin="${DOTFILES_LAUNCHCTL:-/bin/launchctl}"
+
+# What bootstrap/install/gui-path.sh prepends to the GUI session PATH, in that
+# order. Undoing it means removing exactly this, not the whole variable.
+gui_path_prefix="/opt/homebrew/bin:/opt/homebrew/sbin"
 
 usage() {
   cat <<'EOF'
@@ -146,12 +155,25 @@ restore_created_entry() {
     return 0
   fi
 
+  # rmdir refuses a directory that still holds something, and that refusal is
+  # the common case: anything the user put inside keeps it. Counting it as
+  # removed before finding out produced a summary that claimed removals that
+  # never happened, so nothing is counted until the result is known - and in a
+  # dry run the result is not knowable, because the files that would empty it
+  # have not been removed yet.
   if [[ -d "$target" ]]; then
-    report 'rmdir' "$target (only if empty once the steps above are done)"
     if [[ "$apply" -eq 1 ]]; then
-      rmdir "$target" 2>/dev/null || true
+      if rmdir "$target" 2>/dev/null; then
+        report 'rmdir' "$target (was empty)"
+        removed=$((removed + 1))
+      else
+        report 'keep' "$target (still holds files that are not ours)"
+        kept=$((kept + 1))
+      fi
+    else
+      report 'rmdir' "$target (only if empty once the steps above are done)"
+      pending_dirs=$((pending_dirs + 1))
     fi
-    removed=$((removed + 1))
     return 0
   fi
 
@@ -252,6 +274,10 @@ restore_files() {
 
   printf '\n%s restored, %s removed, %s kept, %s skipped.\n' \
     "$restored" "$removed" "$kept" "$skipped"
+  if [[ "$pending_dirs" -gt 0 ]]; then
+    printf '%s directory removal(s) are not counted above: each happens only if the\n' "$pending_dirs"
+    printf 'directory turns out to be empty, which --apply is what decides.\n'
+  fi
   printf 'The ledger itself is left in place as a record.\n'
 }
 
@@ -281,10 +307,28 @@ undo_aerospace_default() {
     defaults delete -g NSWindowShouldDragOnGesture
 }
 
-undo_gui_path() {
-  local uid label plist
+# Removes the entries bootstrap/install/gui-path.sh prepended, and only those.
+# Anything the value had before - a Nix profile, ~/.local/bin, a second package
+# manager - is at the tail and is returned untouched.
+#
+# The match is the whole literal prefix on purpose. gui-path.sh skips the
+# machine entirely when /opt/homebrew/bin is already on the GUI PATH, so a value
+# that does not start with both entries is one this repo never wrote, and
+# taking anything off it would be removing someone else's work.
+gui_path_without_repo_prefix() {
+  local value="$1"
 
-  if [[ ! -x /bin/launchctl ]]; then
+  case "$value" in
+    "$gui_path_prefix") printf '%s' '' ;;
+    "$gui_path_prefix":*) printf '%s' "${value#"$gui_path_prefix":}" ;;
+    *) printf '%s' "$value" ;;
+  esac
+}
+
+undo_gui_path() {
+  local uid label plist current remainder
+
+  if [[ ! -x "$launchctl_bin" ]]; then
     return 0
   fi
 
@@ -293,14 +337,33 @@ undo_gui_path() {
   plist="$HOME/Library/LaunchAgents/$label.plist"
 
   if [[ -f "$plist" ]]; then
-    run_system_command "/bin/launchctl bootout gui/$uid $plist" \
-      /bin/launchctl bootout "gui/$uid" "$plist"
+    run_system_command "$launchctl_bin bootout gui/$uid $plist" \
+      "$launchctl_bin" bootout "gui/$uid" "$plist"
   fi
 
-  # bootstrap/install/gui-path.sh sets the GUI session PATH. unsetenv puts it
-  # back to what launchd hands out by default; log out to be sure it took.
-  run_system_command '/bin/launchctl unsetenv PATH' \
-    /bin/launchctl unsetenv PATH
+  # This used to be an unconditional `launchctl unsetenv PATH`, which threw away
+  # the whole GUI session PATH including every entry this repo never touched.
+  # Install prepends; uninstall has to un-prepend, not erase.
+  current="$("$launchctl_bin" getenv PATH 2>/dev/null || true)"
+  if [[ -z "$current" ]]; then
+    report 'skip' 'the GUI session PATH is not set'
+    return 0
+  fi
+
+  remainder="$(gui_path_without_repo_prefix "$current")"
+  if [[ "$remainder" == "$current" ]]; then
+    report 'skip' "the GUI session PATH does not start with $gui_path_prefix, so this repo did not set it"
+    return 0
+  fi
+
+  if [[ -z "$remainder" ]]; then
+    run_system_command "$launchctl_bin unsetenv PATH (nothing was on it before this repo)" \
+      "$launchctl_bin" unsetenv PATH
+    return 0
+  fi
+
+  run_system_command "$launchctl_bin setenv PATH $remainder (drops $gui_path_prefix, keeps the rest)" \
+    "$launchctl_bin" setenv PATH "$remainder"
 }
 
 undo_brew_services() {

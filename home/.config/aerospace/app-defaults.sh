@@ -334,32 +334,27 @@ should_float_window() {
         tiling) return 1 ;;
     esac
 
+    # What is left here is the macOS surface itself: the apps every Mac has,
+    # whose windows are utility surfaces rather than work surfaces. Deciding
+    # that Finder floats is a statement about macOS.
+    #
+    # Deciding that Clash for Windows, Bilibili, WeChat or Typeless float is a
+    # statement about one person's software, and those lists moved into
+    # routing-packs/ - author.conf for the author's own inventory, suggested.conf
+    # for the widely used ones. They used to sit right here, which meant a
+    # profile that selected the `none` pack, documented as shipping no app
+    # placement, still got eighty lines of somebody else's app list.
     case "$app_id" in
-        com.apple.finder|com.apple.systempreferences|com.apple.ActivityMonitor|com.apple.mail|com.apple.Photos|com.apple.Preview|com.apple.Music|com.apple.podcasts|com.apple.archiveutility|com.apple.AppStore)
+        com.apple.finder|com.apple.systempreferences|com.apple.ActivityMonitor|com.apple.mail|com.apple.Photos|com.apple.Preview|com.apple.archiveutility|com.apple.AppStore)
             return 0
             ;;
-        com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|us.zoom.xos|com.hnc.Discord|com.facebook.archon|com.techsmith.camtasia|com.TechSmith.Snagit)
-            return 0
-            ;;
-        com.lbyczf.clashwin|com.logi.optionsplus|com.docker.docker|com.1password.1password|com.runningwithcrayons.Alfred-Preferences|org.pqrs.Karabiner-Elements.Settings|com.macpaw.CleanMyMac-setapp|com.tencent.Lemon|com.fiplab.appcleaner|com.culturedcode.ThingsMac|com.pieces.osx|com.rogueamoeba.Loopback|com.charliemonroe.Downie-4|now.typeless.desktop)
-            return 0
-            ;;
-        com.microsoft.Powerpoint|com.apple.iWork.Keynote|com.spotify.client)
+        com.microsoft.Powerpoint|com.apple.iWork.Keynote)
             return 0
             ;;
     esac
 
     case "$app_name" in
         "Finder"|"访达"|"System Settings"|"System Preferences"|"系统设置"|"Activity Monitor"|"监视器"|"Stats"|"Mail"|"邮件"|"Photos"|"照片"|"Preview"|"预览"|"Microsoft PowerPoint"|"Keynote"*)
-            return 0
-            ;;
-        "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM"|"Lark Meetings"|"zoom.us"|"Tencent Meeting"|"腾讯会议"|"VooV Meeting"|"Camtasia"|"Snagit")
-            return 0
-            ;;
-        "Dash"|"Navicat Premium"|"1Password"|"Alfred Preferences"|"Karabiner-Elements"|"Karabiner-EventViewer"|"Things"|"Pieces"|"Loopback"|"Downie 4"|"CleanMyMac X"|"Tencent Lemon"|"AppCleaner"|"Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop"|"Typeless")
-            return 0
-            ;;
-        "NeteaseMusic"|"Music"|"音乐"|"Spotify"|"Bilibili"|"哔哩哔哩"|"mpv"|"Podcasts"|"播客")
             return 0
             ;;
     esac
@@ -562,29 +557,12 @@ emit_on_window_detected_rules_raw() {
     if.window-title-regex-substring = '^(Welcome to|Settings|Preferences|Project Structure|Run/Debug Configurations|Edit Configuration|Plugins|Tip of the Day|New Project|Open File or Project|Attach Directory|About|Licenses|Choose|Select|Import|Export|Find|Replace|Search Everywhere|Local History|Commit|Push|Pull|Merge|Rebase|Checkout|Branch|Clone Repository|Refactor|Extract|Inline|Change Signature|Delete|Rename|Remove|Move|Copy|Add File to Git|Edit Commit Message|Confirm|Discard|Overwrite|File Already Exists|Resolve Conflicts)'
     run = 'layout floating'
 
-# Float apps that should behave like utility/dialog surfaces, then continue to placement rules.
+# Float the macOS surfaces that behave like utility windows, then continue to
+# placement rules. Named apps - chat clients, media players, the author's own
+# tools - are rendered from the selected routing pack further down instead, so
+# that a pack of `none` really does ship no app placement.
 [[on-window-detected]]
     if.app-name-regex-substring = '^(Finder|访达|System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Preview|预览|Microsoft PowerPoint|Keynote.*)$'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(微信|WeChat|企业微信|WeCom|QQ|钉钉|DingTalk|飞书|Feishu|Lark|Lark Meetings|zoom\.us|Mattermost|Messenger|Discord|BaiduIM)$'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Dash|Navicat Premium|1Password|Alfred Preferences|Karabiner-Elements|Karabiner-EventViewer|Things|Pieces|Loopback|Downie 4|CleanMyMac X|Tencent Lemon|AppCleaner|Clash for Windows|Logi Options\+|Logi Options Plus|Docker|Docker Desktop)$'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-id = 'now.typeless.desktop'
-    check-further-callbacks = true
-    run = 'layout floating'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(NeteaseMusic|Music|音乐|Spotify|Bilibili|哔哩哔哩|mpv|Podcasts|播客)$'
     check-further-callbacks = true
     run = 'layout floating'
 

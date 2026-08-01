@@ -46,6 +46,45 @@ Notable changes to this project. Format loosely follows
 - The developer preset no longer inherits the author's 13-workspace app map;
   it emits no shipped app placement and preserves its explicit eight-workspace
   layout without leaking workspace 13 back into generated rules.
+- **`AI_FIRST_ROUTING_PACK="none"` now really means no shipped app placement.**
+  The float rules used to carry about eighty lines of specific application names
+  inside `app-defaults.sh`, and that block ran on every install whatever pack was
+  selected, so a `minimal` or `developer` setup floated Clash for Windows, Logi
+  Options+, 1Password, Docker, Typeless, WeChat, QQ, DingTalk, Lark, Discord,
+  Zoom, Camtasia, Snagit, Spotify, NeteaseMusic, Bilibili, mpv, Apple Music and
+  Podcasts because of who wrote the repo. Those names moved into routing packs:
+  the widely used communication and media apps are in `suggested`, the author's
+  own toolbox is in `author`. **If you run `minimal` or `developer` and want
+  those apps to keep floating, set `AI_FIRST_ROUTING_PACK="suggested"` in
+  `~/.config/ai-first/profile.conf`, or add exact rows to `app-routes.conf`.**
+  `author-full` is unchanged: every one of those apps still floats, on the same
+  workspace as before. What stays in code is behaviour rather than taste -
+  dialog-title matching, JetBrains dialogs, the macOS surfaces every Mac has
+  (Finder, Preview, Mail, Photos, System Settings, Activity Monitor, Archive
+  Utility, App Store, Keynote, PowerPoint), and the rule that a work window
+  tiles.
+- `~/.config/aerospace/plan.sh` without `--check` is now a report and exits 0
+  whatever it found; `--check` is what turns the same report into a non-zero
+  result for doctor and CI. Both used to exit 1, which made the flag inert.
+- `plan.sh` also checks the three tools that derive behaviour from the same
+  config: SketchyBar's workspace list, the workspace Hammerspoon's Recording
+  Mode would use, whether the Karabiner complex modification is deployed and
+  enabled, and whether `~/.aerospace.toml` still matches `workspaces.conf` and
+  `displays.conf`. Everything is read-only, a tool that is not installed is
+  skipped with a line saying so, and `karabiner.json` is never written.
+- `./bootstrap/uninstall.sh` no longer clears the whole GUI session `PATH`.
+  Install prepends `/opt/homebrew/bin:/opt/homebrew/sbin` and keeps whatever was
+  already there; uninstall now removes exactly that prefix and puts the rest
+  back, and only unsets the variable when nothing else was on it.
+- The uninstall summary counts directories it actually removed. `rmdir` refuses
+  a directory that still holds files, and that refusal used to be counted as a
+  removal anyway.
+- `app-route.sh capture-current` reports how many windows it had to ignore
+  because their app name or workspace could not be written as a route, instead
+  of dropping them from the proposal in silence.
+- `plan.sh` and `app-route.sh list` put the app name last in every table, so a
+  CJK app name no longer breaks the columns: `printf` pads by bytes, and `微信`
+  counted as six of them.
 
 ## [1.0.0] - 2026-07-26
 

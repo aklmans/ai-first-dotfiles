@@ -604,10 +604,119 @@ case_uninstall_lists_system_side_effects() {
   assert_equal 0 "$last_status" 'the system-only dry run should succeed'
   assert_output_matches "$last_output" 'NSWindowShouldDragOnGesture' \
     'uninstall must cover the AeroSpace default'
-  assert_output_matches "$last_output" 'unsetenv PATH' \
+  assert_output_matches "$last_output" 'PATH' \
     'uninstall must cover the GUI PATH launchctl setting'
   assert_output_matches "$last_output" 'brew services stop (sketchybar|borders)' \
     'uninstall must cover the services the installers start'
+}
+
+# --- case: uninstall un-prepends the GUI PATH instead of erasing it ----------
+#
+# bootstrap/install/gui-path.sh reads the GUI session PATH and *prepends* the
+# two Homebrew entries, deliberately keeping whatever was already there. This
+# used to be undone with a flat `launchctl unsetenv PATH`, which threw the whole
+# variable away - a Nix profile, ~/.local/bin, another package manager, all of
+# it - for two entries that were never the user's to begin with.
+#
+# Reading the real GUI PATH would make the assertion depend on the machine
+# running the suite, so launchctl is stood in for and every branch is checked.
+
+write_launchctl_stub() {
+  local path_value="$1"
+
+  cat >"$stub_dir/launchctl-fake" <<STUB
+#!/bin/sh
+if [ "\$1" = getenv ] && [ "\$2" = PATH ]; then
+  printf '%s\n' '$path_value'
+fi
+exit 0
+STUB
+  chmod +x "$stub_dir/launchctl-fake"
+}
+
+case_uninstall_keeps_the_rest_of_the_gui_path() {
+  local home
+  home="$(new_home)"
+
+  write_launchctl_stub '/opt/homebrew/bin:/opt/homebrew/sbin:/nix/var/nix/profiles/default/bin:/usr/bin'
+  RUN_ENV=("DOTFILES_LAUNCHCTL=$stub_dir/launchctl-fake")
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
+  assert_output_matches "$last_output" \
+    'setenv PATH /nix/var/nix/profiles/default/bin:/usr/bin' \
+    'uninstall must put back the entries it did not add'
+  if printf '%s\n' "$last_output" | grep -Eq 'unsetenv PATH'; then
+    fail 'uninstall must not erase a GUI PATH that still holds other entries' "$last_output"
+  else
+    pass
+  fi
+
+  # Nothing but the prefix left: there is no remainder to keep, so unsetenv is
+  # the right answer and launchd hands out its default again.
+  write_launchctl_stub '/opt/homebrew/bin:/opt/homebrew/sbin'
+  RUN_ENV=("DOTFILES_LAUNCHCTL=$stub_dir/launchctl-fake")
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
+  assert_output_matches "$last_output" 'unsetenv PATH' \
+    'a PATH holding only this repo prefix must be unset'
+
+  # A PATH this repo never wrote. gui-path.sh skips a session that already has
+  # Homebrew on it, so uninstall has to skip it too.
+  write_launchctl_stub '/usr/local/bin:/usr/bin:/bin'
+  RUN_ENV=("DOTFILES_LAUNCHCTL=$stub_dir/launchctl-fake")
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
+  if printf '%s\n' "$last_output" | grep -Eq '(un)?setenv PATH'; then
+    fail 'uninstall must not touch a GUI PATH this repo did not set' "$last_output"
+  else
+    pass
+  fi
+  assert_output_matches "$last_output" 'does not start with' \
+    'uninstall must say why it left the GUI PATH alone'
+}
+
+# --- case: the rollback summary counts what happened, not what was attempted -
+#
+# `rmdir` refuses a directory that still holds something, and that refusal was
+# swallowed by `|| true` while the summary counted the directory as removed. A
+# rollback that leaves two directories behind must not report them as removals.
+
+case_uninstall_summary_counts_real_removals() {
+  local home removed kept
+
+  home="$(new_home)"
+  run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
+  printf 'not ours\n' >"$home/.config/zsh/my-own-notes.txt"
+
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only --apply
+  assert_exists "$home/.config/zsh" 'a directory holding the user files must survive'
+
+  removed="$(printf '%s\n' "$last_output" | sed -n 's/^\([0-9]*\) restored, \([0-9]*\) removed.*/\2/p')"
+  kept="$(printf '%s\n' "$last_output" | sed -n 's/.*removed, \([0-9]*\) kept.*/\1/p')"
+  if [[ "$kept" -ge 1 ]]; then
+    pass
+  else
+    fail 'a directory that could not be removed must be counted as kept' "$last_output"
+  fi
+  assert_output_matches "$last_output" 'still holds files that are not ours' \
+    'the summary must name the directory it could not remove'
+
+  # Every counted removal has to be a path that is really gone.
+  if [[ "$removed" -gt 0 ]] && [[ -d "$home/.config/zsh" ]] && \
+     printf '%s\n' "$last_output" | grep -Fq "rmdir $home/.config/zsh "; then
+    fail 'a surviving directory must not appear as an rmdir that happened' "$last_output"
+  else
+    pass
+  fi
+}
+
+# A dry run cannot know whether a directory will be empty by the time the plan
+# reaches it, so it must not fold those into the same count.
+case_uninstall_dry_run_separates_pending_directories() {
+  local home
+  home="$(new_home)"
+
+  run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only
+  assert_output_matches "$last_output" 'directory removal\(s\) are not counted above' \
+    'a dry run must say that planned directory removals are conditional'
 }
 
 # --- case: an unwritable state directory must not stop a deploy -------------
@@ -665,6 +774,9 @@ case_uninstall_dry_run_is_inert
 case_uninstall_apply_restores
 case_uninstall_keeps_local_edits
 case_uninstall_lists_system_side_effects
+case_uninstall_keeps_the_rest_of_the_gui_path
+case_uninstall_summary_counts_real_removals
+case_uninstall_dry_run_separates_pending_directories
 case_state_dir_failure_is_survivable
 case_skipped_symlink_does_not_abort_setup
 

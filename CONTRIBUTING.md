@@ -39,6 +39,8 @@ The smoke suites cover the repo:
 | `route_merge_smoke.sh` | The four route layers, the legacy layout-only merge, and the workspace whitelist |
 | `overlay_scope_smoke.sh` | Module preference overlays are written where the runtime reads them, and never overwrite the profile they land beside |
 | `portability_smoke.sh` | awk portability: no `-v` name shadowing a built-in, no doubled `\n` in a format string |
+| `config_injection_smoke.sh` | Which user-editable config files are data and which are shell: the `displays.conf` / `workspaces.conf` grammar, the compatibility fallback, and a hostile value in `theme.conf` |
+| `cross_tool_consistency_smoke.sh` | `plan.sh` exit codes, the four-tool agreement it checks, `none` meaning no shipped app placement, and CJK-safe columns |
 | `sketchybar_smoke.sh` | Theme sourcing, display resolution, running without AeroSpace |
 | `ai_router_cli_smoke.sh` | Router CLI contract |
 | `ai_router_exports_smoke.sh` | Exported snippets match the prompts |
