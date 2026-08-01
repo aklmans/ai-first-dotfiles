@@ -590,6 +590,49 @@ run_in_home "$unplugged_home" "$unplugged_fixture" \
 assert_status 0 "$last_status" "Layout check must pass when configured displays are unplugged" "$last_output"
 assert_contains "$last_output" 'is not connected' "Unplugged displays are reported as a note, not a failure"
 
+# The lid-shut desk: two externals connected, the built-in configured for stage
+# and absent. This resolves stage onto the side display, and render-layout.sh
+# emits ['Built-in Retina Display', 'built-in', 'secondary', 'main'] and lets
+# AeroSpace walk it - where `secondary` means the display macOS did not put the
+# menu bar on, which is not the same display this repo calls `side`. So workspace
+# 13 lands on main, doctor called the machine broken, and there was nothing to
+# fix. A role that fell back has no single right display; it only has to be
+# somewhere.
+lid_shut_fixture="$sandbox_root/fixture-lid-shut"
+mkdir -p "$lid_shut_fixture"
+{
+  printf '1\tPHL 279C9\n'
+  printf '2\t24V5C2\n'
+} >"$lid_shut_fixture/monitors"
+printf '1\n2\n3\n4\n5\n6\n13\n' >"$lid_shut_fixture/workspaces.1"
+printf '7\n8\n9\n10\n11\n12\n' >"$lid_shut_fixture/workspaces.2"
+printf '1\n' >"$lid_shut_fixture/focused"
+printf 'PHL 279C9\t1\tUUID-MAIN\n24V5C2\t2\tUUID-SIDE\n' >"$lid_shut_fixture/screens"
+printf '[{"arrangement-id":1,"DirectDisplayID":1,"UUID":"UUID-MAIN"},{"arrangement-id":2,"DirectDisplayID":2,"UUID":"UUID-SIDE"}]\n' \
+  >"$lid_shut_fixture/displays.json"
+
+lid_shut_home="$(new_home)"
+write_displays_conf "$lid_shut_home" "PHL 279C9" "24V5C2" "Built-in Retina Display"
+run_in_home "$lid_shut_home" "$lid_shut_fixture" \
+  "$lid_shut_home/.config/aerospace/check-display-layout.sh"
+assert_status 0 "$last_status" \
+  "A stage workspace on the main display must pass when the stage display is absent" "$last_output"
+assert_not_contains "$last_output" 'workspace 13 is not on' \
+  "A role that fell back must not be held to one display"
+assert_not_contains "$last_output" '13 on 24V5C2' \
+  "The summary must not name a display the check stopped requiring"
+
+# The other half: with its configured display connected, a workspace somewhere
+# else is still the failure this check exists for.
+printf '1\n2\n3\n4\n5\n13\n' >"$lid_shut_fixture/workspaces.1"
+printf '6\n7\n8\n9\n10\n11\n12\n' >"$lid_shut_fixture/workspaces.2"
+run_in_home "$lid_shut_home" "$lid_shut_fixture" \
+  "$lid_shut_home/.config/aerospace/check-display-layout.sh"
+assert_status 1 "$last_status" \
+  "A main workspace on the wrong display must still fail" "$last_output"
+assert_contains "$last_output" 'workspace 6 is not on the main display' \
+  "The misplaced workspace must be named"
+
 # Late-arriving displays: the settle logic must still wait for the desk it was
 # told about rather than declaring victory on the first monitor to appear.
 late_fixture="$sandbox_root/fixture-late"
