@@ -103,6 +103,10 @@ catalog_print() {
     printf '  %-14s %s\n' "$id" "$description"
     printf '  %-14s modules: %s\n' '' "${scripts//,/ }"
   done < <(catalog_preset_records)
+
+  printf '\nGuided start (read-only by default):\n\n'
+  printf '  %-14s %s\n' 'recommend' 'Detect this Mac, ask about common scenes, and preview a workspace plan'
+  printf '  %-14s %s\n' 'tune' 'Refine an advisor-generated profile from explicit feedback'
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then

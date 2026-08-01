@@ -16,6 +16,7 @@ It provides predictable workspace keys, quick window movement, and deterministic
 - `home/.config/aerospace/render-app-rules.sh` - renders user `app-routes.conf` overrides and shipped defaults into `~/.aerospace.toml`
 - `home/.config/aerospace/doctor.sh` - reports where the desk, the config and the TOML disagree
 - `home/.config/aerospace/plan.sh` - previews resolved displays, semantic roles and routes
+- `bootstrap/advisor.sh` - detects a desk and generates a reviewed local profile
 - `home/.config/aerospace/*.sh`
 - `bootstrap/install/aerospace.sh` installs `aerospace`, deploys config, re-renders the generated blocks from your `displays.conf` / `workspaces.conf`, enables native ctrl-drag behavior, and tries a dry-run reload.
 
@@ -29,7 +30,7 @@ edited by hand.
 | Script | Reads | Writes into `~/.aerospace.toml` |
 |---|---|---|
 | `render-layout.sh` | `displays.conf`, `workspaces.conf` | Persistent workspace list, workspace-to-monitor assignment, the `Ctrl + N` and `Ctrl + Shift + N` bindings. Then calls `render-app-rules.sh` unless given `--no-app-rules`. |
-| `render-app-rules.sh` | generic layout rules, `app-routes.conf`, selected routing pack | Dialog behavior, exact user overrides and optional shipped placement |
+| `render-app-rules.sh` | generic layout rules, handwritten/captured/advisor routes, selected routing pack | Dialog behavior, exact local overrides and optional shipped placement |
 
 `render-layout.sh --check` reports drift, exits 1 when the TOML is out of date,
 and changes nothing — usually the fastest answer to "did my edit take?":
@@ -107,6 +108,43 @@ Everything outside the markers - your own bindings, your own comments - is left
 untouched, so `render-layout.sh` is safe to run against a config you have
 edited. `doctor.sh` reports when the config and the TOML have drifted apart.
 
+## Guided layout and feedback
+
+The installer can recommend rather than assume a desk:
+
+```bash
+./bootstrap/setup.sh recommend             # local detection + preview
+./bootstrap/setup.sh recommend --apply     # confirm, generate, install
+./bootstrap/setup.sh tune                  # explicit fewer/keep/more feedback
+```
+
+Workspace count follows selected task scenes, not display count alone. The
+advisor offers `focus` (4), `balanced` (6), `multitask` (8) and `advanced` (10),
+then distributes them across the displays currently detected. `flexible` keeps
+monitor names empty so roles collapse when screens are unplugged. `fixed` asks
+the user before writing detected display names.
+
+Installed-app suggestions are exact bundle-id data under
+`~/.config/ai-first/advisor-routes.conf`. They contain only applications found
+locally in selected scenes. The detection result itself is not persisted.
+
+After using the desk, arrange windows naturally and take a one-time snapshot:
+
+```bash
+~/.config/aerospace/app-route.sh capture-current
+~/.config/aerospace/app-route.sh capture-current --policy fixed --apply
+```
+
+The first command previews. An app observed across several workspaces is
+proposed as `follow`; one concentrated in a configured workspace is proposed as
+semantic `prefer` when its task role matches (or the exact workspace otherwise)
+by default. Applying writes
+`~/.config/ai-first/captured-routes.conf`. No watcher, event log or background
+history is enabled.
+
+Route priority is handwritten `app-routes.conf`, captured desktop, install
+advisor, then shipped pack. `plan.sh` displays and validates every layer.
+
 ## Author reference Workspace Map
 
 The table below belongs to `author-full`, not to the public `developer` preset.
@@ -165,6 +203,7 @@ Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 ~/.config/aerospace/app-route.sh bind-here  # pin focused app here
 ~/.config/aerospace/app-route.sh follow     # stay where opened
 ~/.config/aerospace/app-route.sh prefer notes # prefer a semantic task role
+~/.config/aerospace/app-route.sh capture-current # preview routes from this desktop
 ~/.config/aerospace/app-route.sh forget     # restore shipped default
 ~/.config/aerospace/app-route.sh list       # inspect custom routes
 ~/.config/aerospace/plan.sh                 # preview the complete resolution
@@ -189,6 +228,8 @@ aerospace reload-config --dry-run --no-gui
 - The generated blocks of `~/.aerospace.toml` are re-rendered from your two config files after every deploy, so an update to the tracked TOML does not quietly reset your workspace count or your monitor names.
 - App placement is selected by `AI_FIRST_ROUTING_PACK`; `none` is portable,
   `creator` targets the semantic stage, and `author` preserves the reference desk.
+- Machine-aware advice and a captured desktop are separate generated route
+  layers below handwritten `app-routes.conf`; neither is background telemetry.
 - Agent launch shortcuts use the tracked AI Router `agent` command, which opens a new Warp tab and pastes the command without executing it.
 - `home/.config/aerospace/layout-control.sh` owns temporary layout repair/toggle actions so shortcuts do not rely on multi-command inline AeroSpace chains.
 - `home/.config/aerospace/app-route.sh` captures the focused app for persistent bind/follow/prefer choices, with an exact-match data rule and backup on every change.

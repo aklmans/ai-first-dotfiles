@@ -21,6 +21,12 @@ Notable changes to this project. Format loosely follows
   routing packs, and `follow`/`prefer`/`fixed` app policies.
 - A read-only resolved-plan command that shows display roles, task roles and app
   targets, and makes invalid role/route data visible to doctor and CI.
+- A local installation advisor that detects display topology and recognized
+  installed apps, asks about common scenes, and previews 4/6/8/10-workspace
+  layouts before an explicit, backed-up `--apply`.
+- Explicit `tune` feedback plus a one-shot `capture-current` route proposal;
+  generated advisor/captured layers stay below handwritten app routes and use
+  no background telemetry.
 - A read-only module/preset doctor, choice-architecture regression suite, product
   quality scorecard and release checklist.
 

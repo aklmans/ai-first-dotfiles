@@ -154,6 +154,10 @@ if aiFirstAppRoutingEnabled then
     os.getenv("HOME") .. "/.config/aerospace/routing-packs/" .. aiFirstRoutingPack .. ".conf",
     false
   )
+  -- Increasing priority: shipped pack < install advisor < captured desktop <
+  -- handwritten app-routes. Later exact records replace earlier policy hints.
+  loadRoutePolicies(os.getenv("HOME") .. "/.config/ai-first/advisor-routes.conf", false)
+  loadRoutePolicies(os.getenv("HOME") .. "/.config/ai-first/captured-routes.conf", false)
   loadRoutePolicies(os.getenv("HOME") .. "/.config/aerospace/app-routes.conf", true)
 end
 local workspaceLocalAppByBundle = {

@@ -141,6 +141,7 @@ require_file home/.config/mpv/mpv.conf
 require_file home/.config/mpv/input.conf
 require_file bootstrap/brew.sh
 require_file bootstrap/catalog.sh
+require_file bootstrap/advisor.sh
 require_file bootstrap/doctor.sh
 require_file bootstrap/modules/base.conf
 require_file bootstrap/modules/workspace.conf
@@ -158,6 +159,7 @@ require_file bootstrap/setup.sh
 require_file bootstrap/app-store.sh
 require_file bootstrap/uninstall.sh
 require_file bootstrap/lib/common.sh
+require_file bootstrap/lib/advisor.sh
 
 require_file bootstrap/install/ai-router.sh
 require_file bootstrap/install/borders.sh
@@ -196,6 +198,7 @@ require_file tests/smoke/shell_layer_smoke.sh
 require_file tests/smoke/ai_router_cli_smoke.sh
 require_file tests/smoke/sketchybar_smoke.sh
 require_file tests/smoke/choice_architecture_smoke.sh
+require_file tests/smoke/advisor_smoke.sh
 
 require_absent bootstrap/macos
 require_absent bootstrap/install/gbrain.sh

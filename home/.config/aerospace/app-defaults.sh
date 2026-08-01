@@ -38,6 +38,14 @@ aerospace_app_routes_file() {
     printf '%s\n' "${AI_FIRST_APP_ROUTES_FILE:-$HOME/.config/aerospace/app-routes.conf}"
 }
 
+aerospace_advisor_routes_file() {
+    printf '%s\n' "${AI_FIRST_ADVISOR_ROUTES_FILE:-$HOME/.config/ai-first/advisor-routes.conf}"
+}
+
+aerospace_captured_routes_file() {
+    printf '%s\n' "${AI_FIRST_CAPTURED_ROUTES_FILE:-$HOME/.config/ai-first/captured-routes.conf}"
+}
+
 aerospace_routing_pack() {
     local pack="${AI_FIRST_ROUTING_PACK:-author}"
     case "$pack" in ''|*[!a-z0-9_-]*) pack='none' ;; esac
@@ -127,16 +135,41 @@ aerospace_user_route() {
     aerospace_route_from_file "$(aerospace_app_routes_file)" "${1:-}" "${2:-}"
 }
 
+aerospace_captured_route() {
+    aerospace_route_from_file "$(aerospace_captured_routes_file)" "${1:-}" "${2:-}"
+}
+
+aerospace_advisor_route() {
+    aerospace_route_from_file "$(aerospace_advisor_routes_file)" "${1:-}" "${2:-}"
+}
+
 aerospace_pack_route() {
     [ "$(aerospace_routing_pack)" != 'none' ] || return 1
     aerospace_route_from_file "$(aerospace_routing_pack_file)" "${1:-}" "${2:-}"
 }
 
-# User data has priority. A legacy layout-only record merges with the selected
-# pack's target; without a pack it becomes a follow-current layout choice.
+# Lowest user-specific route after handwritten data: a captured desktop wins
+# over install-time advice, and either wins over an optional shipped pack.
+aerospace_recommended_route() {
+    local app_id="${1:-}" app_name="${2:-}" route
+
+    if route="$(aerospace_captured_route "$app_id" "$app_name" 2>/dev/null)"; then
+        printf '%s\n' "$route"
+        return 0
+    fi
+    if route="$(aerospace_advisor_route "$app_id" "$app_name" 2>/dev/null)"; then
+        printf '%s\n' "$route"
+        return 0
+    fi
+    aerospace_pack_route "$app_id" "$app_name"
+}
+
+# Handwritten user data has priority. A legacy layout-only record merges with
+# captured/advisor/pack placement; without any lower route it becomes a
+# follow-current layout choice.
 aerospace_route_for_window() {
     local app_id="${1:-}" app_name="${2:-}"
-    local user_route pack_route user_policy user_layout
+    local user_route recommended_route user_policy user_layout
 
     if user_route="$(aerospace_user_route "$app_id" "$app_name" 2>/dev/null)"; then
         user_policy="$(printf '%s' "$user_route" | /usr/bin/awk -F '|' '{ print $2 }')"
@@ -145,8 +178,8 @@ aerospace_route_for_window() {
             return 0
         fi
         user_layout="$(printf '%s' "$user_route" | /usr/bin/awk -F '|' '{ print $3 }')"
-        if pack_route="$(aerospace_pack_route "$app_id" "$app_name" 2>/dev/null)"; then
-            printf '%s' "$pack_route" | /usr/bin/awk -F '|' -v layout="$user_layout" \
+        if recommended_route="$(aerospace_recommended_route "$app_id" "$app_name" 2>/dev/null)"; then
+            printf '%s' "$recommended_route" | /usr/bin/awk -F '|' -v layout="$user_layout" \
                 '{ printf "%s|%s|%s|%s\\n", $1, $2, layout, $4 }'
         else
             printf 'current|follow|%s|\n' "$user_layout"
@@ -154,7 +187,7 @@ aerospace_route_for_window() {
         return 0
     fi
 
-    aerospace_pack_route "$app_id" "$app_name"
+    aerospace_recommended_route "$app_id" "$app_name"
 }
 
 aerospace_route_field() {
@@ -425,6 +458,8 @@ emit_on_window_detected_rules() {
         printf '%s\n' '# Keep this block aligned with ~/.config/aerospace/app-defaults.sh.'
         emit_on_window_detected_rules_raw
         emit_user_on_window_detected_rules
+        emit_captured_on_window_detected_rules
+        emit_advisor_on_window_detected_rules
         emit_pack_on_window_detected_rules
     } | aerospace_layout_clamp_workspace_stream
 }
@@ -485,6 +520,18 @@ emit_routes_file_as_toml() {
 
 emit_user_on_window_detected_rules() {
     emit_routes_file_as_toml "$(aerospace_app_routes_file)" user
+}
+
+emit_captured_on_window_detected_rules() {
+    [ -r "$(aerospace_captured_routes_file)" ] || return 0
+    printf '%s\n' '# Locally captured desktop routes.'
+    emit_routes_file_as_toml "$(aerospace_captured_routes_file)" captured
+}
+
+emit_advisor_on_window_detected_rules() {
+    [ -r "$(aerospace_advisor_routes_file)" ] || return 0
+    printf '%s\n' '# Local installation-advisor routes.'
+    emit_routes_file_as_toml "$(aerospace_advisor_routes_file)" advisor
 }
 
 emit_pack_on_window_detected_rules() {

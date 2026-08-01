@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AEROSPACE="${AEROSPACE:-$(command -v aerospace 2>/dev/null || printf '/opt/homebrew/bin/aerospace')}"
 APP_ROUTES_FILE="${APP_ROUTES_FILE:-$SCRIPT_DIR/app-routes.conf}"
+CAPTURED_ROUTES_FILE="${AI_FIRST_CAPTURED_ROUTES_FILE:-$HOME/.config/ai-first/captured-routes.conf}"
 RENDER_APP_RULES="${RENDER_APP_RULES:-$SCRIPT_DIR/render-app-rules.sh}"
 AEROSPACE_CONFIG_PATH="${AEROSPACE_CONFIG_PATH:-$HOME/.aerospace.toml}"
 APP_ROUTE_NOTIFY="${APP_ROUTE_NOTIFY:-1}"
@@ -24,6 +25,9 @@ Focus-first commands:
       Prefer a semantic role or workspace for new windows without reset enforcement.
   forget
       Remove the focused app's custom rule and return to shipped defaults.
+  capture-current [--policy prefer|fixed|follow] [--layout preserve|keep] [--apply]
+      Read the desktop you arranged, propose exact local routes, and optionally
+      save them as a lower-priority captured layer. Preview is the default.
 
 Direct commands:
   set <id|name> <value> <target|current> <follow|prefer|fixed> [layout]
@@ -32,6 +36,7 @@ Direct commands:
 
 When layout is omitted, focus-first commands preserve the focused window's
 current tiling/floating state. Every change creates an app-routes.conf backup.
+Captured suggestions never replace handwritten app-routes.conf records.
 EOF
 }
 
@@ -164,6 +169,9 @@ apply_route_file() {
   if [ -x "$AEROSPACE" ] && "$AEROSPACE" reload-config --dry-run --no-gui >/dev/null 2>&1; then
     "$AEROSPACE" reload-config >/dev/null 2>&1 || true
   fi
+  if [ -f "$HOME/.hammerspoon/init.lua" ] && command -v hs >/dev/null 2>&1; then
+    hs -c 'hs.reload()' >/dev/null 2>&1 || true
+  fi
 
   notify "$description (backup: ${backup##*/})"
 }
@@ -217,6 +225,217 @@ list_routes() {
   ' "$APP_ROUTES_FILE"
 }
 
+capture_role_for_app_workspace() {
+  local app_id="$1" app_name="$2" workspace="$3" candidates='' role resolved
+
+  case "$app_id" in
+    com.apple.Terminal|dev.warp.Warp-Stable|fun.tw93.kaku) candidates='terminal' ;;
+    com.jetbrains.*|com.google.android.studio|com.microsoft.VSCode|com.microsoft.VSCodeInsiders|com.todesktop.230313mzl4w4u92|com.sublimetext.4) candidates='development focus' ;;
+    com.openai.codex|com.openai.chat|com.openai.atlas) candidates='ai support' ;;
+    company.thebrowser.dia) candidates='research web' ;;
+    com.apple.Safari|com.google.Chrome|com.microsoft.edgemac|company.thebrowser.Browser|org.mozilla.firefox) candidates='web research' ;;
+    com.tencent.*|com.alibaba.DingTalkMac|com.electron.lark|com.hnc.Discord|com.microsoft.teams2|com.tinyspeck.slackmacgap|us.zoom.xos) candidates='communication stage' ;;
+    md.obsidian|abnerworks.Typora|com.tw93.miaoyan|org.ozrey.markdown|org.zrey.markeditor2.x) candidates='notes' ;;
+    com.obsproject.obs-studio) candidates='broadcast stage' ;;
+    com.techsmith.camtasia|com.TechSmith.Snagit) candidates='stage broadcast' ;;
+    com.spotify.client|com.bilibili.bilibiliPC) candidates='media' ;;
+  esac
+
+  case "$app_name" in
+    GoLand|IntelliJ\ IDEA*|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android\ Studio) candidates="${candidates:-development focus}" ;;
+    OBS|OBS\ Studio) candidates="${candidates:-broadcast stage}" ;;
+  esac
+
+  if [ -r "$SCRIPT_DIR/lib/layout.sh" ]; then
+    # shellcheck source=lib/layout.sh
+    source "$SCRIPT_DIR/lib/layout.sh"
+    for role in $candidates; do
+      resolved="$(aerospace_layout_workspace_for_semantic_role "$role" 2>/dev/null || true)"
+      if [ "$resolved" = "$workspace" ]; then
+        printf '%s\n' "$role"
+        return 0
+      fi
+    done
+  fi
+
+  printf '%s\n' "$workspace"
+}
+
+apply_captured_route_file() {
+  local candidate="$1" description="$2" stamp backup=''
+
+  if [ -L "$CAPTURED_ROUTES_FILE" ]; then
+    printf 'Refusing to replace symlink: %s\n' "$CAPTURED_ROUTES_FILE" >&2
+    return 1
+  fi
+  mkdir -p "$(dirname "$CAPTURED_ROUTES_FILE")"
+  if cmp -s "$candidate" "$CAPTURED_ROUTES_FILE" 2>/dev/null; then
+    rm -f "$candidate"
+    notify "Unchanged: $description"
+    return 0
+  fi
+
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  if [ -e "$CAPTURED_ROUTES_FILE" ]; then
+    backup="$(mktemp "${CAPTURED_ROUTES_FILE}.backup-${stamp}.XXXXXX")"
+    cp "$CAPTURED_ROUTES_FILE" "$backup"
+  fi
+  mv "$candidate" "$CAPTURED_ROUTES_FILE"
+
+  if [ -x "$RENDER_APP_RULES" ] && [ -f "$AEROSPACE_CONFIG_PATH" ]; then
+    AI_FIRST_APP_ROUTES_FILE="$APP_ROUTES_FILE" \
+      AI_FIRST_CAPTURED_ROUTES_FILE="$CAPTURED_ROUTES_FILE" \
+      "$RENDER_APP_RULES" "$AEROSPACE_CONFIG_PATH"
+  else
+    printf 'Saved captured routes; render later with %s\n' "$RENDER_APP_RULES" >&2
+  fi
+
+  if [ -x "$AEROSPACE" ] && "$AEROSPACE" reload-config --dry-run --no-gui >/dev/null 2>&1; then
+    "$AEROSPACE" reload-config >/dev/null 2>&1 || true
+  fi
+  if [ -f "$HOME/.hammerspoon/init.lua" ] && command -v hs >/dev/null 2>&1; then
+    hs -c 'hs.reload()' >/dev/null 2>&1 || true
+  fi
+
+  if [ -n "$backup" ]; then
+    notify "$description (backup: ${backup##*/})"
+  else
+    notify "$description"
+  fi
+}
+
+capture_current_routes() {
+  local apply=0 single_policy='prefer' layout_mode='preserve'
+  local windows_file='' owned_windows=0 aggregated candidate user_file
+  local kind value app_name workspace captured_layout target policy count=0
+
+  shift
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --apply) apply=1 ;;
+      --policy)
+        [ "$#" -ge 2 ] || { printf '%s needs a value.\n' "$1" >&2; exit 64; }
+        single_policy="$2"; shift
+        ;;
+      --layout)
+        [ "$#" -ge 2 ] || { printf '%s needs a value.\n' "$1" >&2; exit 64; }
+        layout_mode="$2"; shift
+        ;;
+      -h|--help) usage; return 0 ;;
+      *) printf 'Unknown capture option: %s\n' "$1" >&2; exit 64 ;;
+    esac
+    shift
+  done
+  case "$single_policy" in follow|prefer|fixed) ;; *) printf 'Capture policy must be follow, prefer, or fixed.\n' >&2; exit 64 ;; esac
+  case "$layout_mode" in preserve|keep) ;; *) printf 'Capture layout must be preserve or keep.\n' >&2; exit 64 ;; esac
+
+  if [ -n "${AEROSPACE_CAPTURE_WINDOWS_FILE:-}" ]; then
+    windows_file="$AEROSPACE_CAPTURE_WINDOWS_FILE"
+    [ -r "$windows_file" ] || { printf 'Capture fixture is unreadable: %s\n' "$windows_file" >&2; exit 66; }
+  else
+    require_aerospace
+    windows_file="$(mktemp "${TMPDIR:-/tmp}/aerospace-capture-windows.XXXXXX")"
+    owned_windows=1
+    "$AEROSPACE" list-windows --all \
+      --format 'x%{app-bundle-id}%{tab}%{app-name}%{tab}%{workspace}%{tab}%{window-layout}' \
+      >"$windows_file" 2>/dev/null || true
+  fi
+
+  aggregated="$(mktemp "${TMPDIR:-/tmp}/aerospace-capture-aggregated.XXXXXX")"
+  candidate="$(mktemp "${TMPDIR:-/tmp}/aerospace-captured-routes.XXXXXX")"
+  user_file="$APP_ROUTES_FILE"
+  [ -r "$user_file" ] || user_file='/dev/null'
+
+  /usr/bin/awk -F '\t' -v user_routes="$user_file" '
+    BEGIN {
+      while ((getline line < user_routes) > 0) {
+        split(line, fields, "|")
+        if (fields[1] == "id" || fields[1] == "name") user[fields[1] SUBSEP fields[2]] = 1
+      }
+      close(user_routes)
+    }
+    {
+      id=$1; sub(/^x/, "", id)
+      name=$2; workspace=$3; layout=$4
+      if (id == "" && name == "") next
+      if (name ~ /[|\r\n]/ || id ~ /[|\r\n]/ || workspace !~ /^[A-Za-z0-9_-]+$/) next
+      kind=(id != "" ? "id" : "name")
+      value=(id != "" ? id : name)
+      key=kind SUBSEP value
+      if (user[key]) next
+      if (!seen_workspace[key SUBSEP workspace]++) distinct[key]++
+      if (!(key in first_workspace)) first_workspace[key]=workspace
+      app_name[key]=name
+      total[key]++
+      if (layout == "floating") floating[key]++
+      if (layout == "tiling") tiling[key]++
+    }
+    END {
+      for (key in total) {
+        split(key, pair, SUBSEP)
+        layout="-"
+        if (floating[key] == total[key]) layout="floating"
+        else if (tiling[key] == total[key]) layout="tiling"
+        workspace=(distinct[key] > 1 ? "current" : first_workspace[key])
+        printf "%s|%s|%s|%s|%s\n", pair[1], pair[2], app_name[key], workspace, layout
+      }
+    }
+  ' "$windows_file" | LC_ALL=C sort >"$aggregated"
+
+  {
+    printf '# Generated locally by app-route.sh capture-current.\n'
+    printf '# Handwritten app-routes.conf records always have higher priority.\n'
+    printf '# match|value|target|policy|layout\n'
+    while IFS='|' read -r kind value app_name workspace captured_layout rest; do
+      [ -z "${rest:-}" ] || continue
+      if [ "$workspace" = 'current' ] || [ "$single_policy" = 'follow' ]; then
+        target='current'
+        policy='follow'
+      else
+        if [ -r "$SCRIPT_DIR/lib/layout.sh" ]; then
+          # shellcheck source=lib/layout.sh
+          source "$SCRIPT_DIR/lib/layout.sh"
+        fi
+        if type aerospace_layout_workspace_is_configured >/dev/null 2>&1 && \
+           ! aerospace_layout_workspace_is_configured "$workspace"; then
+          # The window may belong to an unmanaged temporary workspace. Capturing
+          # that number as a target would produce invalid data, so keep it local.
+          target='current'
+          policy='follow'
+        else
+          target="$(capture_role_for_app_workspace "$value" "$app_name" "$workspace")"
+          policy="$single_policy"
+        fi
+      fi
+      [ "$layout_mode" = 'preserve' ] || captured_layout='-'
+      printf '%s|%s|%s|%s|%s\n' "$kind" "$value" "$target" "$policy" "$captured_layout"
+      count=$((count + 1))
+    done <"$aggregated"
+  } >"$candidate"
+
+  [ "$owned_windows" -eq 0 ] || rm -f "$windows_file"
+  rm -f "$aggregated"
+
+  printf 'Captured route proposal (%s app(s))\n\n' "$count"
+  /usr/bin/awk -F '|' '$1 == "id" || $1 == "name" {
+    printf "  %-5s %-38s target=%-14s policy=%-7s layout=%s\n", $1, $2, $3, $4, $5
+  }' "$candidate"
+  printf '\nThis is a one-time local snapshot; no background tracking was enabled.\n'
+  printf 'Handwritten routes in %s were skipped.\n' "$APP_ROUTES_FILE"
+
+  if [ "$apply" -eq 0 ]; then
+    rm -f "$candidate"
+    printf 'Preview only. Re-run with --apply to save %s.\n' "$CAPTURED_ROUTES_FILE"
+    return 0
+  fi
+  if [ "$count" -eq 0 ]; then
+    rm -f "$candidate"
+    printf 'Nothing to apply.\n'
+    return 0
+  fi
+  apply_captured_route_file "$candidate" "Captured $count app route(s) from the current desktop"
+}
+
 command_name="${1:-help}"
 case "$command_name" in
   bind-here)
@@ -249,6 +468,9 @@ case "$command_name" in
     ;;
   list)
     list_routes
+    ;;
+  capture-current)
+    capture_current_routes "$@"
     ;;
   help|-h|--help)
     usage

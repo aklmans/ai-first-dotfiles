@@ -100,6 +100,10 @@ print_routes() {
 }
 
 print_routes 'User' "$(aerospace_app_routes_file)"
+route_count=0
+print_routes 'Captured' "$(aerospace_captured_routes_file)"
+route_count=0
+print_routes 'Advisor' "$(aerospace_advisor_routes_file)"
 if [ "$(aerospace_routing_pack)" != 'none' ]; then
   route_count=0
   print_routes 'Pack' "$(aerospace_routing_pack_file)"

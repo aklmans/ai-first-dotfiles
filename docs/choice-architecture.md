@@ -32,6 +32,46 @@ macOS Terminal, Kaku or Warp; the prompt/router behavior does not depend on a
 specific terminal brand. A workspace can be useful with or without SketchyBar,
 notifications, gestures or the author's app placement.
 
+## Guided recommendation
+
+Users who do not yet know which preset or workspace count they want can start
+with the local advisor:
+
+```bash
+./bootstrap/setup.sh recommend
+```
+
+It separates facts from preferences:
+
+- Facts detected locally: connected display count/names, built-in display,
+  suggested current main display, recognized installed applications and an
+  existing advisor profile.
+- Preferences asked explicitly: coding/AI/web/communication/writing/recording/
+  media scenes, flexible versus fixed displays, terminal choice, and
+  `follow`/`prefer`/`fixed` placement strength.
+
+The result is a preview, not an install. Workspace count is derived from task
+load rather than multiplying displays: `focus` has 4, `balanced` 6,
+`multitask` 8 and `advanced` 10. Display count changes how those tasks are
+grouped across `main`, `side` and `stage`; unplugged roles still collapse by the
+normal display resolver.
+If macOS exposes only a display count and not stable names, flexible planning
+still works; fixed-name mode is deferred until AeroSpace or Hammerspoon can
+report the names rather than writing placeholders that will never match.
+
+```bash
+./bootstrap/setup.sh recommend --apply
+./bootstrap/setup.sh recommend --apply --config-only
+./bootstrap/setup.sh tune
+./bootstrap/setup.sh tune --workspace-feedback fewer --apply
+```
+
+Non-interactive mutation requires both `--apply` and `--yes`. Generated profile
+and route files are backed up and recorded in the uninstall ledger; a symlink is
+refused unless `--force` is explicit. Notifications, Full Disk Access,
+BetterTouchTool and Warp installation are never inferred. Hardware/application
+detection is not stored or sent anywhere.
+
 ## Profile settings
 
 `~/.config/ai-first/profile.conf` contains literal `KEY="value"` assignments.
@@ -41,6 +81,10 @@ It is deliberately not a general shell hook.
 |---|---|
 | `AI_FIRST_APP_ROUTING` | enable/disable app layout rules, user routes and the selected pack |
 | `AI_FIRST_ROUTING_PACK` | `none`, `suggested`, `creator`, or `author` |
+| `AI_FIRST_ADVISOR_SCENES` | advisor metadata used by `tune` and doctor |
+| `AI_FIRST_ADVISOR_WORKSPACE_MODE` | `focus`, `balanced`, `multitask`, or `advanced` |
+| `AI_FIRST_ADVISOR_DESK_MODE` | `flexible` or explicitly named `fixed` displays |
+| `AI_FIRST_ADVISOR_PLACEMENT` | generated route strength: `follow`, `prefer`, or `fixed` |
 | `AI_FIRST_FEATURE_AI_HOTKEYS` | load Hammerspoon AI chooser/hotkeys |
 | `AI_FIRST_FEATURE_NOTIFICATIONS` | run notification watchers |
 | `AI_FIRST_FEATURE_RECORDING` | load recording window presets |
@@ -112,12 +156,23 @@ Layout remains independent: `tiling`, `floating`, or `-`. Existing four-column
 records are read as legacy data. Overrides win over the selected pack; invalid
 targets are ignored by the renderer and reported by `plan.sh`/`doctor.sh`.
 
+The complete priority order is:
+
+1. handwritten `~/.config/aerospace/app-routes.conf`;
+2. one-shot `captured-routes.conf` from a desktop the user arranged;
+3. install-time `advisor-routes.conf` for detected apps and selected scenes;
+4. the optional shipped routing pack.
+
+The two generated files live under `~/.config/ai-first/`, so updating advice
+never rewrites the handwritten file.
+
 For the focused app, use the quick editor instead of looking up its bundle id:
 
 ```bash
 ~/.config/aerospace/app-route.sh bind-here
 ~/.config/aerospace/app-route.sh follow
 ~/.config/aerospace/app-route.sh prefer notes
+~/.config/aerospace/app-route.sh capture-current
 ~/.config/aerospace/app-route.sh forget
 ```
 
@@ -125,6 +180,14 @@ For the focused app, use the quick editor instead of looking up its bundle id:
 Each change backs up the route file, renders and validates the AeroSpace config,
 then reloads it. Finder and Preview ship as `current|follow|floating`: they stay where
 they are opened without taking over the tiled layout.
+
+`capture-current` is read-only by default. It reads current AeroSpace windows
+once: an app seen across several workspaces is proposed as `follow`, while an
+app concentrated in one configured workspace is proposed as semantic
+`prefer` when its task role matches, or that exact workspace otherwise.
+`--policy fixed` is available only when the user explicitly wants a
+strong constraint. `--apply` writes the reviewed snapshot; there is no daemon,
+history database or background behavior tracking.
 
 ## Preset behavior
 

@@ -34,6 +34,18 @@ You can ignore presets and compose modules:
 Dependencies are added once. For example, `bar` adds `workspace`, and
 `notifications` adds `bar` and `workspace`.
 
+If workspace counts and routing policies are unfamiliar, let the local advisor
+build a recommendation instead of choosing a preset first:
+
+```bash
+./bootstrap/setup.sh recommend
+```
+
+It detects connected displays and recognized installed apps, then asks about
+common scenes when run in a real terminal. The preview recommends 4, 6, 8 or 10
+task workspaces and shows their `main`/`side`/`stage` distribution. It stores no
+detection result and writes nothing until the plan is re-run with `--apply`.
+
 ## 2. Preview the exact plan
 
 ```bash
@@ -57,6 +69,17 @@ Paid and closed-source choices appear only when explicitly selected:
 ```bash
 ./bootstrap/setup.sh minimal
 ```
+
+Or apply the reviewed machine-aware plan:
+
+```bash
+./bootstrap/setup.sh recommend --apply
+```
+
+The advisor installs only its free recommended modules. It does not infer
+notifications/Full Disk Access, BetterTouchTool or Warp. Use
+`--apply --config-only` when the underlying tools already exist and only the
+generated profile and route advice should change.
 
 Useful flags:
 
@@ -105,12 +128,27 @@ Other safe preference points:
 - `~/.config/aerospace/app-routes.conf` — exact app target/policy/layout overrides
 - `~/.config/aerospace/app-route.sh bind-here|follow|prefer` — capture the focused app
   without finding its bundle id; Finder and Preview default to `follow`
+- `~/.config/aerospace/app-route.sh capture-current` — inspect the desktop once
+  and preview routes without enabling background tracking
 - `~/.config/aerospace/displays.conf` and `workspaces.conf` — desk topology
 - `~/.config/aerospace/plan.sh` — read-only resolved displays, workspace roles,
   routing pack, targets and validation
 - `~/.config/sketchybar/theme.conf` — bar fonts, geometry and color roles
 - `~/.config/zsh/private.zsh` — machine-local shell values and secrets
 - `~/.config/ai-router/config.json` and `prompts/` — provider and prompt choices
+
+After using an advisor profile for a while, explicit feedback changes one
+dimension at a time:
+
+```bash
+./bootstrap/setup.sh tune
+./bootstrap/setup.sh tune --workspace-feedback fewer --apply
+~/.config/aerospace/app-route.sh capture-current --apply
+```
+
+Handwritten routes remain above captured routes, captured routes remain above
+install-time advice, and all local layers remain above an optional shipped
+routing pack.
 
 The deploy engine preserves local changes. See
 [Choice architecture](choice-architecture.md) for every setting and example.

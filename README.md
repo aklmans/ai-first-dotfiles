@@ -24,11 +24,18 @@ git clone https://github.com/aklmans/ai-first-dotfiles.git
 cd ai-first-dotfiles
 ./bootstrap/setup.sh list
 ./bootstrap/setup.sh minimal --dry-run
+./bootstrap/setup.sh recommend
 ```
 
 `list` shows each independent outcome, its cost, permissions and dependencies.
 `--dry-run` executes nothing and needs no Homebrew; it prints the exact taps,
 formulae, casks, commands and paths the real run would use.
+
+`recommend` is also read-only by default. It detects connected displays and a
+small catalog of locally installed applications, asks about common scenes on a
+real terminal, then recommends 4, 6, 8 or 10 semantic workspaces. Detection is
+local, is not retained, and never implies buying or installing an application.
+Only `recommend --apply` writes the reviewed data and installs its free modules.
 
 When you are ready:
 
@@ -219,10 +226,13 @@ have changed one and stops overwriting it, so these survive updates.
 | Which monitor is `main` / `side` / `stage` | profile values or `~/.config/aerospace/displays.conf` | `~/.config/aerospace/render-layout.sh` |
 | How many workspaces exist, and where | profile values or `~/.config/aerospace/workspaces.conf` | `~/.config/aerospace/render-layout.sh` |
 | Which semantic role points to each workspace | `AEROSPACE_WORKSPACE_ROLE_MAP` in `profile.conf` or `workspaces.conf` | `~/.config/aerospace/plan.sh --check` |
+| Get a machine-aware first layout | connected displays, installed apps and a short scene questionnaire | `./bootstrap/setup.sh recommend` |
+| Say the workspace count feels wrong | explicit `fewer`, `keep` or `more` feedback | `./bootstrap/setup.sh tune` |
 | Which shipped app routing pack is active | `AI_FIRST_ROUTING_PACK` in `profile.conf` | `~/.config/aerospace/render-app-rules.sh` |
 | Bind the focused app to this workspace | any app window | `~/.config/aerospace/app-route.sh bind-here` |
 | Let the focused app follow the current workspace | any app window | `~/.config/aerospace/app-route.sh follow` |
 | Prefer a task role for the focused app | any app window | `~/.config/aerospace/app-route.sh prefer <role>` |
+| Propose routes from a desktop you arranged | current AeroSpace windows, read once | `~/.config/aerospace/app-route.sh capture-current` |
 | Batch-edit app workspace/layout choices | `~/.config/aerospace/app-routes.conf` | `~/.config/aerospace/render-app-rules.sh` |
 | Which supported notification apps are shown | `AI_FIRST_NOTIFICATION_APPS` in `profile.conf` | `brew services restart sketchybar` |
 | Which terminal receives AI prompts | `AI_FIRST_TERMINAL_APP` in `profile.conf` | reload Hammerspoon |
@@ -238,6 +248,10 @@ and `stage` all resolve to whatever screen is actually connected.
 Run `~/.config/aerospace/doctor.sh` when the desk and the config disagree.
 Run `~/.config/aerospace/plan.sh` to see the resolved displays, roles, routing
 pack and exact app targets before applying anything.
+Run `~/.config/aerospace/app-route.sh capture-current` after arranging windows
+the way you like. It previews `follow`/`prefer` suggestions from that one
+snapshot; `--apply` saves them in a generated layer below handwritten routes.
+No background activity logging is enabled.
 Run `./bootstrap/setup.sh doctor <module|preset>` for a read-only install and
 permission checklist.
 

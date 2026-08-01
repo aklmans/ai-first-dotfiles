@@ -142,7 +142,16 @@ else
 fi
 
 if [ "${#requested[@]}" -eq 0 ]; then
-  if [ -n "$active_preset" ] && catalog_preset_exists "$active_preset"; then
+  if [ "$active_preset" = 'advisor' ]; then
+    requested+=(workspace bar)
+    advisor_scenes="$(/usr/bin/awk -F '"' '/^AI_FIRST_ADVISOR_SCENES="[^"$`]*"$/ { print $2; exit }' "$profile_path")"
+    case " $advisor_scenes " in
+      *' ai '*) requested+=(capslock automation ai) ;;
+    esac
+    case " $advisor_scenes " in
+      *' recording '*) requested+=(automation recording) ;;
+    esac
+  elif [ -n "$active_preset" ] && catalog_preset_exists "$active_preset"; then
     requested+=("$active_preset")
   elif [ "$active_preset" != 'custom' ]; then
     while IFS=$'\t' read -r module _rest; do requested+=("$module"); done < <(catalog_module_records)

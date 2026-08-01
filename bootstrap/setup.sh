@@ -6,6 +6,29 @@ source "$script_dir/lib/common.sh"
 source "$script_dir/catalog.sh"
 repo_root="$(repo_root_dir)"
 
+# Advisor commands have their own option grammar and perform detection before
+# any package prerequisite is required. Dispatch them before the normal module
+# parser so `recommend --apply` and `tune --workspace-feedback fewer` remain
+# data-oriented commands rather than pretending their flags are setup modules.
+case "${1:-}" in
+  recommend|tune)
+    advisor_command="$1"
+    shift
+    exec "$script_dir/advisor.sh" "$advisor_command" "$@"
+    ;;
+  capture-current)
+    shift
+    route_tool="$HOME/.config/aerospace/app-route.sh"
+    if [ ! -x "$route_tool" ]; then
+      route_tool="$repo_root/home/.config/aerospace/app-route.sh"
+      if [ -r "$HOME/.config/aerospace/app-routes.conf" ]; then
+        export APP_ROUTES_FILE="$HOME/.config/aerospace/app-routes.conf"
+      fi
+    fi
+    exec "$route_tool" capture-current "$@"
+    ;;
+esac
+
 dry_run=0
 no_brew=0
 deploy_only=0
@@ -18,6 +41,9 @@ Usage: ./bootstrap/setup.sh <module|preset>... [options]
 Start here:
   list          Show independent modules, costs, permissions and presets
   doctor        Read-only health check; accepts an optional module or preset
+  recommend     Detect this Mac, ask about common scenes, and preview a layout
+  tune          Refine an advisor-generated profile from explicit feedback
+  capture-current  Propose app routes from the desktop you arranged yourself
   minimal       Free desktop starting point: workspace + bar
   developer     Keyboard desktop plus local AI workflows
   author-full   The author's complete, opinionated setup (includes paid/closed choices)

@@ -21,6 +21,10 @@ ai_first_profile_apply_file() {
       value="${BASH_REMATCH[2]}"
       case "$key" in
         AI_FIRST_PRESET) [ -n "$env_preset_set" ] || AI_FIRST_PRESET="$value" ;;
+        AI_FIRST_ADVISOR_SCENES) [ -n "$env_advisor_scenes_set" ] || AI_FIRST_ADVISOR_SCENES="$value" ;;
+        AI_FIRST_ADVISOR_WORKSPACE_MODE) [ -n "$env_advisor_workspace_mode_set" ] || AI_FIRST_ADVISOR_WORKSPACE_MODE="$value" ;;
+        AI_FIRST_ADVISOR_DESK_MODE) [ -n "$env_advisor_desk_mode_set" ] || AI_FIRST_ADVISOR_DESK_MODE="$value" ;;
+        AI_FIRST_ADVISOR_PLACEMENT) [ -n "$env_advisor_placement_set" ] || AI_FIRST_ADVISOR_PLACEMENT="$value" ;;
         AI_FIRST_APP_ROUTING) [ -n "$env_app_routing_set" ] || AI_FIRST_APP_ROUTING="$value" ;;
         AI_FIRST_ROUTING_PACK) [ -n "$env_routing_pack_set" ] || AI_FIRST_ROUTING_PACK="$value" ;;
         AI_FIRST_FEATURE_AI_HOTKEYS) [ -n "$env_ai_hotkeys_set" ] || AI_FIRST_FEATURE_AI_HOTKEYS="$value" ;;
@@ -48,6 +52,10 @@ ai_first_profile_load() {
   [ "${AI_FIRST_PROFILE_LOADED:-0}" != "1" ] || return 0
 
   local env_preset_set="${AI_FIRST_PRESET+x}"
+  local env_advisor_scenes_set="${AI_FIRST_ADVISOR_SCENES+x}"
+  local env_advisor_workspace_mode_set="${AI_FIRST_ADVISOR_WORKSPACE_MODE+x}"
+  local env_advisor_desk_mode_set="${AI_FIRST_ADVISOR_DESK_MODE+x}"
+  local env_advisor_placement_set="${AI_FIRST_ADVISOR_PLACEMENT+x}"
   local env_app_routing_set="${AI_FIRST_APP_ROUTING+x}"
   local env_routing_pack_set="${AI_FIRST_ROUTING_PACK+x}"
   local env_ai_hotkeys_set="${AI_FIRST_FEATURE_AI_HOTKEYS+x}"
@@ -81,6 +89,10 @@ ai_first_profile_load() {
   fi
 
   AI_FIRST_PRESET="${AI_FIRST_PRESET-custom}"
+  AI_FIRST_ADVISOR_SCENES="${AI_FIRST_ADVISOR_SCENES-}"
+  AI_FIRST_ADVISOR_WORKSPACE_MODE="${AI_FIRST_ADVISOR_WORKSPACE_MODE-}"
+  AI_FIRST_ADVISOR_DESK_MODE="${AI_FIRST_ADVISOR_DESK_MODE-}"
+  AI_FIRST_ADVISOR_PLACEMENT="${AI_FIRST_ADVISOR_PLACEMENT-}"
   AI_FIRST_APP_ROUTING="${AI_FIRST_APP_ROUTING-1}"
   AI_FIRST_ROUTING_PACK="${AI_FIRST_ROUTING_PACK-author}"
   AI_FIRST_FEATURE_AI_HOTKEYS="${AI_FIRST_FEATURE_AI_HOTKEYS-1}"
@@ -113,6 +125,8 @@ ai_first_profile_load() {
 
   AI_FIRST_PROFILE_LOADED=1
   export AI_FIRST_PRESET AI_FIRST_APP_ROUTING
+  export AI_FIRST_ADVISOR_SCENES AI_FIRST_ADVISOR_WORKSPACE_MODE
+  export AI_FIRST_ADVISOR_DESK_MODE AI_FIRST_ADVISOR_PLACEMENT
   export AI_FIRST_ROUTING_PACK
   export AI_FIRST_FEATURE_AI_HOTKEYS AI_FIRST_FEATURE_NOTIFICATIONS
   export AI_FIRST_FEATURE_RECORDING AI_FIRST_BAR_LEFT_ITEMS
