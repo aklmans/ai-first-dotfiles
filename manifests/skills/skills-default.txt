@@ -1,0 +1,22 @@
+# Agent skills to install with `./bootstrap/skills.sh`.
+#
+# Empty on purpose. A skill is a folder of instructions an agent will follow on
+# your machine, so a list of somebody else's is not a sensible default to hand a
+# stranger - the same reason manifests/app-store/mas-default.txt ships empty.
+#
+# Add your own, one per line:
+#
+#   <source><TAB><why you want it>
+#
+# The source is whatever `npx skills add` accepts:
+#
+#   owner/repo                 every skill in that repository
+#   owner/repo/skill-name      one skill out of it
+#   https://github.com/...     a full URL, including GitLab and plain git hosts
+#
+# bootstrap/skills.sh prints the whole list and asks before installing anything,
+# so an entry here is a proposal rather than an instruction. Find skills with
+# `npx skills find <query>` or at https://www.skills.sh.
+#
+# This installs other people's skills. Your own belong in home/.agents/skills/,
+# which the `skills` module deploys - see home/.agents/skills/README.md.

@@ -324,7 +324,10 @@ anyway. `brew uninstall` whatever you don't.
 - The tracked Karabiner config carries no `vendor_id`/`product_id` pairs — those
   identify the exact keyboards a person owns.
 - App Store manifests ship empty, and `bootstrap/app-store.sh` prints what it
-  would install and asks first.
+  would install and asks first. The same is true of
+  `manifests/skills/skills-default.txt` and `bootstrap/skills.sh`: a skill is a
+  set of instructions an agent will act on, so somebody else's list is not a
+  default worth shipping.
 - `examples/macos-defaults/` holds `defaults write` tweaks from the author's
   machine. **No profile ever runs them.** Read them and run them yourself if you
   want them.
@@ -342,7 +345,7 @@ Details: [docs/privacy.md](docs/privacy.md).
 .
 ├── home/           # Source of truth — copied into your home directory
 ├── bootstrap/      # catalog, setup/doctor/uninstall, presets, module installers
-├── manifests/      # Package lists for optional App Store tooling
+├── manifests/      # Opt-in lists: App Store apps, agent skills
 ├── examples/       # Reference material no profile ever runs
 ├── tests/smoke/    # regression suites: deploy, choices, orchestration, privacy, behavior
 └── docs/           # Documentation

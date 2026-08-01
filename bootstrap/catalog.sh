@@ -25,6 +25,7 @@ catalog_module_records() {
     $'shell\tzsh, Starship, Yazi and IdeaVim\tfree/open source\tchanges ZDOTDIR\tzsh,starship,yazi,ideavim\t-' \
     $'sublime\tSublime Text terminal integration\tfree config; Sublime optional\tnone\tsublime\t-' \
     $'media\tmpv configuration\tfree/open source\tnone\tmpv\t-' \
+    $'skills\tYour own agent skills, deployed and checked\tfree/open source\tnone\tskills\t-' \
     $'gui-path\tHomebrew tools in GUI apps\tfree/open source\tlogin-session PATH\tgui-path\t-'
 }
 

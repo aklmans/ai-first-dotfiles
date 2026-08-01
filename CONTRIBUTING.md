@@ -32,7 +32,7 @@ The smoke suites cover the repo:
 | `install_deploy_smoke.sh` | Module scripts run for real against a throwaway `$HOME` |
 | `deploy_engine_smoke.sh` | The four deploy guarantees: per-file, keep-local, back-up, never-follow-symlinks |
 | `orchestration_smoke.sh` | `setup.sh` profiles, flag handling, failure isolation, preflight |
-| `choice_architecture_smoke.sh` | catalog validity, preset behavior, cost boundaries and copy deployment |
+| `choice_architecture_smoke.sh` | catalog validity, preset behavior, cost boundaries and copy deployment — including that every catalog module has an installer, which is what covers `skills` |
 | `shell_layer_smoke.sh` | `~/.zshenv` takeover, `ZDOTDIR`, not clobbering an existing `~/.zshrc` |
 | `aerospace_workflow_smoke.sh` | Renderers, display resolution, workspace math |
 | `advisor_displays_smoke.sh` | Display detection off the author's desk: no built-in screen, resolving a display by number, degenerate detection |

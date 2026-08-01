@@ -114,6 +114,16 @@ doctor_module() {
       check_command mpv mpv
       check_path "$HOME/.config/mpv/mpv.conf" 'mpv config'
       ;;
+    skills)
+      check_path "$HOME/.agents/skills" 'skills directory'
+      # `npx skills` is only needed for other people's skills, so its absence is
+      # a note rather than something missing.
+      if command -v npx >/dev/null 2>&1; then
+        report_ok "npx available for ./bootstrap/skills.sh: $(command -v npx)"
+      else
+        report_warn 'npx is not installed; ./bootstrap/skills.sh cannot fetch third-party skills'
+      fi
+      ;;
     gui-path)
       check_path "$HOME/Library/LaunchAgents/com.ai-first-dotfiles.gui-path.plist" 'GUI PATH launch agent'
       ;;

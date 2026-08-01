@@ -177,6 +177,12 @@ require_file bootstrap/install/mpv.sh
 require_file bootstrap/install/kaku.sh
 require_file bootstrap/install/yazi.sh
 
+require_file manifests/skills/skills-default.txt
+require_file manifests/skills/skills-personal.example.txt
+require_file bootstrap/skills.sh
+require_file bootstrap/install/skills.sh
+require_file bootstrap/modules/skills.conf
+require_file home/.agents/skills/README.md
 require_file manifests/app-store/mas-default.txt
 require_file manifests/app-store/mas-large.txt
 require_file LICENSE

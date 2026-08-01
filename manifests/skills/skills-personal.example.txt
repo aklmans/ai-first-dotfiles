@@ -1,0 +1,27 @@
+# Example skills manifest.
+#
+# Kept as a worked example of the format. Nothing here is installed by anything
+# in this repository: bootstrap/skills.sh only ever reads skills-default.txt.
+#
+# To use it as a starting point:
+#
+#   cp manifests/skills/skills-personal.example.txt manifests/skills/skills-default.txt
+#
+# Then delete the lines you do not want, because the next run will offer to
+# install every one of them.
+#
+# Format is <source><TAB><why you want it>. The comment is for you: six months
+# from now it is the only thing that says why a skill is on the list.
+
+vercel-labs/skills/find-skills	search the skills directory from inside the agent
+anthropics/skills/pdf	read and fill PDFs without leaving the session
+anthropics/skills/xlsx	build spreadsheets from data already in context
+
+# One skill out of a repository that has several:
+#
+#   tmchow/agent-skills/clawpatch	patch review helper
+#
+# Or every skill a repository ships, which the confirmation step will list
+# individually before anything is installed:
+#
+#   vercel-labs/skills
