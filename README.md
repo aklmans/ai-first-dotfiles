@@ -44,9 +44,15 @@ module, or ignore presets entirely.
 
 | Preset | Includes | It deliberately leaves out |
 |---|---|---|
-| `minimal` | AeroSpace workspace management + SketchyBar | app routing, CapsLock takeover, AI, notifications, recording, shell, accounts and paid apps |
-| `developer` | `minimal` + CapsLock + Hammerspoon + local AI workflows | notifications, recording, shell, paid and closed-source apps |
+| `minimal` | AeroSpace + SketchyBar, portable dialog/layout rules, and exact user routes | shipped app placement, CapsLock takeover, AI, notifications, recording, shell, accounts and paid apps |
+| `developer` | `minimal` + CapsLock + Hammerspoon + local AI workflows; eight task workspaces with no shipped app placement | notifications, recording, shell, paid and closed-source apps |
 | `author-full` | the maintained 13-workspace desk and every integration | nothing; explicitly includes BetterTouchTool (paid after trial), Warp (closed source/account) and shell takeover |
+
+Workspaces describe tasks, not application brands. Physical displays only
+decide where those task roles appear: one display carries every role, two split
+main/support work, and a third can become a stage. Applications follow the
+current workspace unless the user selects a routing pack or creates an exact
+`follow`, `prefer` or `fixed` rule.
 
 Modules are the stable public interface:
 
@@ -78,7 +84,7 @@ that [`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay.
 
 | Module | Tools | What it actually does |
 |---|---|---|
-| Workspaces | [AeroSpace](https://github.com/nikitabobko/AeroSpace) | 6 neutral workspaces in `minimal`, or the author's 13-workspace/multi-display map in `author-full` |
+| Workspaces | [AeroSpace](https://github.com/nikitabobko/AeroSpace) | 6 neutral workspaces in `minimal`, 8 task workspaces in `developer`, or the author's 13-workspace/multi-display reference map |
 | Desktop UI | [SketchyBar](https://github.com/FelixKratz/SketchyBar), [JankyBorders](https://github.com/FelixKratz/JankyBorders) | Workspace row with live app icons, a border around the focused window |
 | Keyboard layer | [Karabiner-Elements](https://karabiner-elements.pqrs.org) | CapsLock: tap for `Esc`, hold for Hyper, plus arrow/delete chords under the home row |
 | Automation | [Hammerspoon](https://www.hammerspoon.org) | Turns those chords into actions: AI palette, agent chooser, screencast window presets |
@@ -212,8 +218,11 @@ have changed one and stops overwriting it, so these survive updates.
 | Which capabilities are visible or active | `~/.config/ai-first/profile.conf` | reload the affected app |
 | Which monitor is `main` / `side` / `stage` | profile values or `~/.config/aerospace/displays.conf` | `~/.config/aerospace/render-layout.sh` |
 | How many workspaces exist, and where | profile values or `~/.config/aerospace/workspaces.conf` | `~/.config/aerospace/render-layout.sh` |
+| Which semantic role points to each workspace | `AEROSPACE_WORKSPACE_ROLE_MAP` in `profile.conf` or `workspaces.conf` | `~/.config/aerospace/plan.sh --check` |
+| Which shipped app routing pack is active | `AI_FIRST_ROUTING_PACK` in `profile.conf` | `~/.config/aerospace/render-app-rules.sh` |
 | Bind the focused app to this workspace | any app window | `~/.config/aerospace/app-route.sh bind-here` |
 | Let the focused app follow the current workspace | any app window | `~/.config/aerospace/app-route.sh follow` |
+| Prefer a task role for the focused app | any app window | `~/.config/aerospace/app-route.sh prefer <role>` |
 | Batch-edit app workspace/layout choices | `~/.config/aerospace/app-routes.conf` | `~/.config/aerospace/render-app-rules.sh` |
 | Which supported notification apps are shown | `AI_FIRST_NOTIFICATION_APPS` in `profile.conf` | `brew services restart sketchybar` |
 | Which terminal receives AI prompts | `AI_FIRST_TERMINAL_APP` in `profile.conf` | reload Hammerspoon |
@@ -227,6 +236,8 @@ One display works out of the box: leave `displays.conf` empty and `main`, `side`
 and `stage` all resolve to whatever screen is actually connected.
 
 Run `~/.config/aerospace/doctor.sh` when the desk and the config disagree.
+Run `~/.config/aerospace/plan.sh` to see the resolved displays, roles, routing
+pack and exact app targets before applying anything.
 Run `./bootstrap/setup.sh doctor <module|preset>` for a read-only install and
 permission checklist.
 

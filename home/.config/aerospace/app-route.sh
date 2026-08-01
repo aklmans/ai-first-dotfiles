@@ -20,11 +20,13 @@ Focus-first commands:
       Pin the focused app to the focused workspace.
   follow [tiling|floating|keep]
       Keep new windows for the focused app where they are opened.
+  prefer <role|workspace> [tiling|floating|keep]
+      Prefer a semantic role or workspace for new windows without reset enforcement.
   forget
       Remove the focused app's custom rule and return to shipped defaults.
 
 Direct commands:
-  set <id|name> <value> <workspace|current> [tiling|floating|keep]
+  set <id|name> <value> <target|current> <follow|prefer|fixed> [layout]
   remove <id|name> <value>
   list
 
@@ -92,22 +94,33 @@ validate_match() {
   case "$value" in ''|*'|'*|*$'\n'*) printf 'App match must be one line without |.\n' >&2; exit 64 ;; esac
 }
 
-validate_workspace() {
-  local workspace="$1" configured found=0
-  [ "$workspace" = 'current' ] && return 0
-  case "$workspace" in ''|*[!0-9]*) printf 'Workspace must be a configured number or current.\n' >&2; exit 64 ;; esac
+validate_target() {
+  local target="$1" resolved
+  [ "$target" = 'current' ] && return 0
+  [ -n "$target" ] || { printf 'Target must be a workspace role, configured workspace, or current.\n' >&2; exit 64; }
 
   if [ -r "$SCRIPT_DIR/lib/layout.sh" ]; then
     # shellcheck source=lib/layout.sh
     source "$SCRIPT_DIR/lib/layout.sh"
-    for configured in $(aerospace_layout_workspaces); do
-      [ "$configured" = "$workspace" ] && found=1
-    done
-    if [ "$found" -ne 1 ]; then
-      printf 'Workspace %s is not configured. Available: %s\n' \
-        "$workspace" "$(aerospace_layout_workspaces)" >&2
+    if ! resolved="$(aerospace_layout_resolve_route_target "$target" 2>/dev/null)"; then
+      printf 'Unknown target %s. Workspaces: %s; roles: %s\n' \
+        "$target" "$(aerospace_layout_workspaces)" \
+        "$(aerospace_layout_semantic_roles | tr '\n' ' ')" >&2
       exit 64
     fi
+  fi
+}
+
+validate_policy() {
+  local target="$1" policy="$2"
+  case "$policy" in follow|prefer|fixed) ;; *) printf 'Policy must be follow, prefer, or fixed.\n' >&2; exit 64 ;; esac
+  if [ "$policy" = 'follow' ] && [ "$target" != 'current' ]; then
+    printf 'follow policy requires the current target.\n' >&2
+    exit 64
+  fi
+  if [ "$policy" != 'follow' ] && [ "$target" = 'current' ]; then
+    printf '%s policy requires a workspace role or configured workspace.\n' "$policy" >&2
+    exit 64
   fi
 }
 
@@ -156,17 +169,18 @@ apply_route_file() {
 }
 
 set_route() {
-  local kind="$1" value="$2" workspace="$3" layout="$4"
+  local kind="$1" value="$2" target="$3" policy="$4" layout="$5"
   local candidate
 
   validate_match "$kind" "$value"
-  validate_workspace "$workspace"
+  validate_target "$target"
+  validate_policy "$target" "$policy"
   layout="$(normalize_layout "$layout")"
   ensure_routes_file
   candidate="$(mktemp "${APP_ROUTES_FILE}.XXXXXX")"
 
   /usr/bin/awk -F '|' -v kind="$kind" -v value="$value" \
-    -v record="$kind|$value|$workspace|$layout" '
+    -v record="$kind|$value|$target|$policy|$layout" '
       $1 == kind && $2 == value {
         if (!written) print record
         written = 1
@@ -176,7 +190,7 @@ set_route() {
       END { if (!written) print record }
     ' "$APP_ROUTES_FILE" > "$candidate"
 
-  apply_route_file "$candidate" "$value → $workspace ($layout)"
+  apply_route_file "$candidate" "$value → $target ($policy, $layout)"
 }
 
 remove_route() {
@@ -191,10 +205,14 @@ remove_route() {
 
 list_routes() {
   ensure_routes_file
-  printf '%-6s %-42s %-10s %s\n' MATCH APP WORKSPACE LAYOUT
+  printf '%-6s %-38s %-14s %-8s %s\n' MATCH APP TARGET POLICY LAYOUT
   /usr/bin/awk -F '|' '
+    $1 ~ /^(id|name)$/ && NF == 5 {
+      printf "%-6s %-38s %-14s %-8s %s\n", $1, $2, $3, $4, $5
+    }
     $1 ~ /^(id|name)$/ && NF == 4 {
-      printf "%-6s %-42s %-10s %s\n", $1, $2, $3, $4
+      policy = ($3 == "current" ? "follow" : ($3 == "-" ? "inherit" : "fixed"))
+      printf "%-6s %-38s %-14s %-8s %s\n", $1, $2, $3, policy, $4
     }
   ' "$APP_ROUTES_FILE"
 }
@@ -203,21 +221,27 @@ command_name="${1:-help}"
 case "$command_name" in
   bind-here)
     focus_route_identity
-    set_route "$FOCUSED_MATCH_KIND" "$FOCUSED_MATCH_VALUE" "$FOCUSED_WORKSPACE" \
+    set_route "$FOCUSED_MATCH_KIND" "$FOCUSED_MATCH_VALUE" "$FOCUSED_WORKSPACE" fixed \
       "${2:-$FOCUSED_LAYOUT}"
     ;;
   follow)
     focus_route_identity
-    set_route "$FOCUSED_MATCH_KIND" "$FOCUSED_MATCH_VALUE" current \
+    set_route "$FOCUSED_MATCH_KIND" "$FOCUSED_MATCH_VALUE" current follow \
       "${2:-$FOCUSED_LAYOUT}"
+    ;;
+  prefer)
+    [ "$#" -ge 2 ] || { usage >&2; exit 64; }
+    focus_route_identity
+    set_route "$FOCUSED_MATCH_KIND" "$FOCUSED_MATCH_VALUE" "$2" prefer \
+      "${3:-$FOCUSED_LAYOUT}"
     ;;
   forget)
     focus_route_identity
     remove_route "$FOCUSED_MATCH_KIND" "$FOCUSED_MATCH_VALUE"
     ;;
   set)
-    [ "$#" -ge 4 ] || { usage >&2; exit 64; }
-    set_route "$2" "$3" "$4" "${5:-keep}"
+    [ "$#" -ge 5 ] || { usage >&2; exit 64; }
+    set_route "$2" "$3" "$4" "$5" "${6:-keep}"
     ;;
   remove)
     [ "$#" -eq 3 ] || { usage >&2; exit 64; }

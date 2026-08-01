@@ -145,6 +145,7 @@ run_check "Hammerspoon Lua syntax" lua -e "assert(loadfile('$HAMMERSPOON_CONFIG'
 run_check "layout.sh syntax" bash -n "$AEROSPACE_DIR/lib/layout.sh"
 run_check "app-defaults.sh syntax" bash -n "$AEROSPACE_DIR/app-defaults.sh"
 run_check "app-route.sh syntax" bash -n "$AEROSPACE_DIR/app-route.sh"
+run_check "plan.sh syntax" bash -n "$AEROSPACE_DIR/plan.sh"
 run_check "focus-workspace-arrow.sh syntax" bash -n "$AEROSPACE_DIR/focus-workspace-arrow.sh"
 run_check "reset-apps-to-default-workspaces.sh syntax" bash -n "$AEROSPACE_DIR/reset-apps-to-default-workspaces.sh"
 run_check "check-display-layout.sh syntax" bash -n "$AEROSPACE_DIR/check-display-layout.sh"
@@ -161,6 +162,7 @@ run_check "display layout matches profile" "$AEROSPACE_DIR/check-display-layout.
 # is a one-command fix the report names.
 run_check "AeroSpace config matches workspaces.conf" "$AEROSPACE_DIR/render-layout.sh" --check "$AEROSPACE_CONFIG"
 check_app_rules_drift
+run_check "workspace roles and app routes resolve" "$AEROSPACE_DIR/plan.sh" --check
 
 printf '\nFiles\n'
 check_file_readable "$AEROSPACE_DIR/lib/layout.sh"
@@ -168,6 +170,7 @@ check_file_readable "$AEROSPACE_DIR/displays.conf"
 check_file_readable "$AEROSPACE_DIR/workspaces.conf"
 check_file_executable "$AEROSPACE_DIR/app-defaults.sh"
 check_file_executable "$AEROSPACE_DIR/app-route.sh"
+check_file_executable "$AEROSPACE_DIR/plan.sh"
 check_file_executable "$AEROSPACE_DIR/focus-workspace-arrow.sh"
 check_file_executable "$AEROSPACE_DIR/reset-apps-to-default-workspaces.sh"
 check_file_executable "$AEROSPACE_DIR/check-display-layout.sh"

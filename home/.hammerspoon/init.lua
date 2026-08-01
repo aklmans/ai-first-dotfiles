@@ -53,6 +53,10 @@ local aiFirstAIHotkeysEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_AI_HOTKE
 local aiFirstNotificationsEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_NOTIFICATIONS", true)
 local aiFirstRecordingEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_RECORDING", true)
 local aiFirstAppRoutingEnabled = aiFirstFeatureEnabled("AI_FIRST_APP_ROUTING", true)
+local aiFirstRoutingPack = os.getenv("AI_FIRST_ROUTING_PACK")
+  or aiFirstProfile["AI_FIRST_ROUTING_PACK"]
+  or "author"
+local aiFirstWorkspaceInheritanceEnabled = aiFirstAppRoutingEnabled and aiFirstRoutingPack == "author"
 local aiFirstNotificationApps = os.getenv("AI_FIRST_NOTIFICATION_APPS")
   or aiFirstProfile["AI_FIRST_NOTIFICATION_APPS"]
 if aiFirstNotificationApps == nil then
@@ -105,12 +109,52 @@ if aiFirstListContains(aiFirstNotificationApps, "idea") then aiAttentionAppByBun
 if aiFirstListContains(aiFirstNotificationApps, "goland") then aiAttentionAppByBundle["com.jetbrains.goland"] = "goland" end
 
 local fixedWorkspaceAppByBundle = {}
-if aiFirstAppRoutingEnabled then
+if aiFirstAppRoutingEnabled and aiFirstRoutingPack == "author" then
   fixedWorkspaceAppByBundle = {
     ["com.blade.shadow-macos"] = "2",
     ["com.obsproject.obs-studio"] = "11",
     ["com.bilibili.bilibiliPC"] = "10",
   }
+elseif aiFirstAppRoutingEnabled and aiFirstRoutingPack == "creator" then
+  fixedWorkspaceAppByBundle = {
+    ["com.obsproject.obs-studio"] = "stage",
+  }
+end
+
+local routePolicyByBundle = {}
+local routePolicyByName = {}
+local function loadRoutePolicies(path, allowLayoutOnly)
+  local file = io.open(path, "r")
+  if not file then
+    return
+  end
+  for line in file:lines() do
+    if not line:match("^%s*#") and line:match("%S") then
+      local fields = {}
+      for field in (line .. "|"):gmatch("(.-)|") do
+        fields[#fields + 1] = field
+      end
+      local kind, value, target = fields[1], fields[2], fields[3]
+      local policy = fields[5] and fields[4]
+        or (target == "current" and "follow" or (target == "-" and "inherit" or "fixed"))
+      if policy ~= "inherit" or not allowLayoutOnly then
+        if kind == "id" and value and value ~= "" then
+          routePolicyByBundle[value] = policy
+        elseif kind == "name" and value and value ~= "" then
+          routePolicyByName[value] = policy
+        end
+      end
+    end
+  end
+  file:close()
+end
+
+if aiFirstAppRoutingEnabled then
+  loadRoutePolicies(
+    os.getenv("HOME") .. "/.config/aerospace/routing-packs/" .. aiFirstRoutingPack .. ".conf",
+    false
+  )
+  loadRoutePolicies(os.getenv("HOME") .. "/.config/aerospace/app-routes.conf", true)
 end
 local workspaceLocalAppByBundle = {
   ["com.apple.finder"] = true,
@@ -821,11 +865,12 @@ local function moveCreatedWindow(win, bundleID, title, workspaceCandidates, key)
 end
 
 local function inheritWorkspaceForCreatedWindow(win)
-  if not aiFirstAppRoutingEnabled then
+  if not aiFirstWorkspaceInheritanceEnabled then
     return
   end
   local app = win and win:application()
   local bundleID = app and app:bundleID()
+  local appName = app and app:name()
   if not bundleID or bundleID == "" then
     return
   end
@@ -833,6 +878,12 @@ local function inheritWorkspaceForCreatedWindow(win)
   -- Context tools should stay on the workspace that created the window.
   -- Reusing their older focus history here would make them globally pinned.
   if workspaceLocalAppByBundle[bundleID] then
+    return
+  end
+
+  -- Explicit follow/prefer/fixed routes are owned by AeroSpace. Inheritance is
+  -- only the author pack's fallback for apps that have no route at all.
+  if routePolicyByBundle[bundleID] or (appName and routePolicyByName[appName]) then
     return
   end
 

@@ -10,10 +10,12 @@ It provides predictable workspace keys, quick window movement, and deterministic
 - `home/.aerospace.toml`
 - `home/.config/aerospace/displays.conf` - which monitor plays which role
 - `home/.config/aerospace/workspaces.conf` - how many workspaces exist and where they live
+- `home/.config/aerospace/routing-packs/` - optional shipped placement policies
 - `home/.config/aerospace/lib/layout.sh` - the library every script reads those two through
 - `home/.config/aerospace/render-layout.sh` - renders both into `~/.aerospace.toml`
 - `home/.config/aerospace/render-app-rules.sh` - renders user `app-routes.conf` overrides and shipped defaults into `~/.aerospace.toml`
 - `home/.config/aerospace/doctor.sh` - reports where the desk, the config and the TOML disagree
+- `home/.config/aerospace/plan.sh` - previews resolved displays, semantic roles and routes
 - `home/.config/aerospace/*.sh`
 - `bootstrap/install/aerospace.sh` installs `aerospace`, deploys config, re-renders the generated blocks from your `displays.conf` / `workspaces.conf`, enables native ctrl-drag behavior, and tries a dry-run reload.
 
@@ -27,7 +29,7 @@ edited by hand.
 | Script | Reads | Writes into `~/.aerospace.toml` |
 |---|---|---|
 | `render-layout.sh` | `displays.conf`, `workspaces.conf` | Persistent workspace list, workspace-to-monitor assignment, the `Ctrl + N` and `Ctrl + Shift + N` bindings. Then calls `render-app-rules.sh` unless given `--no-app-rules`. |
-| `render-app-rules.sh` | `app-routes.conf`, then `app-defaults.sh` | User overrides followed by shipped placement/floating rules |
+| `render-app-rules.sh` | generic layout rules, `app-routes.conf`, selected routing pack | Dialog behavior, exact user overrides and optional shipped placement |
 
 `render-layout.sh --check` reports drift, exits 1 when the TOML is out of date,
 and changes nothing — usually the fastest answer to "did my edit take?":
@@ -97,14 +99,19 @@ That regenerates, inside the marked blocks of `~/.aerospace.toml`, the
 persistent workspace list, the workspace-to-monitor assignment and the
 `Ctrl + N` / `Ctrl + Shift + N` shortcuts, and re-renders the app placement
 rules. Shortcut keys are handed out in order `1`-`9`, `0`, `[`, `]`, `\`;
-workspaces past the fourteenth work but have no single-key shortcut. App rules
-that ask for a workspace you removed are mapped onto the highest one you kept.
+workspaces past the fourteenth work but have no single-key shortcut. Semantic
+app targets are resolved through `AEROSPACE_WORKSPACE_ROLE_MAP`; missing targets
+are reported instead of being crowded onto the highest workspace.
 
 Everything outside the markers - your own bindings, your own comments - is left
 untouched, so `render-layout.sh` is safe to run against a config you have
 edited. `doctor.sh` reports when the config and the TOML have drifted apart.
 
-## Default Workspace Map
+## Author reference Workspace Map
+
+The table below belongs to `author-full`, not to the public `developer` preset.
+`developer` enables routing support but selects pack `none`, so applications
+stay where opened until the user chooses a route.
 
 Default role split:
 
@@ -118,7 +125,7 @@ Default role split:
 | `2` | JetBrains IDEs | IntelliJ IDEA, GoLand, WebStorm, DataGrip, PyCharm, CLion, Rider, Android Studio |
 | `3` | Codex app | Codex |
 | `4` | ChatGPT app | ChatGPT |
-| `5` | Claude app | Claude |
+| `5` | Assistant | Cola |
 | `6` | Dia browser | Dia |
 | `7` | Edge browser | Microsoft Edge |
 | `8` | Atlas browser | ChatGPT Atlas |
@@ -157,8 +164,10 @@ Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 ```bash
 ~/.config/aerospace/app-route.sh bind-here  # pin focused app here
 ~/.config/aerospace/app-route.sh follow     # stay where opened
+~/.config/aerospace/app-route.sh prefer notes # prefer a semantic task role
 ~/.config/aerospace/app-route.sh forget     # restore shipped default
 ~/.config/aerospace/app-route.sh list       # inspect custom routes
+~/.config/aerospace/plan.sh                 # preview the complete resolution
 
 bash -n home/.config/aerospace/*.sh
 HOME="$PWD/home" bash home/.config/aerospace/app-defaults.sh
@@ -178,10 +187,11 @@ aerospace reload-config --dry-run --no-gui
 
 - `displays.conf` and `workspaces.conf` are deployed like any other config file, which means the deploy engine keeps your edits: a redeploy only overwrites a file this repo itself has changed, and backs up whatever it replaces.
 - The generated blocks of `~/.aerospace.toml` are re-rendered from your two config files after every deploy, so an update to the tracked TOML does not quietly reset your workspace count or your monitor names.
-- App placement defaults are intentionally generated from tracked config, not from local session state.
+- App placement is selected by `AI_FIRST_ROUTING_PACK`; `none` is portable,
+  `creator` targets the semantic stage, and `author` preserves the reference desk.
 - Agent launch shortcuts use the tracked AI Router `agent` command, which opens a new Warp tab and pastes the command without executing it.
 - `home/.config/aerospace/layout-control.sh` owns temporary layout repair/toggle actions so shortcuts do not rely on multi-command inline AeroSpace chains.
-- `home/.config/aerospace/app-route.sh` captures the focused app for persistent bind/follow choices, with an exact-match data rule and backup on every change.
+- `home/.config/aerospace/app-route.sh` captures the focused app for persistent bind/follow/prefer choices, with an exact-match data rule and backup on every change.
 - `home/.config/aerospace/reveal-app.sh` jumps to and focuses the workspace window for a bundle id. SketchyBar AI attention badges use it for app reveal actions.
 - `home/.config/aerospace/toggle-sketchybar-space.sh` keeps SketchyBar visibility and AeroSpace `outer.top` in sync. The default shortcut targets the main display only for livestream capture. Explicit `hide` / `show` modes still hide or restore all displays for Recording Mode and scripted workflows.
 - `home/.config/ai-router/...` runtime data is intentionally excluded.

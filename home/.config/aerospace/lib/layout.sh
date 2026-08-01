@@ -33,6 +33,7 @@ AEROSPACE_CONFIG_DIR="${AEROSPACE_CONFIG_DIR:-$(dirname "$AEROSPACE_LAYOUT_LIB_D
 AEROSPACE_LAYOUT_DEFAULT_MAIN_WORKSPACES="1 2 3 4 5 6"
 AEROSPACE_LAYOUT_DEFAULT_SIDE_WORKSPACES="7 8 9 10 11 12"
 AEROSPACE_LAYOUT_DEFAULT_STAGE_WORKSPACES="13"
+AEROSPACE_LAYOUT_DEFAULT_WORKSPACE_ROLE_MAP="focus:2 development:2 terminal:1 ai:3 support:8 web:7 research:6 communication:10 notes:9 utility:12 system:11 media:10 broadcast:11 stage:13"
 
 # Keys are handed to workspaces in this order by render-layout.sh. Thirteen
 # entries is not a limit on workspaces, only on how many of them get a
@@ -66,18 +67,31 @@ aerospace_layout_normalize_list() {
 aerospace_layout_load_config() {
     local env_main_monitor env_side_monitor env_stage_monitor
     local env_main_workspaces env_side_workspaces env_stage_workspaces
+    local env_workspace_role_map
+    local env_main_monitor_set env_side_monitor_set env_stage_monitor_set
+    local env_main_workspaces_set env_side_workspaces_set env_stage_workspaces_set
+    local env_workspace_role_map_set
     local config_file profile_lib
 
     if [ "${AEROSPACE_LAYOUT_CONFIG_LOADED:-0}" = "1" ]; then
         return 0
     fi
 
-    env_main_monitor="${AEROSPACE_MAIN_MONITOR_NAME:-}"
-    env_side_monitor="${AEROSPACE_SIDE_MONITOR_NAME:-}"
-    env_stage_monitor="${AEROSPACE_STAGE_MONITOR_NAME:-}"
-    env_main_workspaces="${AEROSPACE_MAIN_WORKSPACES:-}"
-    env_side_workspaces="${AEROSPACE_SIDE_WORKSPACES:-}"
-    env_stage_workspaces="${AEROSPACE_STAGE_WORKSPACES:-}"
+    env_main_monitor_set="${AEROSPACE_MAIN_MONITOR_NAME+x}"
+    env_side_monitor_set="${AEROSPACE_SIDE_MONITOR_NAME+x}"
+    env_stage_monitor_set="${AEROSPACE_STAGE_MONITOR_NAME+x}"
+    env_main_workspaces_set="${AEROSPACE_MAIN_WORKSPACES+x}"
+    env_side_workspaces_set="${AEROSPACE_SIDE_WORKSPACES+x}"
+    env_stage_workspaces_set="${AEROSPACE_STAGE_WORKSPACES+x}"
+    env_workspace_role_map_set="${AEROSPACE_WORKSPACE_ROLE_MAP+x}"
+
+    env_main_monitor="${AEROSPACE_MAIN_MONITOR_NAME-}"
+    env_side_monitor="${AEROSPACE_SIDE_MONITOR_NAME-}"
+    env_stage_monitor="${AEROSPACE_STAGE_MONITOR_NAME-}"
+    env_main_workspaces="${AEROSPACE_MAIN_WORKSPACES-}"
+    env_side_workspaces="${AEROSPACE_SIDE_WORKSPACES-}"
+    env_stage_workspaces="${AEROSPACE_STAGE_WORKSPACES-}"
+    env_workspace_role_map="${AEROSPACE_WORKSPACE_ROLE_MAP-}"
 
     AEROSPACE_MAIN_MONITOR_NAME=""
     AEROSPACE_SIDE_MONITOR_NAME=""
@@ -85,6 +99,7 @@ aerospace_layout_load_config() {
     AEROSPACE_MAIN_WORKSPACES="$AEROSPACE_LAYOUT_DEFAULT_MAIN_WORKSPACES"
     AEROSPACE_SIDE_WORKSPACES="$AEROSPACE_LAYOUT_DEFAULT_SIDE_WORKSPACES"
     AEROSPACE_STAGE_WORKSPACES="$AEROSPACE_LAYOUT_DEFAULT_STAGE_WORKSPACES"
+    AEROSPACE_WORKSPACE_ROLE_MAP="$AEROSPACE_LAYOUT_DEFAULT_WORKSPACE_ROLE_MAP"
 
     for config_file in displays workspaces; do
         if [ -r "$AEROSPACE_CONFIG_DIR/$config_file.conf" ]; then
@@ -105,16 +120,18 @@ aerospace_layout_load_config() {
         unset AI_FIRST_PROFILE_OVERRIDE_AEROSPACE
     fi
 
-    [ -z "$env_main_monitor" ] || AEROSPACE_MAIN_MONITOR_NAME="$env_main_monitor"
-    [ -z "$env_side_monitor" ] || AEROSPACE_SIDE_MONITOR_NAME="$env_side_monitor"
-    [ -z "$env_stage_monitor" ] || AEROSPACE_STAGE_MONITOR_NAME="$env_stage_monitor"
-    [ -z "$env_main_workspaces" ] || AEROSPACE_MAIN_WORKSPACES="$env_main_workspaces"
-    [ -z "$env_side_workspaces" ] || AEROSPACE_SIDE_WORKSPACES="$env_side_workspaces"
-    [ -z "$env_stage_workspaces" ] || AEROSPACE_STAGE_WORKSPACES="$env_stage_workspaces"
+    [ -z "$env_main_monitor_set" ] || AEROSPACE_MAIN_MONITOR_NAME="$env_main_monitor"
+    [ -z "$env_side_monitor_set" ] || AEROSPACE_SIDE_MONITOR_NAME="$env_side_monitor"
+    [ -z "$env_stage_monitor_set" ] || AEROSPACE_STAGE_MONITOR_NAME="$env_stage_monitor"
+    [ -z "$env_main_workspaces_set" ] || AEROSPACE_MAIN_WORKSPACES="$env_main_workspaces"
+    [ -z "$env_side_workspaces_set" ] || AEROSPACE_SIDE_WORKSPACES="$env_side_workspaces"
+    [ -z "$env_stage_workspaces_set" ] || AEROSPACE_STAGE_WORKSPACES="$env_stage_workspaces"
+    [ -z "$env_workspace_role_map_set" ] || AEROSPACE_WORKSPACE_ROLE_MAP="$env_workspace_role_map"
 
     AEROSPACE_MAIN_WORKSPACES="$(aerospace_layout_normalize_list "$AEROSPACE_MAIN_WORKSPACES")"
     AEROSPACE_SIDE_WORKSPACES="$(aerospace_layout_normalize_list "$AEROSPACE_SIDE_WORKSPACES")"
     AEROSPACE_STAGE_WORKSPACES="$(aerospace_layout_normalize_list "$AEROSPACE_STAGE_WORKSPACES")"
+    AEROSPACE_WORKSPACE_ROLE_MAP="$(aerospace_layout_normalize_list "$AEROSPACE_WORKSPACE_ROLE_MAP")"
 
     AEROSPACE_LAYOUT_CONFIG_LOADED=1
 }
@@ -158,6 +175,70 @@ aerospace_layout_workspace_count() {
     printf '%s\n' "$count"
 }
 
+aerospace_layout_workspace_is_configured() {
+    local needle="${1:-}"
+    local workspace
+
+    [ -n "$needle" ] || return 1
+    for workspace in $(aerospace_layout_workspaces); do
+        [ "$workspace" = "$needle" ] && return 0
+    done
+    return 1
+}
+
+aerospace_layout_semantic_roles() {
+    local entry role seen=""
+
+    aerospace_layout_load_config
+    for entry in $AEROSPACE_WORKSPACE_ROLE_MAP; do
+        case "$entry" in
+            *:*) ;;
+            *) continue ;;
+        esac
+        role="${entry%%:*}"
+        case "$role" in ''|*[!a-z0-9_-]*) continue ;; esac
+        case " $seen " in *" $role "*) continue ;; esac
+        seen="${seen:+$seen }$role"
+        printf '%s\n' "$role"
+    done
+}
+
+aerospace_layout_workspace_for_semantic_role() {
+    local needle="${1:-}"
+    local entry role workspace
+
+    aerospace_layout_load_config
+    case "$needle" in ''|*[!a-z0-9_-]*) return 1 ;; esac
+    for entry in $AEROSPACE_WORKSPACE_ROLE_MAP; do
+        case "$entry" in *:*) ;; *) continue ;; esac
+        role="${entry%%:*}"
+        workspace="${entry#*:}"
+        [ "$role" = "$needle" ] || continue
+        aerospace_layout_workspace_is_configured "$workspace" || return 1
+        printf '%s\n' "$workspace"
+        return 0
+    done
+    return 1
+}
+
+# Resolve an app-route target without inventing a workspace. Semantic roles
+# are preferred; exact configured workspace names remain backward compatible.
+# A missing target is an invalid route rather than something silently clamped
+# onto the user's last workspace.
+aerospace_layout_resolve_route_target() {
+    local target="${1:-}"
+
+    [ -n "$target" ] || return 1
+    if aerospace_layout_workspace_for_semantic_role "$target" 2>/dev/null; then
+        return 0
+    fi
+    if aerospace_layout_workspace_is_configured "$target"; then
+        printf '%s\n' "$target"
+        return 0
+    fi
+    return 1
+}
+
 aerospace_layout_role_for_workspace() {
     local needle="${1:-}"
     local role workspace
@@ -174,11 +255,9 @@ aerospace_layout_role_for_workspace() {
     return 1
 }
 
-# Maps a workspace an app rule asks for onto one that actually exists. App
-# placement is written against the shipped thirteen workspaces; a user who cuts
-# the set down to five should get their editor on workspace 5 rather than have
-# AeroSpace conjure a fourteenth. With the shipped config every workspace maps
-# to itself, so this is a no-op until someone edits workspaces.conf.
+# Legacy generated rules may still contain numeric targets. New app routes use
+# aerospace_layout_resolve_route_target and never rely on this clamp; keeping
+# it here preserves compatibility for older callers during migration.
 AEROSPACE_LAYOUT_CLAMPED="${AEROSPACE_LAYOUT_CLAMPED:-}"
 aerospace_layout_clamp_workspace_var() {
     local needle="${1:-}"

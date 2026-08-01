@@ -17,6 +17,10 @@ Notable changes to this project. Format loosely follows
 - Safe exact-match AeroSpace overrides in `app-routes.conf`.
 - A focus-first app route command and shortcuts for binding an app to the current
   workspace or letting it follow where it was opened.
+- Semantic workspace roles, explicit `none`/`suggested`/`creator`/`author`
+  routing packs, and `follow`/`prefer`/`fixed` app policies.
+- A read-only resolved-plan command that shows display roles, task roles and app
+  targets, and makes invalid role/route data visible to doctor and CI.
 - A read-only module/preset doctor, choice-architecture regression suite, product
   quality scorecard and release checklist.
 
@@ -26,12 +30,16 @@ Notable changes to this project. Format loosely follows
   are guided to `minimal --dry-run` instead of the compatibility `all` profile.
 - Shared dependencies execute once when modules are composed. Presets install a
   matching `~/.config/ai-first/profile.conf` without overwriting local edits.
-- The neutral minimal preset uses six unpinned workspaces, Terminal, and no app
-  routing, notifications, recording, AI hotkeys, paid apps or accounts.
+- The neutral minimal preset uses six unpinned workspaces, Terminal, portable
+  dialog/layout rules and user routes, but no shipped app placement,
+  notifications, recording, AI hotkeys, paid apps or accounts.
 - Existing no-profile deployments keep their previous full behavior; the
   `author-full` preset preserves the maintained 13-workspace desk exactly.
 - Finder and Preview now follow the workspace that opened them while remaining
   floating, instead of being globally pinned to workspace 11.
+- The developer preset no longer inherits the author's 13-workspace app map;
+  it emits no shipped app placement and preserves its explicit eight-workspace
+  layout without leaking workspace 13 back into generated rules.
 
 ## [1.0.0] - 2026-07-26
 

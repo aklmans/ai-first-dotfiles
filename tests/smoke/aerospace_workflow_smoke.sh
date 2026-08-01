@@ -140,12 +140,16 @@ assert_contains "$hammerspoon" '["com.bilibili.bilibiliPC"] = "10"' "Hammerspoon
 assert_contains "$hammerspoon" '["com.blade.shadow-macos"] = "2"' "Hammerspoon Shadow fixed workspace skip"
 assert_contains "$hammerspoon" '["com.apple.finder"] = true' "Finder must skip per-app workspace inheritance"
 assert_contains "$hammerspoon" '["com.apple.Preview"] = true' "Preview must skip per-app workspace inheritance"
+assert_contains "$hammerspoon" 'aiFirstRoutingPack == "author"' "workspace inheritance must be limited to the author pack"
+assert_contains "$hammerspoon" 'routePolicyByBundle' "explicit route policies must override Hammerspoon inheritance"
 
 screencast="$(cat "$repo_root/home/.hammerspoon/screencast.lua")"
 assert_contains "$screencast" "AEROSPACE_STAGE_WORKSPACES" "Recording workspace read from workspaces.conf"
 assert_not_contains "$screencast" 'recordingWorkspace = "13"' "Recording workspace must not be hard-coded"
 
-rules="$("$repo_root/home/.config/aerospace/app-defaults.sh" --toml)"
+rules="$(HOME="$sandbox_root/default-rules-home" AI_FIRST_PROFILE_LIB=/private/tmp/ai-first-no-profile \
+  AI_FIRST_APP_ROUTES_FILE="$repo_root/home/.config/aerospace/app-routes.conf" \
+  "$repo_root/home/.config/aerospace/app-defaults.sh" --toml)"
 assert_contains "$rules" "Refactor" "JetBrains floating dialog matcher"
 assert_contains "$rules" "com.obsproject.obs-studio" "Generated OBS workspace binding"
 assert_contains "$rules" "com.bilibili.bilibiliPC" "Generated Bilibili workspace binding"
@@ -608,7 +612,7 @@ assert_file_lacks "$count_home/.aerospace.toml" "ctrl-6 = " \
 assert_file_lacks "$count_home/.aerospace.toml" "workspace 13" \
   "No shortcut may point at a workspace that no longer exists"
 assert_file_lacks "$count_home/.aerospace.toml" "move-node-to-workspace 13" \
-  "App rules are remapped onto workspaces that exist"
+  "App rules with missing semantic targets are omitted"
 assert_file_contains "$count_home/.aerospace.toml" "'4' = ['secondary', 'main']" \
   "Side workspaces follow the role split from workspaces.conf"
 

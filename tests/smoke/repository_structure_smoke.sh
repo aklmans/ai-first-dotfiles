@@ -119,6 +119,11 @@ require_file home/.config/borders/bordersrc
 require_file home/.config/aerospace/app-defaults.sh
 require_file home/.config/aerospace/app-routes.conf
 require_file home/.config/aerospace/app-route.sh
+require_file home/.config/aerospace/plan.sh
+require_file home/.config/aerospace/routing-packs/none.conf
+require_file home/.config/aerospace/routing-packs/suggested.conf
+require_file home/.config/aerospace/routing-packs/creator.conf
+require_file home/.config/aerospace/routing-packs/author.conf
 require_file home/.config/aerospace/reveal-app.sh
 require_file home/.config/aerospace/displays.conf
 require_file home/.config/aerospace/workspaces.conf

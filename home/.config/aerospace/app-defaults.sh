@@ -5,16 +5,20 @@
 # on-window-detected rules. render-app-rules.sh renders the second from the
 # first so the two cannot drift.
 #
-# Workspace numbers below are written against the thirteen workspaces this repo
-# ships. They are passed through the clamp in lib/layout.sh on the way out, so
-# a user who cuts workspaces.conf down to five gets the recording apps on their
-# highest workspace instead of AeroSpace conjuring a fourteenth one nothing can
-# reach. With the shipped config the clamp changes nothing.
+# Placement is selected from a routing pack and resolves semantic targets such
+# as `stage` or `communication` through lib/layout.sh. A route whose target is
+# absent is ignored and reported by plan.sh instead of being silently crowded
+# onto the user's last workspace. Generic floating/tiling behavior stays here
+# because window shape and workspace ownership are independent choices.
 
 _app_defaults_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 if [ -r "$_app_defaults_dir/lib/layout.sh" ]; then
     # shellcheck source=lib/layout.sh
     . "$_app_defaults_dir/lib/layout.sh"
+    # Load the workspace profile before the general profile reader below. This
+    # preserves explicit empty side/stage lists instead of restoring the
+    # thirteen-workspace shipped defaults while app rules are rendered.
+    aerospace_layout_load_config
 fi
 
 _ai_first_profile_lib="${AI_FIRST_PROFILE_LIB:-$HOME/.config/ai-first/lib/profile.sh}"
@@ -34,42 +38,144 @@ aerospace_app_routes_file() {
     printf '%s\n' "${AI_FIRST_APP_ROUTES_FILE:-$HOME/.config/aerospace/app-routes.conf}"
 }
 
-# Print workspace and layout for the first valid exact-match user override.
-# This intentionally accepts no regex or executable shell: app-routes.conf is
-# data, not another startup script.
-aerospace_user_route() {
-    local app_id="${1:-}"
-    local app_name="${2:-}"
-    local routes_file kind value workspace layout
+aerospace_routing_pack() {
+    local pack="${AI_FIRST_ROUTING_PACK:-author}"
+    case "$pack" in ''|*[!a-z0-9_-]*) pack='none' ;; esac
+    [ -r "$_app_defaults_dir/routing-packs/$pack.conf" ] || pack='none'
+    printf '%s\n' "$pack"
+}
 
-    routes_file="$(aerospace_app_routes_file)"
+aerospace_routing_pack_file() {
+    printf '%s/routing-packs/%s.conf\n' "$_app_defaults_dir" "$(aerospace_routing_pack)"
+}
+
+# Normalized route fields are returned through globals so the same parser can
+# serve runtime placement, TOML rendering, doctor and the focus-first editor.
+# Four-column records remain compatible:
+#   target=current -> follow, target=- -> layout-only, otherwise fixed.
+AEROSPACE_ROUTE_TARGET=''
+AEROSPACE_ROUTE_POLICY=''
+AEROSPACE_ROUTE_LAYOUT=''
+AEROSPACE_ROUTE_WORKSPACE=''
+aerospace_normalize_route_fields() {
+    local target="${1:-}" field4="${2:-}" field5="${3:-}"
+    local policy layout workspace
+
+    if [ -n "$field5" ]; then
+        policy="$field4"
+        layout="$field5"
+    else
+        layout="$field4"
+        case "$target" in
+            current) policy='follow' ;;
+            -|'') policy='inherit' ;;
+            *) policy='fixed' ;;
+        esac
+    fi
+
+    case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) return 1 ;; esac
+    workspace=''
+    case "$policy" in
+        follow)
+            target='current'
+            ;;
+        prefer|fixed)
+            case "$target" in current|-|'') return 1 ;; esac
+            workspace="$(aerospace_layout_resolve_route_target "$target" 2>/dev/null)" || return 1
+            case "$workspace" in ''|*[!A-Za-z0-9_-]*) return 1 ;; esac
+            ;;
+        inherit)
+            case "$target" in -|'') ;; *) return 1 ;; esac
+            [ -n "$layout" ] || return 1
+            target=''
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    AEROSPACE_ROUTE_TARGET="$target"
+    AEROSPACE_ROUTE_POLICY="$policy"
+    AEROSPACE_ROUTE_LAYOUT="$layout"
+    AEROSPACE_ROUTE_WORKSPACE="$workspace"
+}
+
+aerospace_route_from_file() {
+    local routes_file="$1" app_id="${2:-}" app_name="${3:-}"
+    local kind value target field4 field5 rest
+
     [ -r "$routes_file" ] || return 1
-
-    while IFS='|' read -r kind value workspace layout _rest; do
+    while IFS='|' read -r kind value target field4 field5 rest; do
         case "$kind" in ''|'#'*) continue ;; esac
-        [ -z "${_rest:-}" ] || continue
+        [ -z "${rest:-}" ] || continue
         case "$kind" in
             id) [ "$value" = "$app_id" ] || continue ;;
             name) [ "$value" = "$app_name" ] || continue ;;
             *) continue ;;
         esac
         case "$value" in ''|*"'"*) continue ;; esac
-        case "$workspace" in current) ;; -|'') workspace='' ;; *[!0-9]*) continue ;; esac
-        case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) continue ;; esac
-        [ -n "$workspace$layout" ] || continue
-        printf '%s|%s\n' "$workspace" "$layout"
+        aerospace_normalize_route_fields "$target" "$field4" "$field5" || continue
+        printf '%s|%s|%s|%s\n' \
+            "$AEROSPACE_ROUTE_TARGET" "$AEROSPACE_ROUTE_POLICY" \
+            "$AEROSPACE_ROUTE_LAYOUT" "$AEROSPACE_ROUTE_WORKSPACE"
         return 0
     done < "$routes_file"
-
     return 1
 }
 
+aerospace_user_route() {
+    aerospace_route_from_file "$(aerospace_app_routes_file)" "${1:-}" "${2:-}"
+}
+
+aerospace_pack_route() {
+    [ "$(aerospace_routing_pack)" != 'none' ] || return 1
+    aerospace_route_from_file "$(aerospace_routing_pack_file)" "${1:-}" "${2:-}"
+}
+
+# User data has priority. A legacy layout-only record merges with the selected
+# pack's target; without a pack it becomes a follow-current layout choice.
+aerospace_route_for_window() {
+    local app_id="${1:-}" app_name="${2:-}"
+    local user_route pack_route user_policy user_layout
+
+    if user_route="$(aerospace_user_route "$app_id" "$app_name" 2>/dev/null)"; then
+        user_policy="$(printf '%s' "$user_route" | /usr/bin/awk -F '|' '{ print $2 }')"
+        if [ "$user_policy" != 'inherit' ]; then
+            printf '%s\n' "$user_route"
+            return 0
+        fi
+        user_layout="$(printf '%s' "$user_route" | /usr/bin/awk -F '|' '{ print $3 }')"
+        if pack_route="$(aerospace_pack_route "$app_id" "$app_name" 2>/dev/null)"; then
+            printf '%s' "$pack_route" | /usr/bin/awk -F '|' -v layout="$user_layout" \
+                '{ printf "%s|%s|%s|%s\\n", $1, $2, layout, $4 }'
+        else
+            printf 'current|follow|%s|\n' "$user_layout"
+        fi
+        return 0
+    fi
+
+    aerospace_pack_route "$app_id" "$app_name"
+}
+
+aerospace_route_field() {
+    local route
+    route="$(aerospace_route_for_window "$1" "$2")" || return 1
+    case "$3" in
+        target) printf '%s\n' "$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $1 }')" ;;
+        policy) printf '%s\n' "$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $2 }')" ;;
+        layout) printf '%s\n' "$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $3 }')" ;;
+        workspace) printf '%s\n' "$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $4 }')" ;;
+        *) return 1 ;;
+    esac
+}
+
+# Kept for scripts written against the four-column route API.
 aerospace_user_route_field() {
     local route
     route="$(aerospace_user_route "$1" "$2")" || return 1
     case "$3" in
-        workspace) printf '%s\n' "${route%%|*}" ;;
-        layout) printf '%s\n' "${route#*|}" ;;
+        workspace) printf '%s\n' "$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $4 }')" ;;
+        layout) printf '%s\n' "$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $3 }')" ;;
         *) return 1 ;;
     esac
 }
@@ -173,13 +279,6 @@ should_float_window() {
 
     aerospace_app_routing_enabled || return 1
 
-    local user_layout
-    user_layout="$(aerospace_user_route_field "$app_id" "$app_name" layout 2>/dev/null || true)"
-    case "$user_layout" in
-        floating) return 0 ;;
-        tiling) return 1 ;;
-    esac
-
     if is_context_dialog_title "$title"; then
         return 0
     fi
@@ -187,6 +286,13 @@ should_float_window() {
     if is_jetbrains_app "$app_id" "$app_name" && is_jetbrains_dialog_title "$title"; then
         return 0
     fi
+
+    local route_layout
+    route_layout="$(aerospace_route_field "$app_id" "$app_name" layout 2>/dev/null || true)"
+    case "$route_layout" in
+        floating) return 0 ;;
+        tiling) return 1 ;;
+    esac
 
     case "$app_id" in
         com.apple.finder|com.apple.systempreferences|com.apple.ActivityMonitor|com.apple.mail|com.apple.Photos|com.apple.Preview|com.apple.Music|com.apple.podcasts|com.apple.archiveutility|com.apple.AppStore)
@@ -228,16 +334,16 @@ should_tile_window() {
 
     aerospace_app_routing_enabled || return 1
 
-    local user_layout
-    user_layout="$(aerospace_user_route_field "$app_id" "$app_name" layout 2>/dev/null || true)"
-    case "$user_layout" in
-        tiling) return 0 ;;
-        floating) return 1 ;;
-    esac
-
     if should_float_window "$app_id" "$app_name" "$title"; then
         return 1
     fi
+
+    local route_layout
+    route_layout="$(aerospace_route_field "$app_id" "$app_name" layout 2>/dev/null || true)"
+    case "$route_layout" in
+        tiling) return 0 ;;
+        floating) return 1 ;;
+    esac
 
     if is_jetbrains_app "$app_id" "$app_name"; then
         return 0
@@ -286,18 +392,9 @@ default_workspace_rule_for_window() {
     local app_id="${1:-}"
     local app_name="${2:-}"
     local title="${3:-}"
+    local route policy workspace
 
     aerospace_app_routing_enabled || return 1
-
-    local user_route user_workspace
-    if user_route="$(aerospace_user_route "$app_id" "$app_name" 2>/dev/null)"; then
-        user_workspace="${user_route%%|*}"
-        case "$user_workspace" in
-            current) return 1 ;;
-            '') ;;
-            *) printf '%s' "$user_workspace"; return 0 ;;
-        esac
-    fi
 
     if is_context_dialog_title "$title"; then
         return 1
@@ -307,127 +404,14 @@ default_workspace_rule_for_window() {
         return 1
     fi
 
-    if is_jetbrains_app "$app_id" "$app_name"; then
-        printf '2'
-        return 0
-    fi
-
-    case "$app_id" in
-        company.thebrowser.dia)
-            printf '6'
-            return 0
-            ;;
-        com.openai.codex)
-            printf '3'
-            return 0
-            ;;
-        com.openai.chat)
-            printf '4'
-            return 0
-            ;;
-        ai.marswave.cola)
-            printf '5'
-            return 0
-            ;;
-        dev.warp.Warp-Stable)
-            printf '1'
-            return 0
-            ;;
-        com.blade.shadow-macos)
-            printf '2'
-            return 0
-            ;;
-        com.microsoft.edgemac)
-            printf '7'
-            return 0
-            ;;
-        com.openai.atlas)
-            printf '8'
-            return 0
-            ;;
-        abnerworks.Typora|com.tw93.miaoyan|org.ozrey.markdown|org.zrey.markeditor2.x)
-            printf '9'
-            return 0
-            ;;
-        us.zoom.xos|com.techsmith.camtasia|com.TechSmith.Snagit)
-            printf '13'
-            return 0
-            ;;
-        com.obsproject.obs-studio)
-            printf '11'
-            return 0
-            ;;
-        com.bilibili.bilibiliPC)
-            printf '10'
-            return 0
-            ;;
-        com.tencent.xinWeChat|com.tencent.WeWorkMac|com.tencent.qq|com.alibaba.DingTalkMac|com.electron.lark|us.zoom.xos|com.hnc.Discord|com.facebook.archon)
-            printf '10'
-            return 0
-            ;;
-        com.apple.systempreferences|com.apple.SystemSettings|com.apple.ActivityMonitor|com.apple.Photos|com.apple.archiveutility|com.apple.AppStore|com.apple.mail)
-            printf '11'
-            return 0
-            ;;
-        com.lbyczf.clashwin|com.logi.optionsplus|com.docker.docker|com.rogueamoeba.Loopback)
-            printf '12'
-            return 0
-            ;;
+    route="$(aerospace_route_for_window "$app_id" "$app_name" 2>/dev/null)" || return 1
+    policy="$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $2 }')"
+    workspace="$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $4 }')"
+    case "$policy" in
+        fixed|prefer) [ -n "$workspace" ] || return 1 ;;
+        *) return 1 ;;
     esac
-
-    case "$app_name" in
-        "Dia"|"Dia Browser")
-            printf '6'
-            ;;
-        "Microsoft Edge")
-            printf '7'
-            ;;
-        "Codex"|"OpenAI Codex")
-            printf '3'
-            ;;
-        "ChatGPT")
-            printf '4'
-            ;;
-        "Cola")
-            printf '5'
-            ;;
-        "微信"|"WeChat"|"企业微信"|"WeCom"|"QQ"|"钉钉"|"DingTalk"|"飞书"|"Feishu"|"Lark"|"Lark Meetings"|"zoom.us"|"Mattermost"|"Messenger"|"Discord"|"BaiduIM")
-            printf '10'
-            ;;
-        "Bilibili"|"哔哩哔哩")
-            printf '10'
-            ;;
-        "System Settings"|"System Preferences"|"系统设置"|"Activity Monitor"|"监视器"|"Stats"|"Mail"|"邮件"|"Photos"|"照片"|"Archive Utility"|"归档实用工具"|"App Store")
-            printf '11'
-            ;;
-        "OBS"|"OBS Studio")
-            printf '11'
-            ;;
-        "Warp")
-            printf '1'
-            ;;
-        "Shadow"|"Shadow PC"|"ShadowPCDisplay")
-            printf '2'
-            ;;
-        "GoLand"|"IntelliJ IDEA"|"IntelliJ IDEA-EAP"|"WebStorm"|"PhpStorm"|"RustRover"|"PyCharm"|"CLion"|"DataGrip"|"Rider"|"Android Studio")
-            printf '2'
-            ;;
-        "ChatGPT Atlas"|"Atlas")
-            printf '8'
-            ;;
-        "Typora"|"MiaoYan"|"Miaoyan"|"妙言"|"Markdown"|"MarkEditor")
-            printf '9'
-            ;;
-        "Lark Meetings"|"zoom.us"|"Tencent Meeting"|"腾讯会议"|"VooV Meeting"|"Camtasia"|"Snagit")
-            printf '13'
-            ;;
-        "Clash for Windows"|"Logi Options+"|"Logi Options Plus"|"Docker"|"Docker Desktop"|"Loopback")
-            printf '12'
-            ;;
-        *)
-            return 1
-            ;;
-    esac
+    printf '%s' "$workspace"
 }
 
 emit_on_window_detected_rules() {
@@ -439,26 +423,36 @@ emit_on_window_detected_rules() {
     {
         printf '%s\n' '# Application placement and floating rules.'
         printf '%s\n' '# Keep this block aligned with ~/.config/aerospace/app-defaults.sh.'
-        emit_user_on_window_detected_rules
         emit_on_window_detected_rules_raw
+        emit_user_on_window_detected_rules
+        emit_pack_on_window_detected_rules
     } | aerospace_layout_clamp_workspace_stream
 }
 
-emit_user_on_window_detected_rules() {
-    local routes_file kind value workspace layout rest
-    local run_layout run_workspace
+emit_routes_file_as_toml() {
+    local routes_file="$1" source="${2:-pack}"
+    local kind value target field4 field5 rest route
+    local policy layout workspace run_layout run_workspace
 
-    routes_file="$(aerospace_app_routes_file)"
     [ -r "$routes_file" ] || return 0
-
-    while IFS='|' read -r kind value workspace layout rest; do
+    while IFS='|' read -r kind value target field4 field5 rest; do
         case "$kind" in ''|'#'*) continue ;; esac
         [ -z "${rest:-}" ] || continue
         case "$kind" in id|name) ;; *) continue ;; esac
         case "$value" in ''|*"'"*) continue ;; esac
-        case "$workspace" in current) ;; -|'') workspace='' ;; *[!0-9]*) continue ;; esac
-        case "$layout" in tiling|floating) ;; -|'') layout='' ;; *) continue ;; esac
-        [ -n "$workspace$layout" ] || continue
+        aerospace_normalize_route_fields "$target" "$field4" "$field5" || continue
+
+        route="$AEROSPACE_ROUTE_TARGET|$AEROSPACE_ROUTE_POLICY|$AEROSPACE_ROUTE_LAYOUT|$AEROSPACE_ROUTE_WORKSPACE"
+        if [ "$source" = 'user' ] && [ "$AEROSPACE_ROUTE_POLICY" = 'inherit' ]; then
+            if [ "$kind" = id ]; then
+                route="$(aerospace_route_for_window "$value" '' 2>/dev/null)" || continue
+            else
+                route="$(aerospace_route_for_window '' "$value" 2>/dev/null)" || continue
+            fi
+        fi
+        policy="$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $2 }')"
+        layout="$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $3 }')"
+        workspace="$(printf '%s' "$route" | /usr/bin/awk -F '|' '{ print $4 }')"
 
         printf '%s\n' '[[on-window-detected]]'
         if [ "$kind" = id ]; then
@@ -469,12 +463,15 @@ emit_user_on_window_detected_rules() {
         run_layout=''
         run_workspace=''
         [ -n "$layout" ] && run_layout="'layout $layout'"
-        case "$workspace" in
-            current)
+        case "$policy" in
+            follow)
                 [ -n "$run_layout" ] || run_workspace="'exec-and-forget /usr/bin/true'"
                 ;;
-            '') ;;
-            *) run_workspace="'move-node-to-workspace $workspace'" ;;
+            fixed|prefer)
+                [ -n "$workspace" ] || continue
+                run_workspace="'move-node-to-workspace $workspace'"
+                ;;
+            *) continue ;;
         esac
         if [ -n "$run_layout" ] && [ -n "$run_workspace" ]; then
             printf '    run = [%s, %s]\n\n' "$run_layout" "$run_workspace"
@@ -486,12 +483,23 @@ emit_user_on_window_detected_rules() {
     done < "$routes_file"
 }
 
+emit_user_on_window_detected_rules() {
+    emit_routes_file_as_toml "$(aerospace_app_routes_file)" user
+}
+
+emit_pack_on_window_detected_rules() {
+    local pack
+    pack="$(aerospace_routing_pack)"
+    [ "$pack" != 'none' ] || return 0
+    printf '# Routing pack: %s\n' "$pack"
+    emit_routes_file_as_toml "$(aerospace_routing_pack_file)" pack
+}
+
 emit_on_window_detected_rules_raw() {
     cat <<'TOML'
 # Common secondary/dialog windows should stay with the workspace that opened them.
 [[on-window-detected]]
     if.window-title-regex-substring = '^(Settings|Preferences|Options|Licenses|Choose|Select|Open|Save|Save As|Export|Import|Find|Replace|Print|Search|Keyboard Shortcuts|Extensions|Plugins|Account|Profile|Sign in|Login|设置|偏好设置|选项|关于|打开|保存|导出|导入|查找|替换|打印|账户|登录)( |$|:|-)'
-    check-further-callbacks = true
     run = 'layout floating'
 
 # JetBrains: keep main IDE windows tiled, but float obvious dialogs/tool windows.
@@ -537,163 +545,6 @@ emit_on_window_detected_rules_raw() {
     check-further-callbacks = true
     run = 'layout tiling'
 
-# Exact app-id placement for stable apps.
-[[on-window-detected]]
-    if.app-id = 'company.thebrowser.dia'
-    run = 'move-node-to-workspace 6'
-
-[[on-window-detected]]
-    if.app-id = 'com.microsoft.edgemac'
-    run = 'move-node-to-workspace 7'
-
-[[on-window-detected]]
-    if.app-id = 'com.openai.codex'
-    run = 'move-node-to-workspace 3'
-
-[[on-window-detected]]
-    if.app-id = 'com.openai.chat'
-    run = 'move-node-to-workspace 4'
-
-[[on-window-detected]]
-    if.app-id = 'ai.marswave.cola'
-    run = 'move-node-to-workspace 5'
-
-[[on-window-detected]]
-    if.app-id = 'dev.warp.Warp-Stable'
-    run = 'move-node-to-workspace 1'
-
-[[on-window-detected]]
-    if.app-id = 'com.blade.shadow-macos'
-    run = 'move-node-to-workspace 2'
-
-[[on-window-detected]]
-    if.app-id = 'com.openai.atlas'
-    run = 'move-node-to-workspace 8'
-
-[[on-window-detected]]
-    if.app-id = 'abnerworks.Typora'
-    run = 'move-node-to-workspace 9'
-
-[[on-window-detected]]
-    if.app-id = 'com.tw93.miaoyan'
-    run = 'move-node-to-workspace 9'
-
-[[on-window-detected]]
-    if.app-id = 'org.ozrey.markdown'
-    run = 'move-node-to-workspace 9'
-
-[[on-window-detected]]
-    if.app-id = 'org.zrey.markeditor2.x'
-    run = 'move-node-to-workspace 9'
-
-[[on-window-detected]]
-    if.app-id = 'us.zoom.xos'
-    run = 'move-node-to-workspace 13'
-
-[[on-window-detected]]
-    if.app-id = 'com.techsmith.camtasia'
-    run = 'move-node-to-workspace 13'
-
-[[on-window-detected]]
-    if.app-id = 'com.TechSmith.Snagit'
-    run = 'move-node-to-workspace 13'
-
-[[on-window-detected]]
-    if.app-id = 'com.obsproject.obs-studio'
-    run = 'move-node-to-workspace 11'
-
-[[on-window-detected]]
-    if.app-id = 'com.bilibili.bilibiliPC'
-    run = 'move-node-to-workspace 10'
-
-[[on-window-detected]]
-    if.app-id = 'com.lbyczf.clashwin'
-    run = 'move-node-to-workspace 12'
-
-[[on-window-detected]]
-    if.app-id = 'com.logi.optionsplus'
-    run = 'move-node-to-workspace 12'
-
-[[on-window-detected]]
-    if.app-id = 'com.docker.docker'
-    run = 'move-node-to-workspace 12'
-
-[[on-window-detected]]
-    if.app-id = 'com.rogueamoeba.Loopback'
-    run = 'move-node-to-workspace 12'
-
-[[on-window-detected]]
-    if.app-id = 'com.apple.systempreferences'
-    run = 'move-node-to-workspace 11'
-
-[[on-window-detected]]
-    if.app-id = 'com.apple.SystemSettings'
-    run = 'move-node-to-workspace 11'
-
-# Fallback app-name placement for apps that may have unstable or unknown bundle ids.
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Dia|Dia Browser)$'
-    run = 'move-node-to-workspace 6'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Microsoft Edge)$'
-    run = 'move-node-to-workspace 7'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Codex|OpenAI Codex)$'
-    run = 'move-node-to-workspace 3'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(ChatGPT)$'
-    run = 'move-node-to-workspace 4'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Cola)$'
-    run = 'move-node-to-workspace 5'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Lark Meetings|zoom\.us|Tencent Meeting|腾讯会议|VooV Meeting|Camtasia|Snagit)$'
-    run = 'move-node-to-workspace 13'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(微信|WeChat|企业微信|WeCom|QQ|钉钉|DingTalk|飞书|Feishu|Lark|Mattermost|Messenger|Discord|BaiduIM)$'
-    run = 'move-node-to-workspace 10'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Bilibili|哔哩哔哩)$'
-    run = 'move-node-to-workspace 10'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(System Settings|System Preferences|系统设置|Activity Monitor|监视器|Stats|Mail|邮件|Photos|照片|Archive Utility|归档实用工具|App Store)$'
-    run = 'move-node-to-workspace 11'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(OBS|OBS Studio)$'
-    run = 'move-node-to-workspace 11'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Warp)$'
-    run = 'move-node-to-workspace 1'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Shadow|Shadow PC|ShadowPCDisplay)$'
-    run = 'move-node-to-workspace 2'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(GoLand|IntelliJ IDEA|IntelliJ IDEA-EAP|WebStorm|PhpStorm|RustRover|PyCharm|CLion|DataGrip|Rider|Android Studio)$'
-    run = 'move-node-to-workspace 2'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(ChatGPT Atlas|Atlas)$'
-    run = 'move-node-to-workspace 8'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Typora|MiaoYan|Miaoyan|妙言|Markdown|MarkEditor)$'
-    run = 'move-node-to-workspace 9'
-
-[[on-window-detected]]
-    if.app-name-regex-substring = '^(Clash for Windows|Logi Options\+|Logi Options Plus|Docker|Docker Desktop|Loopback)$'
-    run = 'move-node-to-workspace 12'
 TOML
 }
 

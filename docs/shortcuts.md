@@ -18,8 +18,9 @@ In this document, `CapsLock + key` means hold `CapsLock`, then press `key`.
 ## Workspaces
 
 Workspace behavior is owned by `home/.aerospace.toml`. `minimal` creates neutral
-workspaces 1–6 and disables automatic app placement. The role table below is the
-`author-full` reference map, not a requirement for other presets.
+workspaces 1–6; `developer` creates 1–8. Both select routing pack `none`, so
+applications stay where opened unless the user adds an exact route. The table
+below is the `author-full` reference map, not a requirement for other presets.
 
 | Workspace | Default role |
 |---|---|
@@ -27,7 +28,7 @@ workspaces 1–6 and disables automatic app placement. The role table below is t
 | `2` | JetBrains IDEs |
 | `3` | Codex app |
 | `4` | ChatGPT app |
-| `5` | Claude app |
+| `5` | Cola assistant |
 | `6` | Dia |
 | `7` | Microsoft Edge |
 | `8` | ChatGPT Atlas |

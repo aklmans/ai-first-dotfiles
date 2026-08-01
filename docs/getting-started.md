@@ -97,15 +97,17 @@ hold Hyper.
 
 Named presets copy a data-only file to `~/.config/ai-first/profile.conf`.
 Changing it does not fork implementation code. It controls feature flags, bar
-item groups, supported notification apps, terminal preference, workspace groups
-and optional display names.
+item groups, supported notification apps, terminal preference, workspace groups,
+semantic workspace roles, routing pack and optional display names.
 
 Other safe preference points:
 
-- `~/.config/aerospace/app-routes.conf` — exact app workspace/layout overrides
-- `~/.config/aerospace/app-route.sh bind-here|follow` — capture the focused app
+- `~/.config/aerospace/app-routes.conf` — exact app target/policy/layout overrides
+- `~/.config/aerospace/app-route.sh bind-here|follow|prefer` — capture the focused app
   without finding its bundle id; Finder and Preview default to `follow`
 - `~/.config/aerospace/displays.conf` and `workspaces.conf` — desk topology
+- `~/.config/aerospace/plan.sh` — read-only resolved displays, workspace roles,
+  routing pack, targets and validation
 - `~/.config/sketchybar/theme.conf` — bar fonts, geometry and color roles
 - `~/.config/zsh/private.zsh` — machine-local shell values and secrets
 - `~/.config/ai-router/config.json` and `prompts/` — provider and prompt choices

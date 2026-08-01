@@ -22,6 +22,7 @@ ai_first_profile_apply_file() {
       case "$key" in
         AI_FIRST_PRESET) [ -n "$env_preset_set" ] || AI_FIRST_PRESET="$value" ;;
         AI_FIRST_APP_ROUTING) [ -n "$env_app_routing_set" ] || AI_FIRST_APP_ROUTING="$value" ;;
+        AI_FIRST_ROUTING_PACK) [ -n "$env_routing_pack_set" ] || AI_FIRST_ROUTING_PACK="$value" ;;
         AI_FIRST_FEATURE_AI_HOTKEYS) [ -n "$env_ai_hotkeys_set" ] || AI_FIRST_FEATURE_AI_HOTKEYS="$value" ;;
         AI_FIRST_FEATURE_NOTIFICATIONS) [ -n "$env_notifications_set" ] || AI_FIRST_FEATURE_NOTIFICATIONS="$value" ;;
         AI_FIRST_FEATURE_RECORDING) [ -n "$env_recording_set" ] || AI_FIRST_FEATURE_RECORDING="$value" ;;
@@ -37,6 +38,7 @@ ai_first_profile_apply_file() {
         AEROSPACE_MAIN_WORKSPACES) [ -n "$env_main_workspaces_set" ] || AEROSPACE_MAIN_WORKSPACES="$value" ;;
         AEROSPACE_SIDE_WORKSPACES) [ -n "$env_side_workspaces_set" ] || AEROSPACE_SIDE_WORKSPACES="$value" ;;
         AEROSPACE_STAGE_WORKSPACES) [ -n "$env_stage_workspaces_set" ] || AEROSPACE_STAGE_WORKSPACES="$value" ;;
+        AEROSPACE_WORKSPACE_ROLE_MAP) [ -n "$env_workspace_role_map_set" ] || AEROSPACE_WORKSPACE_ROLE_MAP="$value" ;;
       esac
     fi
   done < "$profile_file"
@@ -47,6 +49,7 @@ ai_first_profile_load() {
 
   local env_preset_set="${AI_FIRST_PRESET+x}"
   local env_app_routing_set="${AI_FIRST_APP_ROUTING+x}"
+  local env_routing_pack_set="${AI_FIRST_ROUTING_PACK+x}"
   local env_ai_hotkeys_set="${AI_FIRST_FEATURE_AI_HOTKEYS+x}"
   local env_notifications_set="${AI_FIRST_FEATURE_NOTIFICATIONS+x}"
   local env_recording_set="${AI_FIRST_FEATURE_RECORDING+x}"
@@ -62,6 +65,7 @@ ai_first_profile_load() {
   local env_main_workspaces_set="${AEROSPACE_MAIN_WORKSPACES+x}"
   local env_side_workspaces_set="${AEROSPACE_SIDE_WORKSPACES+x}"
   local env_stage_workspaces_set="${AEROSPACE_STAGE_WORKSPACES+x}"
+  local env_workspace_role_map_set="${AEROSPACE_WORKSPACE_ROLE_MAP+x}"
 
   # layout.sh first loads its shipped .conf files, then asks this profile to
   # override them, and finally restores true process-environment overrides. Its
@@ -73,10 +77,12 @@ ai_first_profile_load() {
     env_main_workspaces_set=''
     env_side_workspaces_set=''
     env_stage_workspaces_set=''
+    env_workspace_role_map_set=''
   fi
 
   AI_FIRST_PRESET="${AI_FIRST_PRESET-custom}"
   AI_FIRST_APP_ROUTING="${AI_FIRST_APP_ROUTING-1}"
+  AI_FIRST_ROUTING_PACK="${AI_FIRST_ROUTING_PACK-author}"
   AI_FIRST_FEATURE_AI_HOTKEYS="${AI_FIRST_FEATURE_AI_HOTKEYS-1}"
   AI_FIRST_FEATURE_NOTIFICATIONS="${AI_FIRST_FEATURE_NOTIFICATIONS-1}"
   AI_FIRST_FEATURE_RECORDING="${AI_FIRST_FEATURE_RECORDING-1}"
@@ -107,6 +113,7 @@ ai_first_profile_load() {
 
   AI_FIRST_PROFILE_LOADED=1
   export AI_FIRST_PRESET AI_FIRST_APP_ROUTING
+  export AI_FIRST_ROUTING_PACK
   export AI_FIRST_FEATURE_AI_HOTKEYS AI_FIRST_FEATURE_NOTIFICATIONS
   export AI_FIRST_FEATURE_RECORDING AI_FIRST_BAR_LEFT_ITEMS
   export AI_FIRST_BAR_CENTER_ITEMS AI_FIRST_BAR_RIGHT_ITEMS
@@ -114,6 +121,7 @@ ai_first_profile_load() {
   export AI_FIRST_ADD_BAR_RIGHT_ITEMS
   export AEROSPACE_MAIN_MONITOR_NAME AEROSPACE_SIDE_MONITOR_NAME AEROSPACE_STAGE_MONITOR_NAME
   export AEROSPACE_MAIN_WORKSPACES AEROSPACE_SIDE_WORKSPACES AEROSPACE_STAGE_WORKSPACES
+  export AEROSPACE_WORKSPACE_ROLE_MAP
 }
 
 ai_first_enabled() {

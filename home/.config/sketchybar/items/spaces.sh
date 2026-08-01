@@ -17,12 +17,19 @@ source "$CONFIG_DIR/lib/theme.sh"
 source "$CONFIG_DIR/lib/workspaces.sh"
 source "$CONFIG_DIR/lib/display-resolver.sh"
 
-# Environment overrides are still honoured by the library itself; naming them
-# here keeps the old SKETCHYBAR_*_MONITOR_NAME variables working for anyone who
-# set them before displays.conf existed.
-AEROSPACE_MAIN_MONITOR_NAME="${SKETCHYBAR_MAIN_MONITOR_NAME:-${AEROSPACE_MAIN_MONITOR_NAME:-}}"
-AEROSPACE_SIDE_MONITOR_NAME="${SKETCHYBAR_SIDE_MONITOR_NAME:-${AEROSPACE_SIDE_MONITOR_NAME:-}}"
-AEROSPACE_STAGE_MONITOR_NAME="${SKETCHYBAR_STAGE_MONITOR_NAME:-${AEROSPACE_STAGE_MONITOR_NAME:-}}"
+# Environment overrides are still honoured by the library itself. Only create
+# an AeroSpace override when the corresponding legacy SketchyBar variable was
+# actually supplied; assigning an empty value here would incorrectly suppress
+# a monitor name stored in displays.conf.
+if [ -n "${SKETCHYBAR_MAIN_MONITOR_NAME+x}" ]; then
+  AEROSPACE_MAIN_MONITOR_NAME="$SKETCHYBAR_MAIN_MONITOR_NAME"
+fi
+if [ -n "${SKETCHYBAR_SIDE_MONITOR_NAME+x}" ]; then
+  AEROSPACE_SIDE_MONITOR_NAME="$SKETCHYBAR_SIDE_MONITOR_NAME"
+fi
+if [ -n "${SKETCHYBAR_STAGE_MONITOR_NAME+x}" ]; then
+  AEROSPACE_STAGE_MONITOR_NAME="$SKETCHYBAR_STAGE_MONITOR_NAME"
+fi
 
 if [ -r "$AEROSPACE_CONFIG_DIR/lib/layout.sh" ]; then
   source "$AEROSPACE_CONFIG_DIR/lib/layout.sh"

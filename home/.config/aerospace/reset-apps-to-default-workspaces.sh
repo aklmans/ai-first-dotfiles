@@ -14,7 +14,11 @@ aerospace list-windows --all --format '%{window-id}%{tab}%{app-bundle-id}%{tab}%
             aerospace layout --window-id "$window_id" tiling 2>/dev/null || true
         fi
 
-        target_workspace="$(default_workspace_for_window "$app_id" "$app_name" "$title" || true)"
+        route_policy="$(aerospace_route_field "$app_id" "$app_name" policy 2>/dev/null || true)"
+        target_workspace=""
+        if [ "$route_policy" = 'fixed' ]; then
+            target_workspace="$(default_workspace_for_window "$app_id" "$app_name" "$title" || true)"
+        fi
         if [ -n "$target_workspace" ]; then
             aerospace move-node-to-workspace --window-id "$window_id" "$target_workspace" 2>/dev/null || true
         fi

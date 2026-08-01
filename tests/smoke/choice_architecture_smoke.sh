@@ -43,6 +43,12 @@ for module_file in "$repo_root"/bootstrap/modules/*.conf; do
   assert_equal '' "$invalid" "${module_file##*/} module overlay must contain literal data only"
 done
 
+for routing_pack in "$repo_root"/home/.config/aerospace/routing-packs/*.conf; do
+  invalid="$(grep -vE '^[[:space:]]*(#|$)' "$routing_pack" | \
+    grep -vE '^(id|name)\|[^|]+\|[A-Za-z0-9_-]+\|(follow|prefer|fixed)\|(tiling|floating|-)$' || true)"
+  assert_equal '' "$invalid" "${routing_pack##*/} routing pack must contain literal route data only"
+done
+
 # Profile-level behavior, tested without touching the real live config.
 profile_lib="$repo_root/home/.config/ai-first/lib/profile.sh"
 aerospace_dir="$repo_root/home/.config/aerospace"
@@ -57,17 +63,40 @@ minimal="$(env HOME="$sandbox_root/home-minimal" \
     source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
     printf "preset=%s\nworkspaces=%s\nrouting=" "$AI_FIRST_PRESET" "$(aerospace_layout_workspaces)"
     if aerospace_app_routing_enabled; then printf on; else printf off; fi
-    printf "\nbar-center=%s\nbar-right=%s\nterminal=%s\nnotifications=%s\n" \
+    printf "\npack=%s\nroles=%s\nbar-center=%s\nbar-right=%s\nterminal=%s\nnotifications=%s\n" \
+      "$(aerospace_routing_pack)" "$AEROSPACE_WORKSPACE_ROLE_MAP" \
       "$AI_FIRST_BAR_CENTER_ITEMS" "$AI_FIRST_BAR_RIGHT_ITEMS" \
       "$AI_FIRST_TERMINAL_APP" "$AI_FIRST_NOTIFICATION_APPS"
   ')"
 assert_contains "$minimal" 'preset=minimal' 'minimal preset identity'
 assert_contains "$minimal" 'workspaces=1 2 3 4 5 6' 'minimal must have six reachable workspaces'
-assert_contains "$minimal" 'routing=off' 'minimal must not force the author app map'
+assert_contains "$minimal" 'routing=on' 'minimal must enable portable dialog/layout behavior and user routes'
+assert_contains "$minimal" 'pack=none' 'minimal must select no shipped routing pack'
+assert_contains "$minimal" 'stage:6' 'minimal semantic stage must resolve inside its six workspaces'
 assert_contains "$minimal" 'bar-center=' 'minimal center can be empty'
 assert_missing "$minimal" 'ai_notifications' 'minimal bar must omit the notification UI'
 assert_contains "$minimal" 'terminal=Terminal' 'minimal must not require Warp'
 assert_contains "$minimal" 'notifications=' 'minimal notification list can be empty'
+
+# Loading app-defaults directly must preserve explicit empty stage lists. This
+# is the real renderer path and previously leaked workspace 13 back into the
+# eight-workspace developer profile.
+developer="$(env HOME="$sandbox_root/home-developer" \
+  AI_FIRST_PROFILE_LIB="$profile_lib" \
+  AI_FIRST_PROFILE_PATH="$repo_root/bootstrap/presets/developer.conf" \
+  AEROSPACE_CONFIG_DIR="$aerospace_dir" \
+  /bin/bash -c '
+    source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
+    printf "pack=%s\nworkspaces=%s\nstage=%s\nrole-stage=%s\nmoves=" \
+      "$(aerospace_routing_pack)" "$(aerospace_layout_workspaces)" \
+      "$AEROSPACE_STAGE_WORKSPACES" "$(aerospace_layout_workspace_for_semantic_role stage)"
+    emit_on_window_detected_rules | grep -c move-node-to-workspace || true
+  ')"
+assert_contains "$developer" 'pack=none' 'developer must not inherit the author routing pack'
+assert_contains "$developer" 'workspaces=1 2 3 4 5 6 7 8' 'developer must expose exactly eight workspaces'
+assert_contains "$developer" $'stage=\n' 'developer must keep its explicit empty physical stage group'
+assert_contains "$developer" 'role-stage=8' 'developer semantic stage must share a configured workspace'
+assert_contains "$developer" 'moves=0' 'developer must emit no shipped app placement rules'
 
 author="$(env HOME="$sandbox_root/home-author" \
   AI_FIRST_PROFILE_LIB="$profile_lib" \
@@ -77,6 +106,7 @@ author="$(env HOME="$sandbox_root/home-author" \
     source "$AEROSPACE_CONFIG_DIR/lib/layout.sh"
     aerospace_layout_load_config
     source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
+    printf "pack=%s\n" "$(aerospace_routing_pack)"
     printf "monitors=%s|%s|%s\n" "$AEROSPACE_MAIN_MONITOR_NAME" "$AEROSPACE_SIDE_MONITOR_NAME" "$AEROSPACE_STAGE_MONITOR_NAME"
     printf "groups=%s|%s|%s\n" "$AEROSPACE_MAIN_WORKSPACES" "$AEROSPACE_SIDE_WORKSPACES" "$AEROSPACE_STAGE_WORKSPACES"
     printf "obs=%s bili=%s shadow=%s shadow-layout=" \
@@ -87,6 +117,7 @@ author="$(env HOME="$sandbox_root/home-author" \
     printf "\nnotify=%s\n" "$AI_FIRST_NOTIFICATION_APPS"
   ')"
 assert_contains "$author" 'monitors=PHL 279C9|24V5C2|Built-in Retina Display' 'author display ownership is preserved'
+assert_contains "$author" 'pack=author' 'author-full must explicitly select the author routing pack'
 assert_contains "$author" 'groups=1 2 3 4 5 6|7 8 9 10 11 12|13' 'author workspace groups are preserved'
 assert_contains "$author" 'obs=11 bili=10 shadow=2 shadow-layout=tiling' 'critical author app rules are preserved'
 assert_contains "$author" 'notify=warp codex idea goland' 'notification whitelist stays limited to four apps'
@@ -101,6 +132,43 @@ printf '%s\n' 'name|Example.App (Beta)|5|tiling' > "$routes"
 rendered_override="$(env HOME="$sandbox_root/home-route-render" AI_FIRST_APP_ROUTES_FILE="$routes" AEROSPACE_CONFIG_DIR="$aerospace_dir" \
   /bin/bash -c 'source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"; emit_user_on_window_detected_rules')"
 assert_contains "$rendered_override" "'^Example\\.App \\(Beta\\)$'" 'app names must be escaped before becoming TOML regexes'
+
+printf '%s\n' 'id|com.example.Editor|notes|prefer|tiling' > "$routes"
+semantic_route="$(env HOME="$sandbox_root/home-semantic-route" AI_FIRST_APP_ROUTES_FILE="$routes" \
+  AI_FIRST_ROUTING_PACK=none AEROSPACE_CONFIG_DIR="$aerospace_dir" \
+  /bin/bash -c '
+    source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
+    printf "%s|%s|%s" \
+      "$(default_workspace_rule_for_window com.example.Editor Editor title)" \
+      "$(aerospace_route_field com.example.Editor Editor policy)" \
+      "$(aerospace_route_field com.example.Editor Editor layout)"
+  ')"
+assert_equal '9|prefer|tiling' "$semantic_route" 'semantic targets and prefer policy must resolve through the role map'
+
+creator_route="$(env HOME="$sandbox_root/home-creator-route" AI_FIRST_PROFILE_LIB="$profile_lib" \
+  AI_FIRST_PROFILE_PATH="$repo_root/bootstrap/presets/developer.conf" AI_FIRST_ROUTING_PACK=creator \
+  AEROSPACE_CONFIG_DIR="$aerospace_dir" /bin/bash -c '
+    source "$AEROSPACE_CONFIG_DIR/app-defaults.sh"
+    printf "%s|%s" \
+      "$(default_workspace_rule_for_window com.obsproject.obs-studio OBS title)" \
+      "$(aerospace_route_field com.obsproject.obs-studio OBS policy)"
+  ')"
+assert_equal '8|fixed' "$creator_route" 'creator pack stage must resolve inside the selected workspace profile'
+
+developer_plan="$(env HOME="$sandbox_root/home-developer-plan" AI_FIRST_PROFILE_LIB="$profile_lib" \
+  AI_FIRST_PROFILE_PATH="$repo_root/bootstrap/presets/developer.conf" \
+  AEROSPACE_CONFIG_DIR="$aerospace_dir" /bin/bash "$aerospace_dir/plan.sh" --check)"
+assert_contains "$developer_plan" 'Routing pack: none' 'resolved plan must show the developer routing choice'
+assert_contains "$developer_plan" 'stage              8' 'resolved plan must show semantic role targets'
+assert_contains "$developer_plan" 'Result: valid' 'resolved developer plan must pass validation'
+
+invalid_plan_status=0
+invalid_plan="$(env HOME="$sandbox_root/home-invalid-plan" AI_FIRST_PROFILE_LIB=/private/tmp/ai-first-no-profile \
+  AI_FIRST_ROUTING_PACK=none AEROSPACE_MAIN_WORKSPACES='1 2 3' AEROSPACE_SIDE_WORKSPACES= \
+  AEROSPACE_STAGE_WORKSPACES= AEROSPACE_WORKSPACE_ROLE_MAP='focus:99' \
+  AEROSPACE_CONFIG_DIR="$aerospace_dir" /bin/bash "$aerospace_dir/plan.sh" --check 2>&1)" || invalid_plan_status=$?
+assert_equal '1' "$invalid_plan_status" 'plan check must reject semantic roles targeting absent workspaces'
+assert_contains "$invalid_plan" 'focus targets missing workspace 99' 'plan check must explain the invalid role target'
 
 printf '%s\n' 'id|com.obsproject.obs-studio|current|floating' > "$routes"
 follow_override="$(env HOME="$sandbox_root/home-route-current" AI_FIRST_APP_ROUTES_FILE="$routes" AEROSPACE_CONFIG_DIR="$aerospace_dir" \
@@ -139,7 +207,7 @@ route_cli_routes="$route_cli_dir/app-routes.conf"
 route_cli_config="$route_cli_dir/aerospace.toml"
 route_cli_log="$route_cli_dir/aerospace.log"
 route_cli_render_log="$route_cli_dir/render.log"
-printf '%s\n' '# match|value|workspace|layout' > "$route_cli_routes"
+printf '%s\n' '# match|value|target|policy|layout' > "$route_cli_routes"
 printf '%s\n' '[mode.main.binding]' > "$route_cli_config"
 cat > "$route_cli_dir/aerospace" <<'STUB'
 #!/bin/bash
@@ -166,13 +234,15 @@ route_cli_env=(
   APP_ROUTE_RENDER_LOG="$route_cli_render_log"
 )
 env "${route_cli_env[@]}" /bin/bash "$route_cli" bind-here >/dev/null
-assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|5|floating' 'bind-here must capture focused app workspace and layout'
+assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|5|fixed|floating' 'bind-here must capture focused app workspace and layout'
 if find "$route_cli_dir" -name 'app-routes.conf.backup-*' -print -quit | grep -q .; then pass; else fail 'app route changes must keep a backup'; fi
 env "${route_cli_env[@]}" /bin/bash "$route_cli" follow >/dev/null
-assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|current|floating' 'follow must replace the fixed workspace with current'
+assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|current|follow|floating' 'follow must replace the fixed workspace with current'
 route_cli_list="$(env "${route_cli_env[@]}" /bin/bash "$route_cli" list)"
 assert_contains "$route_cli_list" 'com.example.Editor' 'list must expose saved routes'
 assert_contains "$route_cli_list" 'current' 'list must expose follow-current state'
+env "${route_cli_env[@]}" /bin/bash "$route_cli" prefer notes >/dev/null
+assert_contains "$(cat "$route_cli_routes")" 'id|com.example.Editor|notes|prefer|floating' 'prefer must accept a semantic workspace role'
 env "${route_cli_env[@]}" /bin/bash "$route_cli" forget >/dev/null
 assert_missing "$(cat "$route_cli_routes")" 'com.example.Editor' 'forget must restore the shipped default by removing the override'
 assert_contains "$(cat "$route_cli_log")" 'reload-config --dry-run --no-gui' 'route changes must validate AeroSpace before reload'
@@ -226,8 +296,8 @@ assert_contains "$compose_output" 'modules/minimal/notifications.conf' 'preset e
 module_home="$sandbox_root/module-home"
 mkdir -p "$module_home"
 HOME="$module_home" PATH="$choice_stub_dir:$PATH" DOTFILES_SKIP_PREFLIGHT=1 /bin/bash "$repo_root/bootstrap/setup.sh" automation ai --deploy-only >/dev/null 2>&1
-module_profile="$(HOME="$module_home" /bin/bash -c 'source "$1"; printf "%s|%s|%s|%s|%s" "$AI_FIRST_FEATURE_AI_HOTKEYS" "$AI_FIRST_FEATURE_NOTIFICATIONS" "$AI_FIRST_TERMINAL_APP" "$AI_FIRST_APP_ROUTING" "$AEROSPACE_MAIN_WORKSPACES"' _ "$module_home/.config/ai-first/lib/profile.sh")"
-assert_equal '1|0|Terminal|0|1 2 3 4 5 6' "$module_profile" 'module-only composition must start neutral and enable only selected AI behavior'
+module_profile="$(HOME="$module_home" /bin/bash -c 'source "$1"; printf "%s|%s|%s|%s|%s|%s" "$AI_FIRST_FEATURE_AI_HOTKEYS" "$AI_FIRST_FEATURE_NOTIFICATIONS" "$AI_FIRST_TERMINAL_APP" "$AI_FIRST_APP_ROUTING" "$AI_FIRST_ROUTING_PACK" "$AEROSPACE_MAIN_WORKSPACES"' _ "$module_home/.config/ai-first/lib/profile.sh")"
+assert_equal '1|0|Terminal|1|none|1 2 3 4 5 6' "$module_profile" 'module-only composition must keep portable layout rules without selecting an app pack'
 
 scope_home="$sandbox_root/scope-home"
 mkdir -p "$scope_home/modules/custom" "$scope_home/modules/minimal"
