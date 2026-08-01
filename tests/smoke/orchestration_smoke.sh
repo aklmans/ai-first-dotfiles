@@ -103,11 +103,15 @@ case "${1:-}" in
     exit 1
     ;;
   trust)
-    # Homebrew 6 answers "which third-party taps may I load from" here.
-    # DOTFILES_STUB_BREW_TRUSTED is a JSON array body, so a case can hand back
-    # either an empty trust list or one that already contains the tap.
-    printf '{"taps":[%s],"formulae":[],"casks":[],"commands":[]}\n' \
-      "${DOTFILES_STUB_BREW_TRUSTED:-}"
+    # Homebrew 6 answers "which third-party taps may I load from" here, and it
+    # answers per tap, per formula, per cask and per command - not per tap
+    # alone. `brew trust felixkratz/formulae/sketchybar`, the command brew's own
+    # error suggests, fills the second list and leaves the first empty. Each list
+    # is a separate JSON array body so a case can describe either machine.
+    printf '{"taps":[%s],"formulae":[%s],"casks":[%s],"commands":[]}\n' \
+      "${DOTFILES_STUB_BREW_TRUSTED:-}" \
+      "${DOTFILES_STUB_BREW_TRUSTED_FORMULAE:-}" \
+      "${DOTFILES_STUB_BREW_TRUSTED_CASKS:-}"
     exit 0
     ;;
 esac
@@ -212,6 +216,8 @@ run_setup() {
     -u DOTFILES_STUB_BREW_FAIL \
     -u DOTFILES_STUB_BREW_SIGNAL \
     -u DOTFILES_STUB_BREW_TRUSTED \
+    -u DOTFILES_STUB_BREW_TRUSTED_FORMULAE \
+    -u DOTFILES_STUB_BREW_TRUSTED_CASKS \
     -u SBARLUA_CACHE_DIR \
     -u SBARLUA_INSTALL_DIR \
     -u XDG_CACHE_HOME \
@@ -304,6 +310,55 @@ case_untrusted_tap_is_explained() {
 
   assert_output_lacks "$last_output" 'brew trust' \
     'a successful run must never mention trusting a tap'
+
+  # Trust is granular. `brew trust felixkratz/formulae/sketchybar` records a
+  # formula and leaves the tap list empty, which is the state the maintainer's
+  # own Mac was in while sketchybar installed fine - and a check that reads only
+  # the tap list calls that untrusted forever.
+  home="$(new_home)"
+  RUN_ENV=("DOTFILES_STUB_BREW_FAIL=install lua"
+    "DOTFILES_STUB_BREW_TRUSTED="
+    'DOTFILES_STUB_BREW_TRUSTED_FORMULAE="felixkratz/formulae/sketchybar"')
+  run_setup "$home" bar
+
+  assert_output_matches "$last_output" 'brew trust felixkratz/formulae' \
+    'a tap-wide failure is still explained when only one formula under it is trusted'
+}
+
+# --- case: the plan says a trust decision is coming --------------------------
+# The refusal arrives minutes into a run, after everything before it installed.
+# --dry-run reads the module scripts rather than running them, so nothing in it
+# ever reached the gate and the plan promised an install that could not finish.
+
+case_dry_run_names_the_trust_gate() {
+  local home
+  home="$(new_home)"
+
+  RUN_ENV=("DOTFILES_STUB_BREW_TRUSTED=")
+  run_setup "$home" bar --dry-run
+
+  assert_equal 0 "$last_status" 'a dry run must succeed'
+  assert_output_matches "$last_output" 'trust .*felixkratz/formulae' \
+    'the plan must name the tap whose trust the run will need'
+
+  # Named in full and trusted by name: the plan knows the answer exactly, so it
+  # must not hedge about the tap it came from.
+  home="$(new_home)"
+  RUN_ENV=("DOTFILES_STUB_BREW_TRUSTED="
+    'DOTFILES_STUB_BREW_TRUSTED_CASKS="tw93/tap/kakuku"')
+  run_setup "$home" terminal --dry-run
+
+  assert_equal 0 "$last_status" 'a dry run must succeed'
+  assert_output_lacks "$last_output" 'trust' \
+    'a plan whose every third-party item is trusted by name must stay quiet'
+
+  # Same module, nothing trusted: the one command that unblocks it, exactly.
+  home="$(new_home)"
+  RUN_ENV=("DOTFILES_STUB_BREW_TRUSTED=")
+  run_setup "$home" terminal --dry-run
+
+  assert_output_matches "$last_output" 'brew trust tw93/tap/kakuku' \
+    'a fully named item must be reported by name rather than by its tap'
 }
 
 # --- case: Ctrl-C stops the run ---------------------------------------------
@@ -517,6 +572,7 @@ case_choices_are_visible_and_no_arg_is_inert() {
 
 case_failure_does_not_stop_the_run
 case_untrusted_tap_is_explained
+case_dry_run_names_the_trust_gate
 case_interrupted_step_stops_the_run
 case_skip_alone_is_not_a_failure
 case_skip_and_failure_are_reported_apart

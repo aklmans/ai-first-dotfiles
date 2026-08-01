@@ -83,16 +83,18 @@ above. Two things to know:
 
 **`~/.aerospace.toml` is generated between markers.** `render-layout.sh` rewrites
 only the blocks between its `>>> generated` / `<<< generated` comments and copies
-everything else through, so your own keybindings and comments survive. If those
-markers are missing — an `~/.aerospace.toml` from before they existed — it stops
-and says so rather than guessing:
+everything else through, so your own keybindings and comments survive.
 
-```bash
-./bootstrap/setup.sh workspace --deploy-only   # redeploys the shipped file first
-```
+An `~/.aerospace.toml` from before those markers existed has nowhere to write, and
+`render-layout.sh` stops rather than guessing where the generated block belongs.
+Running the module is not how you meet that: `setup.sh workspace` deploys the
+shipped file — backing yours up first — and renders into that, so the upgrade goes
+through without ever reaching the refusal. You only see it by running
+`render-layout.sh` directly against an old file.
 
-Your previous file is backed up next to it, so you can copy your own sections
-back in afterwards.
+Either way your previous file is kept beside it, twice: `.backup_<stamp>` from the
+deploy and `.bak-<stamp>-render-layout` from the renderer. Copy your own sections
+back in from the first one.
 
 **Files this repo used to ship and no longer does are reported, not deleted.**
 A deploy that finds them prints them once, and leaves them where they are. That

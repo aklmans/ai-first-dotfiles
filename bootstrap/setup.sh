@@ -315,7 +315,7 @@ preview_deploy_targets() {
 # --plan mode because it contains several selectable profiles.
 preview_brew_requirements() {
   local script="$1"
-  local line logical kind values value
+  local line logical kind values value taps="" unqualified=0
   local tap_pattern='^[[:space:]]*ensure_brew_tap[[:space:]]+([^#;]+)'
   local cask_pattern='^[[:space:]]*brew_install_cask[[:space:]]+([^#;]+)'
   local formula_pattern='^[[:space:]]*brew_install[[:space:]]+([^#;]+)'
@@ -357,6 +357,29 @@ preview_brew_requirements() {
             ;;
           *)
             printf '    %-8s %s\n' "$kind" "$value"
+            # This preview reads the module scripts instead of running them, so
+            # nothing here reaches the trust gate brew applies at install time.
+            # Without it the plan lists a third-party formula as a plain
+            # requirement and the run stops on it minutes later, which is what
+            # happened on the first clean Mac this was tried on: `minimal` died
+            # on sketchybar after installing everything before it. A plan that
+            # does not mention the one step needing a decision is not a plan.
+            if [[ "$kind" == "tap" ]]; then
+              case "$value" in
+                homebrew/*) ;;
+                *) taps="$taps $value" ;;
+              esac
+            else
+              brew_plan_report_untrusted "$value"
+              # A bare name is the only reason the note below has to be vague:
+              # brew resolves it, and this preview cannot. A module that names
+              # everything it installs in full - aerospace, kaku - has already
+              # been answered exactly, item by item, and does not need it.
+              case "$value" in
+                */*/*) ;;
+                *) unqualified=1 ;;
+              esac
+            fi
             ;;
         esac
       done
@@ -364,6 +387,12 @@ preview_brew_requirements() {
 
     logical=""
   done <"$script"
+
+  # Last, so it reads as a condition on the whole list rather than on whichever
+  # line happened to name the tap.
+  [[ "$unqualified" -eq 1 ]] || return 0
+  # shellcheck disable=SC2086
+  brew_plan_note_untrusted_taps $taps
 }
 
 report_skipped_modules() {

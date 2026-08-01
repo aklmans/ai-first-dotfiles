@@ -175,12 +175,18 @@ DOTFILES_BREW_TAPS=""
 
 # 0 = trusted, or unknowable, or official. A check that cannot read the state
 # must never invent a refusal.
-brew_tap_is_trusted() {
-  local tap="$1" trusted
-
-  case "$tap" in
-    homebrew/*) return 0 ;;
-  esac
+#
+# Trust in Homebrew 6 is granular, and the first version of this only read the
+# tap list. `brew trust felixkratz/formulae/sketchybar` - which is the command
+# brew's own error suggests, and so the one people actually run - records a
+# formula, not a tap. On the machine this was written for, `brew trust --json`
+# reported no trusted taps at all while sketchybar and aerospace were both
+# trusted and installing fine, so every check said "not trusted" forever: a
+# false warning in `--dry-run`, and a paragraph of remediation after every
+# install that had not failed. Whichever list the answer is in, it is an answer.
+brew_trust_lists_contain() {
+  local needle="$1" trusted
+  shift
 
   command -v python3 >/dev/null 2>&1 || return 0
   trusted="$(brew trust --json v1 2>/dev/null)" || return 0
@@ -192,8 +198,97 @@ try:
     data = json.load(sys.stdin)
 except Exception:
     raise SystemExit(0)
-raise SystemExit(0 if sys.argv[1] in (data.get("taps") or []) else 1)
-' "$tap"
+needle = sys.argv[1]
+for key in sys.argv[2:]:
+    if needle in (data.get(key) or []):
+        raise SystemExit(0)
+raise SystemExit(1)
+' "$needle" "$@"
+}
+
+brew_tap_is_trusted() {
+  local tap="$1"
+
+  case "$tap" in
+    homebrew/*) return 0 ;;
+  esac
+
+  brew_trust_lists_contain "$tap" taps
+}
+
+# Whether Homebrew would load this specific formula or cask: either its whole
+# tap is trusted, or it is trusted by name. `$1` is a fully qualified name such
+# as felixkratz/formulae/sketchybar; a bare name is from an official tap and
+# never gated.
+brew_item_is_trusted() {
+  local item="$1" tap
+
+  case "$item" in
+    */*/*) tap="${item%/*}" ;;
+    *) return 0 ;;
+  esac
+
+  brew_tap_is_trusted "$tap" && return 0
+  brew_trust_lists_contain "$item" formulae casks
+}
+
+# One line in a plan, for a formula or cask Homebrew would refuse today. It goes
+# beside the item rather than beside the tap because that is where the answer
+# is: at the point a tap is declared nothing has said yet what will be installed
+# from it, and warning there marked taps this repo only ever takes a cask from.
+#
+# Only fully qualified names get a verdict. The install scripts name a
+# third-party formula the way brew resolves it - `brew_install sketchybar`, not
+# `felixkratz/formulae/sketchybar` - and guessing the tap for a bare name would
+# accuse `lua`, `jq` and `gh` of coming from somewhere they do not. Those are
+# covered by the note below instead.
+brew_plan_report_untrusted() {
+  local item="$1"
+
+  case "$item" in
+    */*/*) ;;
+    *) return 0 ;;
+  esac
+
+  brew_item_is_trusted "$item" && return 0
+  printf '    %-8s %s is not trusted yet; Homebrew refuses to install it until\n' 'trust' "$item"
+  printf '    %-8s you run "brew trust %s"\n' '' "$item"
+}
+
+# Set the moment a plan names something brew has to resolve on its own, so the
+# closing note is printed for those runs and stays out of the way of the ones
+# that were answered exactly.
+DOTFILES_BREW_UNQUALIFIED=0
+
+brew_plan_note_item() {
+  case "$1" in
+    */*/*) ;;
+    *) DOTFILES_BREW_UNQUALIFIED=1 ;;
+  esac
+}
+
+# The part a plan can be sure of: which third-party taps are in play, and which
+# of those the machine has not trusted wholesale. On a Mac that has never seen
+# them the tap is not on disk, so nothing can say in advance which formula will
+# be refused - only that something from here will be, and what to type when
+# brew names it. Silence is how `minimal` got to install everything before
+# sketchybar and then stop.
+brew_plan_note_untrusted_taps() {
+  local tap first=1
+
+  for tap in "$@"; do
+    [[ -n "$tap" ]] || continue
+    brew_tap_is_trusted "$tap" && continue
+    if [[ "$first" -eq 1 ]]; then
+      printf '    %-8s not trusted wholesale: %s\n' 'trust' "$tap"
+      first=0
+    else
+      printf '    %-8s %s\n' '' "$tap"
+    fi
+  done
+  [[ "$first" -eq 0 ]] || return 0
+  printf '    %-8s Homebrew refuses what it has not been told to trust and names it;\n' ''
+  printf '    %-8s run "brew trust <what it named>" and start again.\n' ''
 }
 
 # Printed after a failed brew install, for whichever taps this run added that
@@ -227,10 +322,6 @@ ensure_brew_tap() {
 
   if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
     printf '    tap      %s\n' "$tap"
-    if ! brew_tap_is_trusted "$tap"; then
-      printf '    %-8s %s is third-party and not trusted yet; anything below that is not\n' 'trust' "$tap"
-      printf '    %-8s already installed needs "brew trust %s" first\n' '' "$tap"
-    fi
     return 0
   fi
   if ! brew tap | grep -Fx "$tap" >/dev/null 2>&1; then
@@ -244,6 +335,8 @@ brew_install() {
   if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
     for formula in "$@"; do
       printf '    formula  %s\n' "$formula"
+      brew_plan_report_untrusted "$formula"
+      brew_plan_note_item "$formula"
     done
     return 0
   fi
@@ -318,6 +411,8 @@ brew_install_cask() {
   if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
     for cask in "$@"; do
       printf '    cask     %s\n' "$cask"
+      brew_plan_report_untrusted "$cask"
+      brew_plan_note_item "$cask"
     done
     return 0
   fi

@@ -62,10 +62,32 @@ cp "$OUTPUT_FILE" "$CONFIG_PATH"
 printf 'Rendered app rules into %s (previous file kept at %s)\n' \
     "$CONFIG_PATH" "$backup_path"
 
-# A dry run is a courtesy check on a file that has already been written, and
-# AeroSpace not running is not a rendering failure.
+# Rendering a file nothing has read yet is not applying it, and this is the
+# command README names for "I edited app-routes.conf, now make it real". Both
+# tools have to be told, in this order:
+#
+#   AeroSpace   reads the rendered TOML
+#   Hammerspoon reads app-routes.conf itself, once, at init
+#
+# Leaving Hammerspoon out is worse than leaving it stale. It falls back to
+# inheriting the focused workspace for any app it has no route for, so a route
+# added by hand takes effect in AeroSpace and is then overridden by Hammerspoon
+# a moment later - the window lands on whichever workspace happened to be in
+# front. `app-route.sh` has always reloaded both; editing the file by hand, the
+# path README documents, did not.
+#
+# Neither reload is a rendering failure: the file is already written, and a
+# machine where AeroSpace is not running is a machine that will read it at
+# launch.
 if [ "$CONFIG_PATH" = "$HOME/.aerospace.toml" ] && command -v aerospace >/dev/null 2>&1; then
-    if ! aerospace reload-config --dry-run --no-gui; then
+    if aerospace reload-config --dry-run --no-gui; then
+        aerospace reload-config >/dev/null 2>&1 || true
+    else
         printf 'AeroSpace did not accept the rendered config, or is not running.\n' >&2
     fi
+fi
+if [ "$CONFIG_PATH" = "$HOME/.aerospace.toml" ] &&
+    [ -f "$HOME/.hammerspoon/init.lua" ] && command -v hs >/dev/null 2>&1; then
+    hs -c 'hs.reload()' >/dev/null 2>&1 ||
+        printf 'Hammerspoon did not reload; its route policies are still the ones it started with.\n' >&2
 fi

@@ -154,3 +154,11 @@ for profile in "${profile_args[@]}"; do
       ;;
   esac
 done
+
+# Once, after the whole plan, for the taps it turned out to involve. Per-item
+# verdicts are printed beside the items that can carry one; this covers the ones
+# named the way brew resolves them, where only brew knows which tap answers.
+if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" && "${DOTFILES_BREW_UNQUALIFIED:-0}" == "1" ]]; then
+  # shellcheck disable=SC2086
+  brew_plan_note_untrusted_taps $DOTFILES_BREW_TAPS
+fi
