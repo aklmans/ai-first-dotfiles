@@ -56,6 +56,28 @@ the difference came from your machine and stays. `--force` overwrites it.
 
 Open a new shell so `brew` lands on `PATH`, then re-run the module.
 
+### `Refusing to load formula ... from untrusted tap`
+
+```
+Error: Refusing to load formula felixkratz/formulae/sketchybar from untrusted
+tap felixkratz/formulae.
+```
+
+Homebrew will not install a formula from a third-party tap until you trust it.
+This repo taps one that matters: `felixkratz/formulae`, which provides SketchyBar
+and JankyBorders. Trusting a tap lets its code run on your machine, so the
+installer prints the command instead of running it for you:
+
+```bash
+brew trust felixkratz/formulae
+```
+
+Then re-run the same command. On a clean Mac this is the first thing you hit,
+because `minimal` is `workspace` + `bar` and the bar is the half that stops.
+AeroSpace and Kaku are casks, which Homebrew trusts without asking, so the rest
+of the run is unaffected — and `--dry-run` names the requirement before you
+start.
+
 ### `This setup supports Apple Silicon only`
 
 It does. The desktop layer hard-codes `/opt/homebrew`, so on an Intel Mac the

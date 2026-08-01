@@ -8,6 +8,7 @@ Start here if the [README](../README.md) sent you looking for detail.
 |---|---|
 | [Getting started](getting-started.md) | You are deciding what to install and in what order |
 | [Choice architecture](choice-architecture.md) | You want modules, presets and safe preference points |
+| [Coexisting with your dotfiles](coexisting.md) | You already have a setup and want to know what this will and will not touch |
 | [Product quality scorecard](product-quality.md) | You are evaluating public readiness with an 8.5 gate |
 | [Release checklist](release-checklist.md) | You are preparing a version or public launch |
 | [Troubleshooting](troubleshooting.md) | It installed and nothing happens |

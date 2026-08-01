@@ -6,6 +6,10 @@
 - [ ] `minimal`, `developer` and `author-full` previews match the catalog.
 - [ ] Paid, closed-source, account and permission requirements are visible before install.
 - [ ] The README screenshots represent the current UI; add a short keyboard-to-outcome demo when available.
+      Currently false: [screenshots](screenshots.md) lists `capslock-chooser.png` and
+      `karabiner-profile.png` as stale, and both are still linked from module docs.
+- [ ] Every scored dimension has evidence from a machine that is not the maintainer's.
+      A score read off the source has been wrong every time it was checked.
 
 ## Verification
 

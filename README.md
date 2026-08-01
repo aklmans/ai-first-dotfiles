@@ -44,6 +44,14 @@ When you are ready:
 ./bootstrap/setup.sh capslock automation ai  # compose only what you want
 ```
 
+**What `minimal` costs you, measured.** On a clean macOS with nothing but
+Homebrew installed: about **one minute** of downloading, one `brew trust` you
+have to type yourself (see Prerequisites), and one Accessibility checkbox in
+System Settings. After that, `Ctrl+1`…`Ctrl+6` switch workspaces and windows
+tile themselves. Two Homebrew taps and roughly 60 files under `~/.config` are
+what stays behind, and `./bootstrap/uninstall.sh` lists every one of them before
+removing anything.
+
 ## Choose an outcome, not someone else's taste
 
 Presets are shortcuts, not product tiers. You can start with one and add any
@@ -83,7 +91,10 @@ profile settings and the boundary between a preference and an implementation.
 
 Everything is copied, never symlinked. A redeploy keeps local edits, refuses to
 write through another manager's symlink, and backs up replacements in a ledger
-that [`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay.
+that [`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay. If you
+already run Stow, chezmoi or your own repo, see
+[Coexisting with your dotfiles](docs/coexisting.md) — including how to check the
+claim before you install anything.
 
 ---
 
@@ -119,6 +130,20 @@ that [`bootstrap/uninstall.sh`](bootstrap/uninstall.sh) can replay.
 
 `setup.sh` checks all four and stops with one readable message rather than
 failing halfway through. Set `DOTFILES_SKIP_PREFLIGHT=1` to bypass it.
+
+**One tap needs your permission before `bar` or `borders` can install.**
+SketchyBar and JankyBorders come from a third-party Homebrew tap, and Homebrew
+will not install a formula from one until you say you trust it — which means
+letting that tap's code run on your machine. That is your decision, so this
+repo asks rather than doing it:
+
+```bash
+brew trust felixkratz/formulae
+```
+
+Skip it and the install still runs; the modules that need that tap stop and
+print the same command. Nothing else is affected: AeroSpace and Kaku are casks,
+which Homebrew trusts on its own.
 
 ---
 
@@ -244,6 +269,14 @@ have changed one and stops overwriting it, so these survive updates.
 
 One display works out of the box: leave `displays.conf` empty and `main`, `side`
 and `stage` all resolve to whatever screen is actually connected.
+
+**Two of those files are data and one is a script.** `profile.conf`,
+`app-routes.conf`, `displays.conf` and `workspaces.conf` are *parsed*: a value is
+taken literally, so nothing in them can execute, and an unparseable line is
+reported rather than run. `theme.conf` is held to the same `KEY="value"` shape by
+a test, but is still `source`d, and `colors.sh` is deliberately a shell script —
+its palette entries reference each other. Treat those last two the way you would
+treat `.zshrc`: paste into them only what you would run.
 
 Run `~/.config/aerospace/doctor.sh` when the desk and the config disagree.
 Run `~/.config/aerospace/plan.sh` to see the resolved displays, roles, routing

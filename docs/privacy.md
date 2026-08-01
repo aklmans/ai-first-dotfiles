@@ -58,6 +58,40 @@ from, written to, or tracked in this repository.
 shaped like `api_key`, `token`, `password`, `secret` or `bearer` out of error
 text before it reaches the log.
 
+## What the notification module reads, and what it keeps
+
+The `notifications` module is the one capability here that reads a system
+database and writes something derived from it to disk. It is off in every preset
+except `author-full`, and the advisor never turns it on. If you enable it, this
+is the whole of what it does.
+
+| | |
+|---|---|
+| Reads | `~/Library/Group Containers/group.com.apple.usernoted/db2/db`, opened with `sqlite3 -readonly`. That is why the module asks for Full Disk Access. |
+| How often | Every 5 seconds, while SketchyBar is running (`items/ai_notifications.sh`, `update_freq=5`). It is a poll on the bar's own timer, not a background daemon, and it stops when the bar stops. |
+| Filters to | Warp, Codex, IntelliJ IDEA and GoLand only — the four in `AI_FIRST_NOTIFICATION_APPS`. An application outside that list is not read out of the database. |
+| Writes | `~/Library/Caches/sketchybar/ai_attention.json`, holding a per-app count, `updated_at`, and **the notification title** for the four apps above. |
+| Sends | Nothing. There is no network call anywhere in this module. |
+
+The stored title is the same text macOS already showed you in the corner of the
+screen, and it is what the bar's popup displays. It still means notification
+text from those four apps sits in a cache file in plain JSON. To see it, or to
+clear it:
+
+```bash
+cat ~/Library/Caches/sketchybar/ai_attention.json
+rm -f ~/Library/Caches/sketchybar/ai_attention.json
+```
+
+It is rebuilt on the next poll. To stop it entirely, set
+`AI_FIRST_FEATURE_NOTIFICATIONS="0"` in `~/.config/ai-first/profile.conf` and
+restart SketchyBar, or remove the module's overlay under
+`~/.config/ai-first/modules/<preset>/notifications.conf`.
+
+“No telemetry” on this page has always meant *nothing leaves your machine*, and
+that remains true. It has never meant *nothing is written down*, and this page
+previously did not say which local state existed.
+
 ## Personal inventories
 
 App Store manifests are the easiest place for a machine snapshot to survive a

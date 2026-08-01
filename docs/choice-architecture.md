@@ -51,10 +51,21 @@ It separates facts from preferences:
   `follow`/`prefer`/`fixed` placement strength.
 
 The result is a preview, not an install. Workspace count is derived from task
-load rather than multiplying displays: `focus` has 4, `balanced` 6,
-`multitask` 8 and `advanced` 10. Display count changes how those tasks are
-grouped across `main`, `side` and `stage`; unplugged roles still collapse by the
-normal display resolver.
+load rather than multiplying displays, and the rule is small enough to predict
+before you run it — count the scenes you selected:
+
+| Scenes selected | Mode | Workspaces |
+|---:|---|---:|
+| 1–2 | `focus` | 4 |
+| 3–4 | `balanced` | 6 |
+| 5–6 | `multitask` | 8 |
+| 7, or 6 including recording | `advanced` | 10 |
+
+Display count does not appear in that table on purpose. Plugging in a second
+screen does not give you more workspaces; it changes how the same ones are
+grouped across `main`, `side` and `stage`, and unplugged roles still collapse by
+the normal display resolver. `--workspace-mode` overrides the table outright,
+and `tune --workspace-feedback fewer|more` steps one row at a time.
 If macOS exposes only a display count and not stable names, flexible planning
 still works; fixed-name mode is deferred until AeroSpace or Hammerspoon can
 report the names rather than writing placeholders that will never match.
@@ -126,7 +137,15 @@ is installed but broken.
 ## Workspace roles and routing packs
 
 Display roles and task roles are separate. `main`, `side` and `stage` resolve
-against however many displays are connected. Semantic task targets such as
+against however many displays are connected.
+
+`stage` is a made-up word for “the screen you point at other people” — the one
+carrying a call, a recording or a presentation. **If you never do any of those,
+it is not a thing you need.** On one display it collapses into `main` on its own,
+and on two it collapses into `side`; leaving `AEROSPACE_STAGE_WORKSPACES` empty
+removes it altogether. It exists so that recording presets have somewhere to
+send a window without hard-coding a screen, not because every desk has three
+jobs. Semantic task targets such as
 `focus`, `communication`, `notes` and `stage` resolve through
 `AEROSPACE_WORKSPACE_ROLE_MAP`; app rules therefore do not need to know whether
 the chosen profile uses six, eight or thirteen workspaces.
@@ -166,6 +185,26 @@ strengths:
 - `prefer`: place new windows on the target, but the reset command does not
   move existing windows back after the user rearranges them.
 - `fixed`: place new windows on the target and include them in explicit reset.
+
+Pick by answering one question — *if I drag this app somewhere else, what should
+happen next time?*
+
+| You want | Policy | New window opens | After you move it by hand |
+|---|---|---|---|
+| “I decide every time” | `follow` | wherever you are | stays where you put it |
+| “usually here, but don’t fight me” | `prefer` | on the target | stays where you put it |
+| “always here, put it back” | `fixed` | on the target | `Alt+Shift+R` returns it |
+
+`follow` and `prefer` look identical on the day you set them. The only moment
+they differ is the *second* time you open the app after moving it: `prefer`
+sends the new window back to the target, `follow` opens it where you are. If
+that distinction does not matter to you yet, choose `follow` — it is the one
+that never surprises you, and `app-route.sh prefer <role>` upgrades it later
+without touching anything else.
+
+`fixed` is the only one that gives a reset command anything to do. Use it for
+the two or three apps you genuinely always want in one place, not as the
+default.
 
 Layout remains independent: `tiling`, `floating`, or `-`. Existing four-column
 records are read as legacy data. Overrides win over the selected pack; invalid
