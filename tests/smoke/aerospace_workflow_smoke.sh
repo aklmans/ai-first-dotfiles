@@ -583,40 +583,45 @@ run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/doctor
 assert_status 0 "$last_status" "doctor.sh must be green on the three-display desk" "$last_output"
 
 # The gap above the windows has to be however tall the bar is, and the bar's
-# height is SketchyBar's to decide. That number used to be written down twice -
-# derived in SketchyBar's theme library, and again as a literal 95 in the
-# rewriter here - so a theme preset that raised the bar left every window
-# fourteen pixels underneath it, silently, on a config that reported no problem.
+# height is SketchyBar's to decide. theme.conf says as much - "raising the bar
+# cannot leave a strip of windows hidden underneath it" - and the number was
+# written down twice anyway: derived in SketchyBar's theme library, and again as
+# a literal 95 in the rewriter here. The derived one was only ever printed at the
+# end of a reload. Nothing compares them, so raising SKETCHYBAR_BAR_HEIGHT put
+# every window under the bar on a config that reported no problem.
 gap_top_in() {
   /usr/bin/awk '/^[[:space:]]*outer\.top[[:space:]]*=/ { print $3; exit }' "$1/.aerospace.toml"
+}
+
+set_bar_height_in() {
+  local home_dir="$1" height="$2"
+  /usr/bin/sed -e "s|^SKETCHYBAR_BAR_HEIGHT=.*|SKETCHYBAR_BAR_HEIGHT=\"$height\"|" \
+    "$home_dir/.config/sketchybar/theme.conf" >"$home_dir/theme.next"
+  mv "$home_dir/theme.next" "$home_dir/.config/sketchybar/theme.conf"
 }
 
 run_in_home "$three_home" "$three_fixture" \
   "$three_home/.config/aerospace/toggle-sketchybar-space.sh" show
 assert_status 0 "$last_status" "show must succeed on three displays" "$last_output"
-gap_desk="$(gap_top_in "$three_home")"
+gap_shipped="$(gap_top_in "$three_home")"
 
-/usr/bin/sed -e 's|^SKETCHYBAR_THEME_PRESET=.*|SKETCHYBAR_THEME_PRESET="stream"|' \
-  "$three_home/.config/sketchybar/theme.conf" >"$three_home/theme.next"
-mv "$three_home/theme.next" "$three_home/.config/sketchybar/theme.conf"
+set_bar_height_in "$three_home" 60
 run_in_home "$three_home" "$three_fixture" \
   "$three_home/.config/aerospace/toggle-sketchybar-space.sh" apply
-gap_stream="$(gap_top_in "$three_home")"
+gap_taller="$(gap_top_in "$three_home")"
 
-if [[ -n "$gap_desk" && -n "$gap_stream" && "$gap_stream" -gt "$gap_desk" ]]; then
+if [[ -n "$gap_shipped" && -n "$gap_taller" && "$gap_taller" -gt "$gap_shipped" ]]; then
   pass
 else
   fail "a taller bar must reserve more room above the windows" \
-    "desk=$gap_desk stream=$gap_stream"
+    "shipped=$gap_shipped taller=$gap_taller"
 fi
 
-/usr/bin/sed -e 's|^SKETCHYBAR_THEME_PRESET=.*|SKETCHYBAR_THEME_PRESET=""|' \
-  "$three_home/.config/sketchybar/theme.conf" >"$three_home/theme.next"
-mv "$three_home/theme.next" "$three_home/.config/sketchybar/theme.conf"
+set_bar_height_in "$three_home" 40
 run_in_home "$three_home" "$three_fixture" \
   "$three_home/.config/aerospace/toggle-sketchybar-space.sh" apply
-assert_equal "$gap_desk" "$(gap_top_in "$three_home")" \
-  "dropping the preset must give the room back"
+assert_equal "$gap_shipped" "$(gap_top_in "$three_home")" \
+  "lowering it again must give the room back"
 
 run_in_home "$three_home" "$three_fixture" \
   "$three_home/.config/aerospace/toggle-sketchybar-space.sh" show-main

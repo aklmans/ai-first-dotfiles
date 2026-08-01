@@ -109,8 +109,6 @@ require_file home/.config/ai-router/providers/ollama.sh
 require_file home/.config/sketchybar/sketchybarrc
 require_file home/.config/sketchybar/colors.sh
 require_file home/.config/sketchybar/theme.conf
-require_file home/.config/sketchybar/theme-control.sh
-require_file home/.config/sketchybar/theme-presets/stream.conf
 require_file home/.config/sketchybar/lib/theme.sh
 require_file home/.config/sketchybar/lib/runtime.sh
 require_file home/.config/sketchybar/lib/workspaces.sh

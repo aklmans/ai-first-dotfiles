@@ -31,7 +31,7 @@ brew_install_cask sf-symbols font-sf-mono font-sf-pro
 # because the file now exists, and reported as a successful install.
 install_sketchybar_app_font() {
   local target="$HOME/Library/Fonts/sketchybar-app-font.ttf"
-  local url='https://github.com/kvndrsslr/sketchybar-app-font/releases/download/v2.0.68/sketchybar-app-font.ttf'
+  local url='https://github.com/aklmans/sketchybar-app-font/releases/download/v2.0.69/sketchybar-app-font.ttf'
   local temp magic
 
   if [[ -f "$target" ]]; then
