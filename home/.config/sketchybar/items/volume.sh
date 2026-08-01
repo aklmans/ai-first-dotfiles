@@ -14,30 +14,31 @@ volume_slider=(
   slider.knob.drawing=on
 )
 
+# The speaker glyph is the icon, and nothing else. It used to be the icon here
+# and the label as well - items/volume.sh set icon=$VOLUME_100 while
+# plugins/volume.sh set label=$ICON on every volume change - so the chip drew
+# two speakers, the second in a 25pt slot that made it wider than the rest of
+# the row. Every other item on this side reads the same way: glyph in the icon,
+# text in the label.
 volume_icon=(
   click_script="$PLUGIN_DIR/volume_click.sh"
-  padding_left=10
   icon=$VOLUME_100
   icon.color=$BAR_COLOR
-  label.color=$BAR_COLOR
-  icon.width=0
-  icon.align=left
+  icon.padding_left=10
+  icon.padding_right=10
   icon.font="$FONT:Regular:$THEME_FONT_SIZE_ICON"
-  label.width=25
-  label.align=left
-  label.font="$FONT:Regular:$THEME_FONT_SIZE_ICON"
- 	background.height=$THEME_ITEM_HEIGHT
-	background.corner_radius=$THEME_PILL_CORNER_RADIUS
-	background.padding_right=5
-	background.border_width=$THEME_ITEM_BORDER_WIDTH
-	background.border_color=$BAR_COLOR
-	background.color=$THEME_ACCENT_VOLUME
-	background.drawing=on
+  label.drawing=off
+  # No background of its own: the bracket below draws one pill around this and
+  # the slider, and a second one here put two rounded rectangles and two borders
+  # in the same place. That is what made this chip the odd one out in a row that
+  # is otherwise uniform.
+  background.drawing=off
 )
 
 status_bracket=(
- 	background.height=$THEME_ITEM_HEIGHT
+	background.height=$THEME_ITEM_HEIGHT
 	background.corner_radius=$THEME_PILL_CORNER_RADIUS
+	background.padding_right=5
 	background.border_width=$THEME_ITEM_BORDER_WIDTH
 	background.border_color=$BAR_COLOR
 	background.color=$THEME_ACCENT_VOLUME

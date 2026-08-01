@@ -18,8 +18,10 @@ volume_change() {
     *) ICON=$VOLUME_100
   esac
 
-  sketchybar --set volume_icon label=$ICON \
-             --set $NAME slider.percentage=$INFO
+  # icon, not label: items/volume.sh already puts the glyph in the icon, and
+  # writing it to the label as well drew the speaker twice.
+  sketchybar --set volume_icon icon="$ICON" \
+             --set "$NAME" slider.percentage="$INFO"
 
   INITIAL_WIDTH="$(sketchybar --query $NAME | jq -r ".slider.width")"
   if [ "$INITIAL_WIDTH" -eq "0" ]; then

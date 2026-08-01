@@ -98,26 +98,51 @@ toml_string() {
     esac
 }
 
-# Fallback patterns AeroSpace understands on any Mac, used when a role has no
-# monitor name configured - and appended after the name when it does, so an
-# unplugged display sends its workspaces somewhere real instead of nowhere.
+# Where a role's workspaces go, in order of preference: its own display, then
+# the displays the other roles are on, then the keywords AeroSpace understands
+# on a Mac whose config names nothing.
+#
+# The other roles are named explicitly because the keywords do not mean what
+# they look like. AeroSpace's `secondary` is "the display macOS did not put the
+# menu bar on" - not "the display this repo calls side". On a desk whose menu
+# bar is on the side monitor those are opposite displays, so a shut lid sent
+# workspace 13 to sit among 1-6 on the main display instead of after 12 where
+# the config puts it. The keywords stay at the end, where they are a last resort
+# rather than the answer.
 role_monitor_patterns() {
     local role="$1"
-    local name
+    local main_name side_name stage_name
 
-    name="$(aerospace_layout_monitor_name_for_role "$role")"
-    [ -z "$name" ] || printf '%s\n' "$(toml_string "$name")"
+    main_name="$(aerospace_layout_monitor_name_for_role main)"
+    side_name="$(aerospace_layout_monitor_name_for_role side)"
+    stage_name="$(aerospace_layout_monitor_name_for_role stage)"
 
+    # Collapse order matches aerospace_layout_resolve's third pass -
+    # stage -> side -> main - so this file and the library cannot disagree about
+    # where an absent display sends its workspaces.
     case "$role" in
         main)
+            [ -z "$main_name" ] || printf '%s\n' "$(toml_string "$main_name")"
             printf "'main'\n"
             ;;
         side)
+            [ -z "$side_name" ] || printf '%s\n' "$(toml_string "$side_name")"
+            if [ -n "$main_name" ] && [ "$main_name" != "$side_name" ]; then
+                printf '%s\n' "$(toml_string "$main_name")"
+            fi
             printf "'secondary'\n"
             printf "'main'\n"
             ;;
         stage)
+            [ -z "$stage_name" ] || printf '%s\n' "$(toml_string "$stage_name")"
             printf "'built-in'\n"
+            if [ -n "$side_name" ] && [ "$side_name" != "$stage_name" ]; then
+                printf '%s\n' "$(toml_string "$side_name")"
+            fi
+            if [ -n "$main_name" ] && [ "$main_name" != "$stage_name" ] &&
+                [ "$main_name" != "$side_name" ]; then
+                printf '%s\n' "$(toml_string "$main_name")"
+            fi
             printf "'secondary'\n"
             printf "'main'\n"
             ;;

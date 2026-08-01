@@ -592,6 +592,66 @@ assert_not_contains "$solo_output" "display-resolver.sh: No such file" \
   "a missing SketchyBar resolver must degrade, not fail the source"
 rm -rf "$solo_root"
 
+# --- one glyph per chip ------------------------------------------------------
+# items/volume.sh put the speaker in the icon and plugins/volume.sh put the same
+# speaker in the label on every volume change, so the chip drew two of them and
+# came out wider and rounder than everything beside it. Nothing here noticed:
+# the bar was only ever checked for what it wrote, never for writing the same
+# thing twice.
+
+volume_root="$(mktemp -d "${TMPDIR:-/tmp}/sketchybar-volume.XXXXXX")"
+mkdir -p "$volume_root/bin"
+cat >"$volume_root/bin/sketchybar" <<'STUB'
+#!/bin/bash
+if [ "${1:-}" = "--query" ]; then
+  printf '{"slider":{"width":0,"percentage":50}}\n'
+  exit 0
+fi
+printf '%s\n' "$*" >>"${SKETCHYBAR_TEST_LOG:-/dev/null}"
+exit 0
+STUB
+cat >"$volume_root/bin/jq" <<'STUB'
+#!/bin/bash
+# The plugin asks for slider.width and slider.percentage; both answers keep it
+# on the path that does not animate, so the case does not wait on a sleep.
+case "$*" in
+  *width*) printf '0\n' ;;
+  *) printf '50\n' ;;
+esac
+exit 0
+STUB
+chmod +x "$volume_root/bin/sketchybar" "$volume_root/bin/jq"
+
+: >"$volume_root/log"
+env -i "HOME=$volume_root" "PATH=$volume_root/bin:/usr/bin:/bin" \
+  "CONFIG_DIR=$repo_root/home/.config/sketchybar" \
+  "SKETCHYBAR_TEST_LOG=$volume_root/log" \
+  "SENDER=volume_change" "INFO=50" "NAME=volume" \
+  /bin/bash "$repo_root/home/.config/sketchybar/plugins/volume.sh" >/dev/null 2>&1 || true
+
+volume_sets="$(grep -F 'volume_icon' "$volume_root/log" 2>/dev/null || true)"
+assert_contains "$volume_sets" 'icon=' \
+  "the volume plugin must put the speaker glyph in the icon"
+assert_not_contains "$volume_sets" 'label=' \
+  "the volume plugin must not put the same glyph in the label as well"
+
+volume_item="$(cat "$repo_root/home/.config/sketchybar/items/volume.sh")"
+assert_contains "$volume_item" 'label.drawing=off' \
+  "the volume chip must not reserve a label slot it does not use"
+# The bracket draws the pill around the slider and the icon together. A second
+# background on the icon put two rounded rectangles and two borders in one place.
+assert_contains "$volume_item" 'background.drawing=off' \
+  "the volume icon must leave its pill to the bracket"
+rm -rf "$volume_root"
+
+# One bar, one shape: the workspace chips on the left and the pills on the right
+# used 15 and 20, and at 26pt tall anything past 13 is already a full pill.
+theme_conf="$(cat "$repo_root/home/.config/sketchybar/theme.conf")"
+item_radius="$(printf '%s\n' "$theme_conf" | /usr/bin/awk -F'"' '/^SKETCHYBAR_ITEM_CORNER_RADIUS=/ { print $2 }')"
+pill_radius="$(printf '%s\n' "$theme_conf" | /usr/bin/awk -F'"' '/^SKETCHYBAR_PILL_CORNER_RADIUS=/ { print $2 }')"
+assert_equal "$item_radius" "$pill_radius" \
+  "the right-hand pills must use the same corner radius as the workspace chips"
+
 # --- report -----------------------------------------------------------------
 
 if [[ "$failures" -gt 0 ]]; then

@@ -194,7 +194,7 @@ sketchybar_theme_load() {
   THEME_ITEM_HEIGHT="${SKETCHYBAR_ITEM_HEIGHT:-26}"
   THEME_ITEM_CORNER_RADIUS="${SKETCHYBAR_ITEM_CORNER_RADIUS:-15}"
   THEME_ITEM_BORDER_WIDTH="${SKETCHYBAR_ITEM_BORDER_WIDTH:-2}"
-  THEME_PILL_CORNER_RADIUS="${SKETCHYBAR_PILL_CORNER_RADIUS:-20}"
+  THEME_PILL_CORNER_RADIUS="${SKETCHYBAR_PILL_CORNER_RADIUS:-15}"
 
   # The number AeroSpace and Hammerspoon have to agree with. Derived rather
   # than written down, so raising the bar cannot leave a strip of windows

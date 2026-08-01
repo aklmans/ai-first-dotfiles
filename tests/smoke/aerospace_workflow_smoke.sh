@@ -516,8 +516,16 @@ run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/render
 assert_status 0 "$last_status" "render-layout.sh must accept named displays" "$last_output"
 assert_file_contains "$three_home/.aerospace.toml" "'1' = ['PHL 279C9', 'main']" \
   "Named main display is pinned in the AeroSpace config"
-assert_file_contains "$three_home/.aerospace.toml" "'13' = ['Built-in Retina Display', 'built-in', 'secondary', 'main']" \
-  "Named stage display keeps its fallbacks"
+# The other roles by name before AeroSpace's keywords. `secondary` there means
+# "the display macOS did not put the menu bar on", which on a desk whose menu
+# bar sits on the side monitor is the main one - so a shut lid sent workspace 13
+# to sit among 1-6 instead of after 12. The names say which display is meant;
+# the keywords stay as the last resort for a config that names none.
+assert_file_contains "$three_home/.aerospace.toml" \
+  "'13' = ['Built-in Retina Display', 'built-in', '24V5C2', 'PHL 279C9', 'secondary', 'main']" \
+  "A stage display falls back onto the side display before the main one"
+assert_file_contains "$three_home/.aerospace.toml" "'7' = ['24V5C2', 'PHL 279C9', 'secondary', 'main']" \
+  "A side display falls back onto the main display by name"
 
 run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/check-display-layout.sh"
 assert_status 0 "$last_status" "Layout check must pass on the three-display desk" "$last_output"
