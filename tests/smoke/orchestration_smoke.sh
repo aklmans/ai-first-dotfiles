@@ -102,6 +102,14 @@ case "${1:-}" in
     # Report "not installed" so brew_install_cask runs its full decision path.
     exit 1
     ;;
+  trust)
+    # Homebrew 6 answers "which third-party taps may I load from" here.
+    # DOTFILES_STUB_BREW_TRUSTED is a JSON array body, so a case can hand back
+    # either an empty trust list or one that already contains the tap.
+    printf '{"taps":[%s],"formulae":[],"casks":[],"commands":[]}\n' \
+      "${DOTFILES_STUB_BREW_TRUSTED:-}"
+    exit 0
+    ;;
 esac
 exit 0
 STUB
@@ -203,6 +211,7 @@ run_setup() {
     -u DOTFILES_FORCE \
     -u DOTFILES_STUB_BREW_FAIL \
     -u DOTFILES_STUB_BREW_SIGNAL \
+    -u DOTFILES_STUB_BREW_TRUSTED \
     -u SBARLUA_CACHE_DIR \
     -u SBARLUA_INSTALL_DIR \
     -u XDG_CACHE_HOME \
@@ -252,6 +261,49 @@ case_failure_does_not_stop_the_run() {
     'the failure report must name the module that failed'
   assert_output_matches "$last_output" 'exit 1' \
     'the failure report must include the exit code'
+}
+
+# --- case: an untrusted third-party tap explains itself ----------------------
+# Homebrew 6 refuses to install from a third-party tap until it is trusted, and
+# it refuses even for a formula that is already installed. A fresh Mac therefore
+# lost half of `minimal` - workspace + bar, with bar failing - to brew's own
+# error printed a screen above the run summary, and nothing said what to do.
+#
+# Trust state alone must not be what triggers the guidance: these taps are
+# untrusted on the maintainer's machine too, where plenty installs fine. Only a
+# real install failure may produce it.
+
+case_untrusted_tap_is_explained() {
+  local home
+  home="$(new_home)"
+
+  RUN_ENV=("DOTFILES_STUB_BREW_FAIL=install lua" "DOTFILES_STUB_BREW_TRUSTED=")
+  run_setup "$home" bar
+
+  assert_nonzero_status "$last_status" 'the failing module must still fail' "$last_output"
+  assert_output_matches "$last_output" 'brew trust felixkratz/formulae' \
+    'a failed install from an untrusted tap must name the exact trust command'
+  assert_output_matches "$last_output" 'lets its code run on this machine' \
+    'the guidance must say what trusting a tap means, not just how to do it'
+  assert_output_matches "$last_output" 'safe to run again' \
+    'the guidance must say the run can simply be repeated'
+
+  # Trusted already: the same failure must not blame trust for it.
+  home="$(new_home)"
+  RUN_ENV=("DOTFILES_STUB_BREW_FAIL=install lua" 'DOTFILES_STUB_BREW_TRUSTED="felixkratz/formulae"')
+  run_setup "$home" bar
+
+  assert_nonzero_status "$last_status" 'the failing module must still fail' "$last_output"
+  assert_output_lacks "$last_output" 'brew trust' \
+    'a failure on a trusted tap must not suggest trusting it'
+
+  # Nothing failed at all: the guidance must stay out of a clean run.
+  home="$(new_home)"
+  RUN_ENV=("DOTFILES_STUB_BREW_TRUSTED=")
+  run_setup "$home" bar
+
+  assert_output_lacks "$last_output" 'brew trust' \
+    'a successful run must never mention trusting a tap'
 }
 
 # --- case: Ctrl-C stops the run ---------------------------------------------
@@ -464,6 +516,7 @@ case_choices_are_visible_and_no_arg_is_inert() {
 # --- run --------------------------------------------------------------------
 
 case_failure_does_not_stop_the_run
+case_untrusted_tap_is_explained
 case_interrupted_step_stops_the_run
 case_skip_alone_is_not_a_failure
 case_skip_and_failure_are_reported_apart

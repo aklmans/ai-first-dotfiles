@@ -156,11 +156,81 @@ should_brew() {
   [[ "$DOTFILES_BREW" -eq 1 ]]
 }
 
+# Homebrew 6 refuses to install from a third-party tap until that tap is
+# trusted, and trusting one decides whose code may run on this machine. This
+# repo taps three: sketchybar and borders from felixkratz, kaku from tw93.
+#
+# It refuses even when the formula is already installed - `brew info` on one
+# still works, `brew install` on the same formula does not - so this is not only
+# a new-machine problem. It went unnoticed because nobody had re-run an install
+# since Homebrew added the gate. A fresh Mac just meets it immediately:
+# `minimal` is workspace + bar, so half of the smallest preset died with brew's
+# own error a screen above the summary.
+#
+# Trust state alone is still the wrong thing to refuse on, because whether it
+# actually blocks anything depends on what brew is being asked to do. So the
+# taps are remembered, brew is allowed to speak first, and the guidance is
+# printed only after an install has really failed.
+DOTFILES_BREW_TAPS=""
+
+# 0 = trusted, or unknowable, or official. A check that cannot read the state
+# must never invent a refusal.
+brew_tap_is_trusted() {
+  local tap="$1" trusted
+
+  case "$tap" in
+    homebrew/*) return 0 ;;
+  esac
+
+  command -v python3 >/dev/null 2>&1 || return 0
+  trusted="$(brew trust --json v1 2>/dev/null)" || return 0
+  [[ -n "$trusted" ]] || return 0
+
+  printf '%s' "$trusted" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(0)
+raise SystemExit(0 if sys.argv[1] in (data.get("taps") or []) else 1)
+' "$tap"
+}
+
+# Printed after a failed brew install, for whichever taps this run added that
+# Homebrew would still refuse to load from.
+brew_report_untrusted_taps() {
+  local tap reported=0
+
+  for tap in $DOTFILES_BREW_TAPS; do
+    brew_tap_is_trusted "$tap" && continue
+    if [[ "$reported" -eq 0 ]]; then
+      printf '\nHomebrew will not install from a third-party tap until you trust it, and\n' >&2
+      printf 'trusting one lets its code run on this machine. That is your call, so this\n' >&2
+      printf 'installer does not make it for you:\n\n' >&2
+      reported=1
+    fi
+    printf '    brew trust %s\n' "$tap" >&2
+  done
+
+  [[ "$reported" -eq 1 ]] || return 0
+  printf '\nThen re-run the same command; every step here is safe to run again.\n' >&2
+}
+
 ensure_brew_tap() {
   local tap="$1"
   should_brew || return 0
+
+  case " $DOTFILES_BREW_TAPS " in
+    *" $tap "*) ;;
+    *) DOTFILES_BREW_TAPS="$DOTFILES_BREW_TAPS $tap" ;;
+  esac
+
   if [[ "${DOTFILES_BREW_PLAN:-0}" == "1" ]]; then
     printf '    tap      %s\n' "$tap"
+    if ! brew_tap_is_trusted "$tap"; then
+      printf '    %-8s %s is third-party and not trusted yet; anything below that is not\n' 'trust' "$tap"
+      printf '    %-8s already installed needs "brew trust %s" first\n' '' "$tap"
+    fi
     return 0
   fi
   if ! brew tap | grep -Fx "$tap" >/dev/null 2>&1; then
@@ -177,7 +247,16 @@ brew_install() {
     done
     return 0
   fi
-  brew install "$@"
+  # The exit status is passed through rather than collapsed to 1: setup.sh tells
+  # a killed run apart from a failed one by looking for 130/131/143, and an `if`
+  # around this would have turned every Ctrl-C into an ordinary step failure.
+  local status=0
+  brew install "$@" || status=$?
+  case "$status" in
+    0|130|131|143) return "$status" ;;
+  esac
+  brew_report_untrusted_taps
+  return "$status"
 }
 
 cask_app_paths() {
@@ -256,7 +335,16 @@ brew_install_cask() {
       continue
     fi
 
-    brew install --cask "$cask"
+    local status=0
+    brew install --cask "$cask" || status=$?
+    case "$status" in
+      0|130|131|143) ;;
+      *)
+        brew_report_untrusted_taps
+        return "$status"
+        ;;
+    esac
+    [[ "$status" -eq 0 ]] || return "$status"
   done
 }
 
