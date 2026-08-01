@@ -34,7 +34,7 @@ function __icon_map() {
         icon_result=":airmail:"
         ;;
    "Air" | "JetBrains Air")
-        icon_result=":activitywatch:"
+        icon_result=":junie:"
         ;;
    "AirPort Utility")
         icon_result=":airport_utility:"
@@ -362,6 +362,9 @@ function __icon_map() {
         ;;
    "kitty")
         icon_result=":kitty:"
+        ;;
+   "Kimi")
+        icon_result=":Kimi:"
         ;;
    "Kodi")
         icon_result=":kodi:"
