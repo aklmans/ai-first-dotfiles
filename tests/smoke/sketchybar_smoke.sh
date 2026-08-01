@@ -711,7 +711,12 @@ else
   fail "a preset that changes the bar height must change the reserved inset too" \
     "desk=$desk_inset stream=$stream_inset"
 fi
-assert_file_contains "$repo_root/home/.config/sketchybar/theme-control.sh" 'apply' \
+# Whether the gap actually moves is aerospace_workflow_smoke.sh's case, because
+# the rewriter lives over there. What belongs here is that the switch asks: the
+# first version of this only checked that the word "apply" appeared in the file,
+# which the script would still have passed with the call deleted.
+assert_file_contains "$repo_root/home/.config/sketchybar/theme-control.sh" \
+  'AEROSPACE_TOGGLE" apply' \
   "theme-control.sh must resync the window manager's gap after a switch"
 
 # A preset name becomes a path. It arrives from a file people edit by hand.

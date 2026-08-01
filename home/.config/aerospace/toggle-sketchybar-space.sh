@@ -34,6 +34,25 @@ else
   sketchybar_visible_display_list_excluding() { printf 'all\n'; }
 fi
 
+# How much room AeroSpace leaves above the windows has to be however tall the
+# bar is. That number was written down twice - derived in SketchyBar's theme
+# library, and again as a literal 95 in the rewriter below - so the two agreed
+# only for as long as nobody changed the bar. A theme preset that raises the bar
+# is exactly that change, and it put every window fourteen pixels under it.
+#
+# Same reason as the resolver above for the fallbacks: this runs from
+# .aerospace.toml's after-startup-command, and a machine with no SketchyBar
+# still has to get its gaps.
+GAP_TOP_NORMAL=95
+GAP_TOP_COMPACT=8
+if [ -r "$SKETCHYBAR_CONFIG_DIR/lib/theme.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$SKETCHYBAR_CONFIG_DIR/lib/theme.sh"
+  sketchybar_theme_load "$SKETCHYBAR_CONFIG_DIR" >/dev/null 2>&1 || true
+  [ -z "${THEME_TOP_INSET:-}" ] || GAP_TOP_NORMAL="$THEME_TOP_INSET"
+  [ -z "${THEME_TOP_INSET_COMPACT:-}" ] || GAP_TOP_COMPACT="$THEME_TOP_INSET_COMPACT"
+fi
+
 aerospace_layout_load_config
 aerospace_layout_resolve
 
@@ -52,7 +71,8 @@ bar_hidden() {
 
 rewrite_outer_gaps() {
   local profile="$1"
-  /usr/bin/python3 - "$AEROSPACE_CONFIG" "$profile" "$MAIN_MONITOR_NAME" <<'PY'
+  /usr/bin/python3 - "$AEROSPACE_CONFIG" "$profile" "$MAIN_MONITOR_NAME" \
+    "$GAP_TOP_NORMAL" "$GAP_TOP_COMPACT" <<'PY'
 import pathlib
 import sys
 
@@ -72,6 +92,11 @@ import sys
 path = pathlib.Path(sys.argv[1])
 profile = sys.argv[2]
 main_monitor_name = sys.argv[3]
+# The bar's own height decides these, so they come from SketchyBar's theme
+# rather than from a constant here. A second copy of a number that has to match
+# is a second copy that can stop matching.
+gap_top_normal = int(sys.argv[4])
+gap_top_compact = int(sys.argv[5])
 
 BEGIN = "# >>> managed by toggle-sketchybar-space.sh - outer gaps >>>"
 END = "# <<< managed by toggle-sketchybar-space.sh - outer gaps <<<"
@@ -80,7 +105,7 @@ if profile not in {"normal", "compact", "main-compact"}:
     raise SystemExit(f"unknown profile: {profile}")
 
 side_fallback = 8 if profile == "compact" else 20
-top_fallback = 8 if profile == "compact" else 95
+top_fallback = gap_top_compact if profile == "compact" else gap_top_normal
 
 def gap_lines(key, fallback):
     # Every display shares one value except when only the main display is

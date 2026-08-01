@@ -582,6 +582,42 @@ assert_file_contains "$three_fixture/hs.log" "hs.reload()" \
 run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/doctor.sh"
 assert_status 0 "$last_status" "doctor.sh must be green on the three-display desk" "$last_output"
 
+# The gap above the windows has to be however tall the bar is, and the bar's
+# height is SketchyBar's to decide. That number used to be written down twice -
+# derived in SketchyBar's theme library, and again as a literal 95 in the
+# rewriter here - so a theme preset that raised the bar left every window
+# fourteen pixels underneath it, silently, on a config that reported no problem.
+gap_top_in() {
+  /usr/bin/awk '/^[[:space:]]*outer\.top[[:space:]]*=/ { print $3; exit }' "$1/.aerospace.toml"
+}
+
+run_in_home "$three_home" "$three_fixture" \
+  "$three_home/.config/aerospace/toggle-sketchybar-space.sh" show
+assert_status 0 "$last_status" "show must succeed on three displays" "$last_output"
+gap_desk="$(gap_top_in "$three_home")"
+
+/usr/bin/sed -e 's|^SKETCHYBAR_THEME_PRESET=.*|SKETCHYBAR_THEME_PRESET="stream"|' \
+  "$three_home/.config/sketchybar/theme.conf" >"$three_home/theme.next"
+mv "$three_home/theme.next" "$three_home/.config/sketchybar/theme.conf"
+run_in_home "$three_home" "$three_fixture" \
+  "$three_home/.config/aerospace/toggle-sketchybar-space.sh" apply
+gap_stream="$(gap_top_in "$three_home")"
+
+if [[ -n "$gap_desk" && -n "$gap_stream" && "$gap_stream" -gt "$gap_desk" ]]; then
+  pass
+else
+  fail "a taller bar must reserve more room above the windows" \
+    "desk=$gap_desk stream=$gap_stream"
+fi
+
+/usr/bin/sed -e 's|^SKETCHYBAR_THEME_PRESET=.*|SKETCHYBAR_THEME_PRESET=""|' \
+  "$three_home/.config/sketchybar/theme.conf" >"$three_home/theme.next"
+mv "$three_home/theme.next" "$three_home/.config/sketchybar/theme.conf"
+run_in_home "$three_home" "$three_fixture" \
+  "$three_home/.config/aerospace/toggle-sketchybar-space.sh" apply
+assert_equal "$gap_desk" "$(gap_top_in "$three_home")" \
+  "dropping the preset must give the room back"
+
 run_in_home "$three_home" "$three_fixture" \
   "$three_home/.config/aerospace/toggle-sketchybar-space.sh" show-main
 assert_status 0 "$last_status" "show-main must succeed on three displays" "$last_output"
