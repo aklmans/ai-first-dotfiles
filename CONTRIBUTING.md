@@ -9,17 +9,30 @@ machine that is not the author's".
 Everything is shell. There is no build step.
 
 ```bash
-brew install ripgrep                       # the suite hard-fails without it
-for t in tests/smoke/*.sh; do
-  printf '\n==> %s\n' "$t"
-  bash "$t" || echo "FAILED: $t"
-done
-
-bash home/.config/ai-router/tests/run.sh   # the router's own tests
+brew install ripgrep     # the suite hard-fails without it
+bash tests/run-all.sh    # every suite, both machines, ~3 minutes
 ```
 
 That is exactly what [CI](.github/workflows/ci.yml) runs on `macos-latest`, so a
 green local run is a green PR.
+
+The runner exists because "run the tests" has two answers. It runs every suite
+twice: once against a `$HOME` with nothing installed — a stranger's Mac, and
+CI's — and once against one where `author-full`'s profile is in place. That
+profile outranks the config a test just wrote into its own sandbox, so a suite
+that reads the machine instead of its fixtures is green on one and red on the
+other. Two suites were in exactly that state for months. If you see
+
+```
+clean      some_smoke.sh    ok
+installed  some_smoke.sh    FAILED
+```
+
+the suite is reading the machine. Pin `HOME` inside it; `aerospace_workflow_smoke.sh`
+has the pattern near the top.
+
+Running a single suite is still `bash tests/smoke/<name>.sh` — just remember it
+inherits your own `$HOME` when you do.
 
 The smoke suites cover the repo:
 
@@ -45,7 +58,6 @@ The smoke suites cover the repo:
 | `ai_router_cli_smoke.sh` | Router CLI contract |
 | `ai_router_exports_smoke.sh` | Exported snippets match the prompts |
 
-Running a single suite is just `bash tests/smoke/<name>.sh`.
 
 ## bash 3.2, not bash 5
 

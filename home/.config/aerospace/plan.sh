@@ -245,9 +245,11 @@ check_hammerspoon_stage() {
   esac
 }
 
-# Rule-group descriptions out of the shipped asset. They sit one object deeper
-# than the file's own indentation makes obvious, so the depth is matched
-# literally against the formatting this repo ships.
+# Rule-group descriptions out of the shipped asset. The 12-space anchor is
+# load-bearing rather than decorative: the asset carries 59 "description" keys
+# and only the 7 at this depth name a rule group - the other 52 sit one object
+# deeper, on individual manipulators. Loosening the pattern turns 7 rules into
+# 59. Reformatting the asset means re-deriving the depth.
 karabiner_rule_descriptions() {
   /usr/bin/awk '
     /^            "description": "/ {
@@ -257,6 +259,39 @@ karabiner_rule_descriptions() {
       print text
     }
   ' "$1"
+}
+
+# Whether karabiner.json has a shipped rule enabled under any name it plausibly
+# carries there. An exact match is too strict in both directions: karabiner.json
+# nests rules deeper than the asset does (so the depth anchor above cannot be
+# reused), and importing a set through the UI prefixes each rule with the set's
+# title - "CapsLock AI Lite - Navigation" is the same rule as "Navigation".
+# Matching the name on its own or after a " - " separator covers both, and the
+# result is only ever a note, so a generous match costs nothing.
+karabiner_rule_is_enabled() {
+  /usr/bin/awk -v want="$1" '
+    # Every description on the line, not just the last one: Karabiner writes
+    # this file pretty-printed, but a hand-minified one would otherwise report
+    # rules as missing without saying so.
+    {
+      rest = $0
+      while (match(rest, /"description":[[:space:]]*"[^"]*"/)) {
+        text = substr(rest, RSTART, RLENGTH)
+        rest = substr(rest, RSTART + RLENGTH)
+        sub(/^"description":[[:space:]]*"/, "", text)
+        sub(/"$/, "", text)
+        if (text == want) { found = 1 }
+        tail = length(text) - length(want)
+        if (tail > 3 && substr(text, tail + 1) == want && substr(text, tail - 2, 3) == " - ") {
+          found = 1
+        }
+      }
+    }
+    END {
+      if (found) { exit 0 }
+      exit 1
+    }
+  ' "$2"
 }
 
 check_karabiner_rules() {
@@ -284,7 +319,7 @@ check_karabiner_rules() {
   while IFS= read -r description; do
     [ -n "$description" ] || continue
     total=$((total + 1))
-    if /usr/bin/grep -Fq "\"description\": \"$description\"" "$live"; then
+    if karabiner_rule_is_enabled "$description" "$live"; then
       present=$((present + 1))
     fi
   done <<EOF
@@ -296,13 +331,15 @@ EOF
     return 0
   fi
   if [ "$present" -eq "$total" ]; then
-    report_ok "Karabiner: all $total shipped rule group(s) are enabled in karabiner.json"
+    report_ok "Karabiner: all $total shipped rule group(s) are present in karabiner.json"
     return 0
   fi
   # Enabling a rule is a deliberate act in the Karabiner UI, so a rule that is
   # deployed but not enabled is a choice, not a fault. Reported, never counted,
-  # never written.
-  report_note "Karabiner: $present of $total shipped rule group(s) are enabled in karabiner.json (enable the rest in Complex Modifications; this never writes to that file)"
+  # never written. The wording says "found by name" rather than "enabled"
+  # because that is all this can honestly know: descriptions are free text and
+  # renaming a rule in the UI does not turn it off.
+  report_note "Karabiner: $present of $total shipped rule group(s) found by name in karabiner.json (the rest are either not enabled or renamed - Complex Modifications in the Karabiner UI is the authority; this never writes to that file)"
 }
 
 # render-layout.sh already knows what the generated blocks should contain, and

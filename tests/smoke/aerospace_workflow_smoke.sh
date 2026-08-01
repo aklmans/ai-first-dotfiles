@@ -29,6 +29,17 @@ fi
 sandbox_root="$(mktemp -d "${TMPDIR:-/tmp}/aerospace-workflow-smoke.XXXXXX")"
 trap 'rm -rf "$sandbox_root"' EXIT
 
+# The layout library layers $HOME/.config/ai-first/profile.conf over whatever
+# displays.conf and workspaces.conf say, so the real $HOME decides the answer
+# unless a case overrides it. Every case here means to test the shipped config,
+# including the one that asserts the tracked .aerospace.toml still matches it -
+# on a machine with author-full installed that check renders 13 workspaces and
+# compares them against a file that has six. Pinning HOME keeps the suite about
+# this repository rather than about the machine running it.
+HOME="$sandbox_root/home"
+export HOME
+mkdir -p "$HOME"
+
 checks=0
 failures=0
 
@@ -174,6 +185,36 @@ assert_status 0 "$render_check_status" \
 
 stub_dir="$sandbox_root/stub-bin"
 mkdir -p "$stub_dir"
+
+# `sleep` is stubbed for the same reason `aerospace` is: what the login restore
+# asks to wait for is a property of the code, how long this machine took to run
+# it is not. Two checks below used wall clock and measured the load on the test
+# machine instead - a parallel suite run stretched a 2.5s wait to 19s against a
+# 12s budget and went red for nothing.
+#
+# It lives in its own directory rather than beside the other stubs because
+# doctor.sh gives every check a deadline by racing it against a background
+# sleep. On the shared PATH this stub returns instantly, the watchdog fires
+# before the check does, and doctor reports that all fourteen of them timed out.
+sleep_stub_dir="$sandbox_root/sleep-bin"
+mkdir -p "$sleep_stub_dir"
+cat >"$sleep_stub_dir/sleep" <<'STUB'
+#!/bin/bash
+printf '%s\n' "${1:-0}" >>"${AEROSPACE_STUB_DIR:-/dev/null}/sleep.log"
+exit 0
+STUB
+chmod +x "$sleep_stub_dir/sleep"
+
+# Seconds the run under $1 asked to wait for, total.
+requested_sleep() {
+  [ -f "$1/sleep.log" ] || { printf '0\n'; return 0; }
+  /usr/bin/awk '{ total += $1 } END { printf "%.1f\n", total + 0 }' "$1/sleep.log"
+}
+
+# Whether $1 seconds is within the $2 budget, compared as decimals.
+sleep_within() {
+  /usr/bin/awk -v got="$1" -v budget="$2" 'BEGIN { if (got <= budget) { exit 0 } exit 1 }'
+}
 
 cat >"$stub_dir/aerospace" <<'STUB'
 #!/bin/bash
@@ -341,9 +382,16 @@ EOF
 
 last_output=""
 last_status=0
+# Set right before a call to put a stub ahead of the shared ones. Cleared on the
+# way out so it cannot reach the next case.
+run_in_home_path_prefix=""
+
 run_in_home() {
   local home_dir="$1" fixture="$2"
   shift 2
+  local search_path="$stub_dir:$PATH"
+  [ -z "$run_in_home_path_prefix" ] || search_path="$run_in_home_path_prefix:$search_path"
+  run_in_home_path_prefix=""
 
   last_status=0
   last_output="$(env \
@@ -353,7 +401,7 @@ run_in_home() {
     -u AEROSPACE_SIDE_MONITOR_NAME \
     -u AEROSPACE_STAGE_MONITOR_NAME \
     "HOME=$home_dir" \
-    "PATH=$stub_dir:$PATH" \
+    "PATH=$search_path" \
     "AEROSPACE_STUB_DIR=$fixture" \
     "HS_STUB_SCREENS=$fixture/screens" \
     "SKETCHYBAR_STUB_DISPLAYS=$fixture/displays.json" \
@@ -377,18 +425,16 @@ assert_contains "$last_output" "OK: workspace layout matches" "Layout check repo
 # The point of this batch. The old script polled for two named monitors that
 # will never appear here, twice, at ten seconds each.
 #
-# Wall clock alone made this check measure the machine instead of the code. The
-# script's own settle delay is 2s plus a 0.5s pause, so the floor is ~2.5s, and
-# process startup during a full suite run pushed the total to 7s against a 6s
-# budget - red for no reason, which is the fastest way to teach people to ignore
-# a red suite. The deterministic half is the poll count: with no monitor named
-# in displays.conf there is nothing to wait for, so the wait has to settle on
-# its first look rather than working through its 32 attempts. Wall clock stays
-# as a coarse net for the 22s regression, with enough room for a loaded machine.
+# Two things pin that down, and neither is a stopwatch. The poll count: with no
+# monitor named in displays.conf there is nothing to wait for, so the wait has
+# to settle on its first look rather than working through its 32 attempts. And
+# the total the script asked to sleep for, which is 2s of settle plus a 0.5s
+# pause here and would be ~22s if the polling regression came back.
 : >"$single_fixture/list-monitors.log"
-start_seconds="$(date +%s)"
+: >"$single_fixture/sleep.log"
+run_in_home_path_prefix="$sleep_stub_dir"
 run_in_home "$single_home" "$single_fixture" "$single_home/.config/aerospace/startup-restore.sh"
-elapsed=$(($(date +%s) - start_seconds))
+single_sleep="$(requested_sleep "$single_fixture")"
 assert_status 0 "$last_status" "Login restore must succeed with one display" "$last_output"
 
 single_polls="$(grep -c . "$single_fixture/list-monitors.log" 2>/dev/null | tr -d ' ')"
@@ -403,27 +449,29 @@ else
   fail "Login restore polled for monitors ${single_polls}x with none configured (it must settle on the first look)" "$last_output"
 fi
 
-if [[ "$elapsed" -le 12 ]]; then
+if sleep_within "$single_sleep" 5; then
   pass
 else
-  fail "Login restore waited ${elapsed}s on a single-display Mac (was ~22s)" "$last_output"
+  fail "Login restore asked to wait ${single_sleep}s on a single-display Mac (was ~22s)" "$last_output"
 fi
-printf 'single-display startup-restore.sh: %ss wall clock, %s monitor poll(s)\n' "$elapsed" "$single_polls"
+printf 'single-display startup-restore.sh: %ss requested wait, %s monitor poll(s)\n' "$single_sleep" "$single_polls"
 
 # Without the deliberate settle delay, nothing else may block at all.
-start_seconds="$(date +%s)"
+: >"$single_fixture/sleep.log"
 last_status=0
-last_output="$(env -u XDG_STATE_HOME "HOME=$single_home" "PATH=$stub_dir:$PATH" \
+last_output="$(env -u XDG_STATE_HOME "HOME=$single_home" "PATH=$sleep_stub_dir:$stub_dir:$PATH" \
   "AEROSPACE_STUB_DIR=$single_fixture" "HS_STUB_SCREENS=$single_fixture/screens" \
   "AEROSPACE_BIN=$stub_dir/aerospace" "HS_BIN=$stub_dir/hs" "SKETCHYBAR_BIN=$stub_dir/sketchybar" \
   "SKETCHYBAR_TEST_LOG=$single_fixture/sketchybar.log" \
   AEROSPACE_STARTUP_RESTORE_DELAY=0 \
   "$system_bash" "$single_home/.config/aerospace/startup-restore.sh" 2>&1)" || last_status=$?
-elapsed=$(($(date +%s) - start_seconds))
-if [[ "$elapsed" -le 3 ]]; then
+no_delay_sleep="$(requested_sleep "$single_fixture")"
+# The 0.5s pause before the layout settles is the only wait left once the
+# settle delay is zero. Anything more means something else started blocking.
+if sleep_within "$no_delay_sleep" 1; then
   pass
 else
-  fail "Login restore blocked ${elapsed}s with no settle delay on one display" "$last_output"
+  fail "Login restore asked to wait ${no_delay_sleep}s with no settle delay on one display" "$last_output"
 fi
 
 run_in_home "$single_home" "$single_fixture" "$single_home/.config/aerospace/doctor.sh"
@@ -659,10 +707,15 @@ assert_file_contains "$count_fixture/log" "aerospace workspace 5" "Arrow navigat
 run_in_home "$count_home" "$count_fixture" "$count_home/.config/aerospace/focus-workspace-arrow.sh" prev
 assert_file_contains "$count_fixture/log" "aerospace workspace 5" "Arrow navigation wraps inside the side group"
 
+# HOME as well as AEROSPACE_CONFIG_DIR: the profile under $HOME/.config/ai-first
+# outranks the sandbox's workspaces.conf, so a probe that redirects only the
+# config dir reads the machine's real desk wherever this repo is installed. CI
+# runs with nothing deployed, so it cannot notice.
 workspace_probe="$("$system_bash" -c '
   set -e
+  HOME="$1"
   AEROSPACE_CONFIG_DIR="$1/.config/aerospace"
-  export AEROSPACE_CONFIG_DIR
+  export HOME AEROSPACE_CONFIG_DIR
   . "$AEROSPACE_CONFIG_DIR/lib/layout.sh"
   printf "%s|%s|%s\n" \
     "$(aerospace_layout_workspaces)" \

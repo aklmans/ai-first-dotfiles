@@ -213,6 +213,7 @@ require_file tests/smoke/overlay_scope_smoke.sh
 require_file tests/smoke/config_injection_smoke.sh
 require_file tests/smoke/cross_tool_consistency_smoke.sh
 require_file tests/smoke/lib/assert.sh
+require_file tests/run-all.sh
 
 require_absent bootstrap/macos
 require_absent bootstrap/install/gbrain.sh

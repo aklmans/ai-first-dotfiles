@@ -181,6 +181,34 @@ assert_output_matches "$karabiner_plan" 'note .*complex modification is not depl
 assert_equal '0' "$(plan_status "$karabiner_home" --check)" \
   'a Karabiner rule nobody enabled must not fail --check'
 
+# Importing a rule set through Karabiner's UI prefixes every rule with the set's
+# title, so a machine with all seven rules live carries them as "CapsLock AI
+# Lite - Navigation" rather than "Navigation". Matching the description exactly
+# reported 0 of 7 on the author's own machine while all seven were running -
+# the fixture in this repo never caught it because its karabiner.json is the one
+# this repo ships, where the names line up by construction.
+rename_karabiner_rules() {
+  local home_dir="$1" prefix="$2"
+  /usr/bin/sed -e "s/\"description\": \"/\"description\": \"$prefix/" \
+    "$home_dir/.config/karabiner/karabiner.json" >"$home_dir/karabiner.renamed" &&
+    mv "$home_dir/karabiner.renamed" "$home_dir/.config/karabiner/karabiner.json"
+}
+
+prefixed_home="$(new_full_home)"
+rename_karabiner_rules "$prefixed_home" 'CapsLock AI Lite - '
+prefixed_plan="$(in_home "$prefixed_home" "$prefixed_home/.config/aerospace/plan.sh")"
+assert_output_matches "$prefixed_plan" 'ok .*Karabiner: all [0-9]+ shipped rule' \
+  'rules imported under the set title must still be recognised'
+
+# The separator is what makes that safe. Without it this would be a substring
+# match, and an unrelated rule that merely contains a shipped name would be
+# reported as the shipped rule.
+substring_home="$(new_full_home)"
+rename_karabiner_rules "$substring_home" 'Reverse '
+substring_plan="$(in_home "$substring_home" "$substring_home/.config/aerospace/plan.sh")"
+assert_output_matches "$substring_plan" 'note .*0 of [0-9]+ shipped rule' \
+  'a rule that merely contains a shipped name must not count as that rule'
+
 # --- "none" has to mean none -------------------------------------------------
 
 layout_of() {

@@ -51,6 +51,18 @@ esac
 sandbox_root="$(mktemp -d "${TMPDIR:-/tmp}/ai-router-cli-smoke.XXXXXX")"
 trap 'rm -rf "$sandbox_root"' EXIT
 
+# AI_ROUTER_HOME redirects the router's own config, but the machine profile is
+# read from $HOME/.config/ai-first - deliberately, so that a preset outranks the
+# repository's config.json. That makes the real $HOME an input to every case
+# below: on a machine where author-full is installed, its AI_FIRST_TERMINAL_APP
+# wins over the terminal a test just wrote into config.json. Pinning HOME to an
+# empty directory is what makes the sandbox actually a sandbox. Found by running
+# this suite on a machine with the config deployed; CI has nothing deployed and
+# so could not see it.
+HOME="$sandbox_root/home"
+export HOME
+mkdir -p "$HOME"
+
 checks=0
 failures=0
 
