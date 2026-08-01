@@ -20,9 +20,18 @@ local function readAiFirstProfileFile(path, values)
   return values
 end
 
+-- Keep this in step with the two bash copies of the same rule: the overlay
+-- directory is modules/<AI_FIRST_PRESET>, an unusable name falls back to
+-- "custom", and overlays load after profile.conf in sorted order. See
+-- ai_first_profile_load in ~/.config/ai-first/lib/profile.sh, and
+-- resolve_overlay_scope in bootstrap/setup.sh, which decides where they are
+-- written in the first place.
 local function readAiFirstProfile()
   local values = readAiFirstProfileFile(aiFirstProfilePath, {})
   local scope = values["AI_FIRST_PRESET"] or "custom"
+  if scope == "" or scope:match("[^%w_-]") then
+    scope = "custom"
+  end
   local moduleDir = aiFirstConfigDir .. "/modules/" .. scope
   local moduleFiles = {}
   if hs.fs.attributes(moduleDir, "mode") == "directory" then

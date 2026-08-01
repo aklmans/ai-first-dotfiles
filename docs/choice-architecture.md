@@ -108,6 +108,21 @@ neutral base, so `automation` alone does not silently activate AI,
 notifications or recording. Switching presets ignores overlays from other
 scopes; returning to a preset restores the choices previously added to it.
 
+The scope is taken from the profile already installed, not from the command
+line, so adding a module later is one word:
+
+```bash
+./bootstrap/setup.sh minimal          # profile.conf records "minimal"
+./bootstrap/setup.sh notifications    # overlay is stored in modules/minimal/
+```
+
+A generated advisor profile behaves the same way under its own `advisor` scope.
+Two rules keep an addition from fighting the profile it joins: a module already
+part of the active preset writes no overlay at all, and the neutral base is only
+written for `custom`. `doctor` reports any overlay directory the active profile
+does not read, because an overlay nothing loads looks exactly like a module that
+is installed but broken.
+
 ## Workspace roles and routing packs
 
 Display roles and task roles are separate. `main`, `side` and `stage` resolve

@@ -132,7 +132,7 @@ done
 profile_path="${AI_FIRST_PROFILE_PATH:-$HOME/.config/ai-first/profile.conf}"
 active_preset=''
 if [ -r "$profile_path" ]; then
-  active_preset="$(/usr/bin/awk -F '"' '/^AI_FIRST_PRESET="[^"]+"$/ { print $2; exit }' "$profile_path")"
+  active_preset="$(ai_first_profile_conf_get "$profile_path" AI_FIRST_PRESET 2>/dev/null || true)"
   printf 'Active profile: %s (%s)\n' "${active_preset:-custom}" "$profile_path"
 elif [ -d "$HOME/.config/ai-first/modules/custom" ]; then
   active_preset='custom'
@@ -141,10 +141,37 @@ else
   printf 'Active profile: legacy defaults (no %s)\n' "$profile_path"
 fi
 
+# Module preferences are only read from modules/<active profile>. Anything under
+# another scope is inert, and inert is indistinguishable from broken: the module
+# is installed, its permission is granted, and its feature flag never arrives.
+#
+# Reported as MANUAL rather than MISSING on purpose - nothing here is damaged,
+# and flipping doctor's exit status on an existing install would be worse than
+# the thing being reported.
+report_unread_overlay_scopes() {
+  local modules_dir="$HOME/.config/ai-first/modules" scope_dir scope
+  local active="${active_preset:-custom}" found=0
+
+  [ -d "$modules_dir" ] || return 0
+  for scope_dir in "$modules_dir"/*; do
+    [ -d "$scope_dir" ] || continue
+    scope="${scope_dir##*/}"
+    [ "$scope" != "$active" ] || continue
+    ls "$scope_dir"/*.conf >/dev/null 2>&1 || continue
+    if [ "$found" -eq 0 ]; then
+      printf '\nmodule preferences — scopes the active profile does not read\n'
+      found=1
+    fi
+    report_warn "not loaded under profile \"$active\": $scope_dir"
+  done
+}
+
+report_unread_overlay_scopes
+
 if [ "${#requested[@]}" -eq 0 ]; then
   if [ "$active_preset" = 'advisor' ]; then
     requested+=(workspace bar)
-    advisor_scenes="$(/usr/bin/awk -F '"' '/^AI_FIRST_ADVISOR_SCENES="[^"$`]*"$/ { print $2; exit }' "$profile_path")"
+    advisor_scenes="$(ai_first_profile_conf_get "$profile_path" AI_FIRST_ADVISOR_SCENES 2>/dev/null || true)"
     case " $advisor_scenes " in
       *' ai '*) requested+=(capslock automation ai) ;;
     esac

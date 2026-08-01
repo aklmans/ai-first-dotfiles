@@ -35,6 +35,41 @@ catalog_preset_records() {
     $'author-full\tThe complete, opinionated setup maintained by the author\tgui-path,workspace,bar,borders,capslock,automation,notifications,recording,ai,shell,terminal,warp,gestures,sublime,media'
 }
 
+# One assignment out of a profile.conf-shaped file: `KEY="value"` alone on a
+# line, parsed rather than sourced, so a preference file can never execute
+# anything.
+#
+# It lives here because catalog.sh is the only file both setup.sh and doctor.sh
+# source - doctor.sh does not source lib/common.sh, and setup.sh does not source
+# lib/advisor.sh. Four hand-rolled copies of this read had drifted apart before
+# it was collected in one place; the Lua transcription in
+# home/.hammerspoon/init.lua is the one copy that cannot be shared, and says so.
+ai_first_profile_conf_get() {
+  local file="$1" key="$2"
+
+  [ -r "$file" ] || return 1
+  /usr/bin/awk -v key="$key" '
+    index($0, key "=\"") == 1 {
+      value = substr($0, length(key) + 3)
+      if (substr(value, length(value), 1) == "\"") {
+        print substr(value, 1, length(value) - 1)
+        found = 1
+        exit
+      }
+    }
+    END { if (!found) exit 1 }
+  ' "$file"
+}
+
+# A scope becomes a path segment under ~/.config/ai-first/modules/, so anything
+# that is not a plain name is not a scope this repo wrote.
+ai_first_scope_is_safe() {
+  case "${1:-}" in
+    ''|*[!A-Za-z0-9_-]*) return 1 ;;
+  esac
+  return 0
+}
+
 catalog_record_field() {
   local records="$1"
   local needle="$2"

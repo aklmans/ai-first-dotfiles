@@ -128,6 +128,8 @@ failed_steps=()
 executed_install_modules=$'\n'
 resolved_capabilities=$'\n'
 selected_preset=''
+overlay_scope='custom'
+overlay_scope_notice_done=0
 ai_first_shared_deployed=0
 capability_base_planned=0
 
@@ -554,10 +556,40 @@ run_capability() {
   done
 }
 
-capability_is_in_selected_preset() {
+# Which directory a module preference overlay is written into.
+#
+# It has to be the directory the runtime actually reads, and that is
+# modules/$AI_FIRST_PRESET (see home/.config/ai-first/lib/profile.sh). Deriving
+# it from this command line alone was the bug: `setup.sh minimal` followed by
+# `setup.sh notifications` wrote modules/custom/notifications.conf while the
+# installed profile said `minimal`, so the module was installed, its permission
+# was granted, and its preference was never loaded by anything.
+#
+# A preset named on this command line wins, because that run is also about to
+# replace profile.conf. Otherwise the preset already recorded there decides.
+resolve_overlay_scope() {
+  local scope="$selected_preset"
+
+  if [ -z "$scope" ]; then
+    scope="$(ai_first_profile_conf_get "$HOME/.config/ai-first/profile.conf" AI_FIRST_PRESET 2>/dev/null || true)"
+  fi
+  ai_first_scope_is_safe "$scope" || scope='custom'
+  printf '%s\n' "$scope"
+}
+
+# True when the capability is already part of the preset that owns the current
+# scope, in which case the preset's own profile.conf has said everything there
+# is to say and an overlay would only fight it. Concretely: `setup.sh bar` on an
+# author-full machine must not drop bootstrap/modules/bar.conf next to
+# author-full's profile, because that file's neutral bar composition would
+# silently delete the ai_notifications item the preset put there.
+#
+# A generated scope such as `advisor` is not a catalog preset, so overlays are
+# written for it: adding a module to an advisor profile has to keep working.
+capability_is_in_scope_preset() {
   local capability="$1" preset_capability
-  [ -n "$selected_preset" ] || return 1
-  for preset_capability in $(catalog_preset_modules "$selected_preset"); do
+  catalog_preset_exists "$overlay_scope" || return 1
+  for preset_capability in $(catalog_preset_modules "$overlay_scope"); do
     [ "$preset_capability" = "$capability" ] && return 0
   done
   return 1
@@ -584,21 +616,47 @@ ensure_ai_first_shared_config() {
   fi
 }
 
+# Overlays left behind under a scope nobody reads any more. Reported once,
+# never moved: which of them still reflect a choice is the user's call.
+report_stale_overlay_scopes() {
+  local modules_dir="$HOME/.config/ai-first/modules" scope_dir scope found=0
+
+  [ "$overlay_scope_notice_done" -eq 0 ] || return 0
+  overlay_scope_notice_done=1
+  [ -d "$modules_dir" ] || return 0
+
+  for scope_dir in "$modules_dir"/*; do
+    [ -d "$scope_dir" ] || continue
+    scope="${scope_dir##*/}"
+    [ "$scope" != "$overlay_scope" ] || continue
+    ls "$scope_dir"/*.conf >/dev/null 2>&1 || continue
+    if [ "$found" -eq 0 ]; then
+      printf '\nNote: module preferences also exist under another scope and are not loaded:\n'
+      found=1
+    fi
+    printf '  %s\n' "$scope_dir"
+  done
+
+  [ "$found" -eq 1 ] || return 0
+  printf 'The active profile is "%s", so only %s/%s is read.\n' \
+    "$overlay_scope" "$modules_dir" "$overlay_scope"
+  printf 'Nothing was moved. Delete the ones you no longer want.\n\n'
+}
+
 apply_capability_config() {
   local capability="$1"
   local source_rel="bootstrap/modules/$capability.conf"
-  local overlay_scope="${selected_preset:-custom}"
   local target="$HOME/.config/ai-first/modules/$overlay_scope/$capability.conf"
   local base_target="$HOME/.config/ai-first/modules/custom/00-base.conf"
   local stamp status
 
   [ "$install_only" -eq 0 ] || return 0
   [ -f "$repo_root/$source_rel" ] || return 0
-  capability_is_in_selected_preset "$capability" && return 0
+  capability_is_in_scope_preset "$capability" && return 0
 
   ensure_ai_first_shared_config
   if [ "$dry_run" -eq 1 ]; then
-    if [ -z "$selected_preset" ] && [ "$capability_base_planned" -eq 0 ]; then
+    if [ "$overlay_scope" = 'custom' ] && [ "$capability_base_planned" -eq 0 ]; then
       printf '    %s (neutral base for module-only composition)\n' "$base_target"
       capability_base_planned=1
     fi
@@ -606,8 +664,12 @@ apply_capability_config() {
     return 0
   fi
 
+  report_stale_overlay_scopes
   stamp="$(date +%Y%m%d_%H%M%S)"
-  if [ -z "$selected_preset" ] && [ ! -e "$base_target" ]; then
+  # The neutral base belongs to module-only composition. Writing it into a named
+  # or generated scope would override that profile's own values, because
+  # overlays load after profile.conf.
+  if [ "$overlay_scope" = 'custom' ] && [ ! -e "$base_target" ]; then
     status=0
     deploy_repo_path "$repo_root" "bootstrap/modules/base.conf" "$base_target" "$stamp" || status=$?
     if [ "$status" -eq 3 ]; then
@@ -705,6 +767,8 @@ if [[ "$preset_count" -gt 1 ]]; then
   printf 'Choose one preset per run, then add any independent modules you want.\n' >&2
   exit 64
 fi
+
+overlay_scope="$(resolve_overlay_scope)"
 
 # Listing choices is deliberately available on any machine. It does not inspect
 # prerequisites because it installs and writes nothing.

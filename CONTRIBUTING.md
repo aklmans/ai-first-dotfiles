@@ -37,6 +37,7 @@ The smoke suites cover the repo:
 | `aerospace_workflow_smoke.sh` | Renderers, display resolution, workspace math |
 | `advisor_displays_smoke.sh` | Display detection off the author's desk: no built-in screen, resolving a display by number, degenerate detection |
 | `route_merge_smoke.sh` | The four route layers, the legacy layout-only merge, and the workspace whitelist |
+| `overlay_scope_smoke.sh` | Module preference overlays are written where the runtime reads them, and never overwrite the profile they land beside |
 | `portability_smoke.sh` | awk portability: no `-v` name shadowing a built-in, no doubled `\n` in a format string |
 | `sketchybar_smoke.sh` | Theme sourcing, display resolution, running without AeroSpace |
 | `ai_router_cli_smoke.sh` | Router CLI contract |

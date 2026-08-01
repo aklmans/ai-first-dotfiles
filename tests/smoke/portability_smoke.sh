@@ -44,6 +44,10 @@ collisions="$sandbox_root/collisions"
 
 while IFS= read -r script; do
   [ -n "$script" ] || continue
+  # This file carries both bad shapes on purpose, as the fixtures the negative
+  # controls at the bottom run against. Scanning itself would report them as
+  # findings forever.
+  [ "$script" != 'tests/smoke/portability_smoke.sh' ] || continue
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     for reserved in $awk_reserved; do
@@ -69,6 +73,10 @@ doubled="$sandbox_root/doubled"
 
 while IFS= read -r script; do
   [ -n "$script" ] || continue
+  # This file carries both bad shapes on purpose, as the fixtures the negative
+  # controls at the bottom run against. Scanning itself would report them as
+  # findings forever.
+  [ "$script" != 'tests/smoke/portability_smoke.sh' ] || continue
   strip_comments "$repo_root/$script" \
     | /usr/bin/grep -nE 'awk' >/dev/null 2>&1 || continue
   # A backslash-escaped backslash followed by n or t, anywhere in a file that
@@ -94,6 +102,10 @@ program_count=0
 
 while IFS= read -r script; do
   [ -n "$script" ] || continue
+  # This file carries both bad shapes on purpose, as the fixtures the negative
+  # controls at the bottom run against. Scanning itself would report them as
+  # findings forever.
+  [ "$script" != 'tests/smoke/portability_smoke.sh' ] || continue
   while IFS= read -r program; do
     [ -n "$program" ] || continue
     case "$program" in

@@ -109,8 +109,16 @@ ai_first_profile_load() {
   # The active preset chooses one overlay scope, so switching presets does not
   # accidentally reactivate module choices made under another starting point.
   ai_first_profile_apply_file "$AI_FIRST_PROFILE_PATH"
-  local profile_file overlay_dir
-  overlay_dir="$AI_FIRST_CONFIG_DIR/modules/$AI_FIRST_PRESET"
+  # The preset name becomes a path segment here, and bootstrap/setup.sh applies
+  # the same rule when it decides where to write. Anything that is not a plain
+  # name was not written by this repo, so fall back to the neutral scope rather
+  # than following it out of the modules directory.
+  local profile_file overlay_dir overlay_scope
+  overlay_scope="$AI_FIRST_PRESET"
+  case "$overlay_scope" in
+    ''|*[!A-Za-z0-9_-]*) overlay_scope='custom' ;;
+  esac
+  overlay_dir="$AI_FIRST_CONFIG_DIR/modules/$overlay_scope"
   for profile_file in "$overlay_dir"/*.conf; do
     ai_first_profile_apply_file "$profile_file"
   done

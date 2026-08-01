@@ -506,7 +506,15 @@ advisor_generate_routes() {
   } >"$output_file"
 }
 
+# Delegates to the shared reader in bootstrap/catalog.sh, which bootstrap/
+# advisor.sh sources first. The fallback keeps this file usable on its own, as
+# its header promises: a test may source it directly, with no catalog present.
 advisor_profile_get() {
+  if type ai_first_profile_conf_get >/dev/null 2>&1; then
+    ai_first_profile_conf_get "$1" "$2"
+    return
+  fi
+
   local file="$1" key="$2"
   [ -r "$file" ] || return 1
   /usr/bin/awk -v key="$key" '
