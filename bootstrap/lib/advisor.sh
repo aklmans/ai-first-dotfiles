@@ -89,19 +89,72 @@ advisor_display_is_builtin_name() {
   return 1
 }
 
+# macOS's own answer to "which screen owns the menu bar". Unlike the focused
+# monitor it does not move with the pointer, so two runs of the advisor a
+# second apart agree on the suggested main. Empty when the answer is
+# unavailable; callers fall back to advisor_flag_default_main.
+advisor_system_main_display_name() {
+  local program
+  command -v system_profiler >/dev/null 2>&1 || return 0
+  command -v python3 >/dev/null 2>&1 || return 0
+  program="$(cat <<'PY'
+import json
+import sys
+
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(0)
+
+for gpu in data.get("SPDisplaysDataType", []):
+    for display in gpu.get("spdisplays_ndrvs", []):
+        flag = str(display.get("spdisplays_main") or "").lower()
+        if flag not in {"spdisplays_yes", "yes", "true", "1"}:
+            continue
+        name = str(display.get("_name") or "").strip()
+        if name and not any(ch in name for ch in ['"', '$', '`', '\n', '\r']):
+            print(name)
+        raise SystemExit(0)
+PY
+)"
+  system_profiler SPDisplaysDataType -json 2>/dev/null \
+    | python3 -c "$program" 2>/dev/null || true
+}
+
+# Flags one row as the suggested main when macOS would not say. The first
+# external screen beats the built-in panel: on a docked laptop the built-in one
+# is almost never the screen the user calls main, and either way the answer has
+# to be the same on every run.
+advisor_flag_default_main() {
+  local file="$1" want=''
+  want="$(/usr/bin/awk -F '|' 'NF >= 3 { count++; if ($3 == 0) { print count; exit } }' "$file" || true)"
+  [ -n "$want" ] || want=1
+  /usr/bin/awk -F '|' -v want="$want" 'BEGIN { OFS = "|" }
+    { count++; if (count == want) { $2 = 1 } print }' "$file" >"${file}.main"
+  mv "${file}.main" "$file"
+}
+
 advisor_detect_displays() {
   local output_file="$1" fixture="${AI_FIRST_ADVISOR_DISPLAYS_FILE:-}"
-  local lines focused_name='' name index=0 builtin=0 main=0
+  local lines main_hint='' name index=0 builtin=0 main=0
 
   : >"$output_file"
   ADVISOR_DISPLAY_SOURCE='fallback'
   ADVISOR_DISPLAY_NAMES_RELIABLE=0
+  # A display whose name cannot be stored safely is dropped, which silently
+  # changes the detected count and therefore the recommendation. Count them so
+  # the preview can say so out loud.
+  ADVISOR_DISPLAYS_SKIPPED=0
+  export ADVISOR_DISPLAYS_SKIPPED
 
   if [ -n "$fixture" ] && [ -r "$fixture" ]; then
     while IFS='|' read -r name main builtin rest; do
       case "$name" in ''|'#'*) continue ;; esac
       [ -z "${rest:-}" ] || continue
-      advisor_value_is_profile_safe "$name" || continue
+      if ! advisor_value_is_profile_safe "$name"; then
+        ADVISOR_DISPLAYS_SKIPPED=$((ADVISOR_DISPLAYS_SKIPPED + 1))
+        continue
+      fi
       case "$main" in 0|1) ;; *) main=0 ;; esac
       case "$builtin" in 0|1) ;; *) builtin=0 ;; esac
       printf '%s|%s|%s\n' "$name" "$main" "$builtin" >>"$output_file"
@@ -116,15 +169,21 @@ advisor_detect_displays() {
 
   if command -v aerospace >/dev/null 2>&1; then
     lines="$(aerospace list-monitors --format '%{monitor-name}' 2>/dev/null || true)"
-    focused_name="$(aerospace list-monitors --focused --format '%{monitor-name}' 2>/dev/null | /usr/bin/head -n 1 || true)"
     if [ -n "$lines" ]; then
+      # `list-monitors --focused` answers "where is the pointer right now", not
+      # "which screen is main": the suggested main changed between two runs of
+      # the advisor because the mouse had moved to the side monitor in between.
+      main_hint="$(advisor_system_main_display_name)"
       while IFS= read -r name; do
         [ -n "$name" ] || continue
-        advisor_value_is_profile_safe "$name" || continue
+        if ! advisor_value_is_profile_safe "$name"; then
+          ADVISOR_DISPLAYS_SKIPPED=$((ADVISOR_DISPLAYS_SKIPPED + 1))
+          continue
+        fi
         index=$((index + 1))
         main=0
         builtin=0
-        [ "$name" = "$focused_name" ] && main=1
+        if [ -n "$main_hint" ] && [ "$name" = "$main_hint" ]; then main=1; fi
         advisor_display_is_builtin_name "$name" && builtin=1
         printf '%s|%s|%s\n' "$name" "$main" "$builtin" >>"$output_file"
       done <<EOF
@@ -132,8 +191,7 @@ $lines
 EOF
       if [ -s "$output_file" ]; then
         if ! /usr/bin/grep -Eq '\|1\|[01]$' "$output_file"; then
-          /usr/bin/awk -F '|' 'BEGIN{OFS="|"} NR==1{$2=1} {print}' "$output_file" >"${output_file}.main"
-          mv "${output_file}.main" "$output_file"
+          advisor_flag_default_main "$output_file"
         fi
         ADVISOR_DISPLAY_SOURCE='AeroSpace'
         ADVISOR_DISPLAY_NAMES_RELIABLE=1
@@ -149,7 +207,10 @@ EOF
       while IFS='|' read -r _index name main rest; do
         [ -z "${rest:-}" ] || continue
         [ -n "$name" ] || continue
-        advisor_value_is_profile_safe "$name" || continue
+        if ! advisor_value_is_profile_safe "$name"; then
+          ADVISOR_DISPLAYS_SKIPPED=$((ADVISOR_DISPLAYS_SKIPPED + 1))
+          continue
+        fi
         builtin=0
         advisor_display_is_builtin_name "$name" && builtin=1
         case "$main" in 0|1) ;; *) main=0 ;; esac
@@ -168,14 +229,17 @@ EOF
 
   if command -v system_profiler >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
     local json_file="${output_file}.json"
+    local skipped_file="${output_file}.skipped"
+    rm -f "$skipped_file"
     if system_profiler SPDisplaysDataType -json >"$json_file" 2>/dev/null; then
-      python3 - "$json_file" "$output_file" <<'PY' || true
+      python3 - "$json_file" "$output_file" "$skipped_file" <<'PY' || true
 import json
 import pathlib
 import sys
 
 source = pathlib.Path(sys.argv[1])
 target = pathlib.Path(sys.argv[2])
+skipped_target = pathlib.Path(sys.argv[3])
 try:
     data = json.loads(source.read_text())
 except Exception:
@@ -183,10 +247,14 @@ except Exception:
 
 seen = set()
 rows = []
+skipped = 0
 for gpu in data.get("SPDisplaysDataType", []):
     for display in gpu.get("spdisplays_ndrvs", []):
         name = str(display.get("_name") or "").strip()
-        if not name or name in seen or any(ch in name for ch in ['"', '$', '`', '\n', '\r']):
+        if not name or name in seen:
+            continue
+        if any(ch in name for ch in ['"', '$', '`', '\n', '\r']):
+            skipped += 1
             continue
         seen.add(name)
         display_type = str(display.get("spdisplays_display_type") or "").lower()
@@ -195,11 +263,20 @@ for gpu in data.get("SPDisplaysDataType", []):
         main = int(main_value in {"spdisplays_yes", "yes", "true", "1"})
         rows.append([name, main, builtin])
 if rows and not any(row[1] for row in rows):
-    rows[0][1] = 1
+    # Same tie-break as advisor_flag_default_main: the first external screen,
+    # and only then the first row, so the suggestion never depends on a pointer.
+    external = [row for row in rows if not row[2]]
+    (external[0] if external else rows[0])[1] = 1
 target.write_text("".join(f"{name}|{main}|{builtin}\n" for name, main, builtin in rows))
+skipped_target.write_text(f"{skipped}\n")
 PY
     fi
     rm -f "$json_file"
+    if [ -r "$skipped_file" ]; then
+      ADVISOR_DISPLAYS_SKIPPED="$(/usr/bin/awk 'NR == 1 { print $1 + 0; exit }' "$skipped_file" || true)"
+      case "$ADVISOR_DISPLAYS_SKIPPED" in ''|*[!0-9]*) ADVISOR_DISPLAYS_SKIPPED=0 ;; esac
+      rm -f "$skipped_file"
+    fi
     if [ -s "$output_file" ]; then
       ADVISOR_DISPLAY_SOURCE='system_profiler'
       ADVISOR_DISPLAY_NAMES_RELIABLE=1
@@ -285,6 +362,46 @@ advisor_default_side_display() {
   printf '%s\n' "$value"
 }
 
+# Names reported by more than one display, in detection order.
+#
+# AeroSpace addresses monitors by name, so two screens answering to the same
+# one cannot be told apart. Both filters in advisor_default_side_display drop
+# every row whose name equals main, which for a duplicated name is *all* of
+# them: the side name came back empty, the distinctness checks in
+# bootstrap/advisor.sh were short-circuited by that empty value, and a fixed
+# desk was written with side workspaces and no side display - a half-pinned
+# desk that reads exactly like a working one.
+advisor_duplicate_display_names() {
+  /usr/bin/awk -F '|' '
+    NF >= 3 {
+      seen[$1]++
+      if (seen[$1] == 1) { total++; order[total] = $1 }
+    }
+    END {
+      for (position = 1; position <= total; position++) {
+        if (seen[order[position]] > 1) { print order[position] }
+      }
+    }' "$1"
+}
+
+# Displays that no role in the plan will land on.
+#
+# The layout is deliberately three-role - main, side, stage - so a fourth
+# screen is not a bug. Leaving the user to notice on their own that it carries
+# nothing is. Each role name is consumed once, so a duplicated name does not
+# mask a genuinely unused screen.
+advisor_unused_display_names() {
+  local file="$1" main_name="${2:-}" side_name="${3:-}" stage_name="${4:-}"
+  /usr/bin/awk -F '|' \
+    -v main_name="$main_name" -v side_name="$side_name" -v stage_name="$stage_name" '
+    NF >= 3 {
+      if (main_name != "" && $1 == main_name && !used_main) { used_main = 1; next }
+      if (side_name != "" && $1 == side_name && !used_side) { used_side = 1; next }
+      if (stage_name != "" && $1 == stage_name && !used_stage) { used_stage = 1; next }
+      print $1
+    }' "$file"
+}
+
 advisor_app_bundle_exists() {
   local app_names="$1" app_name root
   local old_ifs="$IFS"
@@ -345,17 +462,32 @@ advisor_scene_count() {
   printf '%s\n' "$count"
 }
 
+# How many workspaces, from task load alone.
+#
+# `display_count` used to be an independent OR condition here, so plugging in a
+# second screen jumped a single-scene desk straight from 4 workspaces to 8 -
+# the same person, the same work, twice the workspaces. That contradicted what
+# docs/choice-architecture.md and the README both promise: the count comes from
+# task load, and the display count only decides how those workspaces are
+# grouped across main/side/stage. Grouping still reads the display count, in
+# advisor_build_workspace_plan; the count no longer does.
+#
+# The second argument is accepted and ignored so an older caller cannot
+# silently pass a display count that quietly stops mattering.
 advisor_recommend_workspace_mode() {
-  local scenes="$1" display_count="$2" scene_count
+  local scenes="$1" scene_count
   scene_count="$(advisor_scene_count "$scenes")"
-  if advisor_word_list_contains "$scenes" recording && [ "$display_count" -ge 3 ] && [ "$scene_count" -ge 5 ]; then
+  if [ "$scene_count" -ge 7 ]; then
     printf 'advanced\n'
-  elif [ "$scene_count" -ge 5 ] || [ "$display_count" -ge 2 ] || advisor_word_list_contains "$scenes" recording; then
+  elif advisor_word_list_contains "$scenes" recording && [ "$scene_count" -ge 6 ]; then
+    # A recording desk needs a stage that survives everything else being busy.
+    printf 'advanced\n'
+  elif [ "$scene_count" -ge 5 ]; then
     printf 'multitask\n'
-  elif [ "$scene_count" -le 3 ] && [ "$display_count" -eq 1 ]; then
-    printf 'focus\n'
-  else
+  elif [ "$scene_count" -ge 3 ]; then
     printf 'balanced\n'
+  else
+    printf 'focus\n'
   fi
 }
 
@@ -443,7 +575,7 @@ advisor_generate_profile() {
   local output_file="$1" scenes="$2" workspace_mode="$3" desk_mode="$4"
   local placement="$5" routing_pack="$6" terminal_app="$7"
   local main_monitor="$8" side_monitor="$9" stage_monitor="${10}"
-  local ai_enabled=0 recording_enabled=0
+  local ai_enabled=0 recording_enabled=0 profile_value
 
   advisor_word_list_contains "$scenes" ai && ai_enabled=1
   advisor_word_list_contains "$scenes" recording && recording_enabled=1
@@ -485,25 +617,125 @@ AEROSPACE_WORKSPACE_ROLE_MAP="$ADVISOR_ROLE_MAP"
 EOF
 }
 
+# Roles that more than one detected app would compete for.
+advisor_contended_roles() {
+  local apps_file="$1" scenes="$2" seen='' contended=''
+  local key bundle display scene role layout rest
+  while IFS='|' read -r key bundle display scene role layout rest; do
+    [ -z "${rest:-}" ] || continue
+    advisor_word_list_contains "$scenes" "$scene" || continue
+    if advisor_word_list_contains "$seen" "$role"; then
+      contended="$(advisor_append_word_once "$contended" "$role")"
+    else
+      seen="$(advisor_append_word_once "$seen" "$role")"
+    fi
+  done <"$apps_file"
+  printf '%s\n' "$contended"
+}
+
+# Detected app keys for one role, in catalog order.
+advisor_role_app_keys() {
+  local apps_file="$1" scenes="$2" want_role="$3" keys=''
+  local key bundle display scene role layout rest
+  while IFS='|' read -r key bundle display scene role layout rest; do
+    [ -z "${rest:-}" ] || continue
+    advisor_word_list_contains "$scenes" "$scene" || continue
+    [ "$role" = "$want_role" ] || continue
+    keys="$(advisor_append_word_once "$keys" "$key")"
+  done <"$apps_file"
+  printf '%s\n' "$keys"
+}
+
+# Looks a role up in a newline-separated "role|value" list. A plain word list
+# will not do: display names contain spaces.
+advisor_lookup_role_value() {
+  local pairs="${1:-}" want_role="$2" pair_role pair_value
+  [ -n "$pairs" ] || return 1
+  while IFS='|' read -r pair_role pair_value; do
+    [ "$pair_role" = "$want_role" ] || continue
+    printf '%s\n' "$pair_value"
+    return 0
+  done <<EOF
+$pairs
+EOF
+  return 1
+}
+
+# Which app owns a role, when the caller asked interactively. Space-separated
+# "role:key" pairs, so it stays a plain word list.
+advisor_primary_app_for_role() {
+  local pairs="${1:-}" want_role="$2" pair
+  for pair in $pairs; do
+    case "$pair" in
+      "$want_role":?*) printf '%s\n' "${pair#*:}"; return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# Apps whose role was already claimed, as "display|role|owner display" lines.
+ADVISOR_DOWNGRADED_ROUTES=''
+
+# `prefer` and `fixed` both mean "send new windows of this app to this
+# workspace". Emitting one for every app of a role means three terminals, four
+# IDEs and five browsers all pointing at three workspaces - every window of all
+# of them piling onto the same screen, which is nobody's idea of a preference.
+# One app per role keeps the promise; the rest stay where they are opened, and
+# the preview says which ones and why.
 advisor_generate_routes() {
   local output_file="$1" apps_file="$2" scenes="$3" placement="$4"
+  local primary_apps="${5:-}"
   local key bundle display scene role layout rest target policy
+  local claimed='' owner_keys='' owner_names='' primary_key='' owner_key='' owner_display=''
+
+  case "$placement" in follow|prefer|fixed) ;; *) return 1 ;; esac
+  ADVISOR_DOWNGRADED_ROUTES=''
+
+  # First pass: decide who owns each role, so the second pass can name the
+  # owner even when the user picked an app that sorts after the others.
+  if [ "$placement" != 'follow' ]; then
+    while IFS='|' read -r key bundle display scene role layout rest; do
+      [ -z "${rest:-}" ] || continue
+      advisor_word_list_contains "$scenes" "$scene" || continue
+      primary_key="$(advisor_primary_app_for_role "$primary_apps" "$role" || true)"
+      if [ -n "$primary_key" ]; then
+        [ "$key" = "$primary_key" ] || continue
+      elif advisor_word_list_contains "$claimed" "$role"; then
+        continue
+      fi
+      claimed="$(advisor_append_word_once "$claimed" "$role")"
+      owner_keys="${owner_keys:+$owner_keys }$role:$key"
+      owner_names="${owner_names}${role}|${display}
+"
+    done <"$apps_file"
+  fi
 
   {
     printf '# Generated locally by ./bootstrap/setup.sh recommend.\n'
     printf '# Detected applications only; user app-routes.conf has higher priority.\n'
+    printf '# At most one prefer/fixed route per workspace role: further apps of the\n'
+    printf '# same role follow the current workspace instead of crowding onto one.\n'
     printf '# match|value|target|policy|layout\n'
     while IFS='|' read -r key bundle display scene role layout rest; do
       [ -z "${rest:-}" ] || continue
       advisor_word_list_contains "$scenes" "$scene" || continue
-      case "$placement" in
-        follow) target='current'; policy='follow' ;;
-        prefer|fixed) target="$role"; policy="$placement" ;;
-        *) return 1 ;;
-      esac
+      target='current'
+      policy='follow'
+      if [ "$placement" != 'follow' ]; then
+        owner_key="$(advisor_primary_app_for_role "$owner_keys" "$role" || true)"
+        if [ "$key" = "$owner_key" ]; then
+          target="$role"
+          policy="$placement"
+        else
+          owner_display="$(advisor_lookup_role_value "$owner_names" "$role" || true)"
+          ADVISOR_DOWNGRADED_ROUTES="${ADVISOR_DOWNGRADED_ROUTES}${display}|${role}|${owner_display}
+"
+        fi
+      fi
       printf 'id|%s|%s|%s|%s\n' "$bundle" "$target" "$policy" "$layout"
     done <"$apps_file"
   } >"$output_file"
+  export ADVISOR_DOWNGRADED_ROUTES
 }
 
 # Delegates to the shared reader in bootstrap/catalog.sh, which bootstrap/

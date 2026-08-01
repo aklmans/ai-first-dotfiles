@@ -44,6 +44,18 @@ com.apple.Safari
 md.obsidian
 com.obsproject.obs-studio
 EOF
+# Three terminals, two IDEs and two browsers: the shape of a working Mac, and
+# the shape that produced seven prefer routes aimed at three workspaces.
+apps_many="$sandbox_root/apps-many"
+cat >"$apps_many" <<'EOF'
+com.apple.Terminal
+dev.warp.Warp-Stable
+fun.tw93.kaku
+com.jetbrains.goland
+com.microsoft.VSCode
+com.apple.Safari
+com.google.Chrome
+EOF
 
 checks=0
 failures=0
@@ -107,6 +119,15 @@ assert_missing "$guard_home/.config/ai-first/profile.conf" 'refused apply must n
 
 # Three-display fixed desk: roles are distributed, names are pinned, and only
 # apps actually found on this Mac enter the generated advisor route layer.
+#
+# The expected workspace mode here moved from `advanced` (10) to `multitask`
+# (8), and the three groups with it. That is the point of the change, not a
+# test being bent to fit: the automatic count used to add a size for the third
+# display, so this same person doing this same work got ten workspaces docked
+# and eight undocked. docs/choice-architecture.md and the README both promise
+# the count comes from task load and that the display count only regroups it.
+# Five scenes is the multitask band on any number of screens; the three
+# displays still show up, in the 4/3/1 split below.
 applied_home="$(new_home)"
 run_advisor "$applied_home" "$displays_three" "$apps_recording" \
   recommend --non-interactive --scenes coding,ai,web,writing,recording \
@@ -116,13 +137,13 @@ assert_equal 0 "$last_status" 'fixed three-display recommendation should apply'
 profile="$applied_home/.config/ai-first/profile.conf"
 advisor_routes="$applied_home/.config/ai-first/advisor-routes.conf"
 assert_file_contains "$profile" 'AI_FIRST_PRESET="advisor"' 'generated profile has its own overlay scope'
-assert_file_contains "$profile" 'AI_FIRST_ADVISOR_WORKSPACE_MODE="advanced"' 'advanced mode metadata is retained for tune'
+assert_file_contains "$profile" 'AI_FIRST_ADVISOR_WORKSPACE_MODE="multitask"' 'five scenes are the multitask band whatever is plugged in'
 assert_file_contains "$profile" 'AEROSPACE_MAIN_MONITOR_NAME="Studio Display"' 'detected main display is pinned only in fixed mode'
 assert_file_contains "$profile" 'AEROSPACE_SIDE_MONITOR_NAME="Side Display"' 'side display is assigned from the remaining display'
 assert_file_contains "$profile" 'AEROSPACE_STAGE_MONITOR_NAME="Built-in Retina Display"' 'built-in display is the default fixed stage'
-assert_file_contains "$profile" 'AEROSPACE_MAIN_WORKSPACES="1 2 3 4 5"' 'advanced main group is generated'
-assert_file_contains "$profile" 'AEROSPACE_SIDE_WORKSPACES="6 7 8 9"' 'advanced side group is generated'
-assert_file_contains "$profile" 'AEROSPACE_STAGE_WORKSPACES="10"' 'advanced stage group is generated'
+assert_file_contains "$profile" 'AEROSPACE_MAIN_WORKSPACES="1 2 3 4"' 'three displays regroup the multitask set rather than growing it'
+assert_file_contains "$profile" 'AEROSPACE_SIDE_WORKSPACES="5 6 7"' 'multitask side group is generated'
+assert_file_contains "$profile" 'AEROSPACE_STAGE_WORKSPACES="8"' 'multitask stage group is generated'
 assert_file_contains "$advisor_routes" 'id|com.obsproject.obs-studio|stage|prefer|tiling' 'detected OBS receives a stage preference, not a global hard binding'
 assert_file_contains "$advisor_routes" 'id|md.obsidian|notes|prefer|tiling' 'detected writing app receives the selected preference'
 assert_missing "$applied_home/.config/aerospace/app-routes.conf" 'advisor must not replace handwritten app routes'
@@ -136,10 +157,29 @@ case "$doctor_output" in *'gestures —'*|*'warp —'*) fail 'advisor doctor mus
 run_advisor "$applied_home" "$displays_two" "$apps_recording" \
   tune --non-interactive --workspace-feedback fewer --apply --yes --config-only
 assert_equal 0 "$last_status" 'tune should apply explicit feedback'
-assert_file_contains "$profile" 'AI_FIRST_ADVISOR_WORKSPACE_MODE="multitask"' 'fewer moves advanced down exactly one size'
-assert_file_contains "$profile" 'AEROSPACE_STAGE_WORKSPACES="8"' 'tuned three-display stage remains semantic'
+# One step down from the multitask profile written above, not from advanced.
+assert_file_contains "$profile" 'AI_FIRST_ADVISOR_WORKSPACE_MODE="balanced"' 'fewer moves the saved mode down exactly one size'
+assert_file_contains "$profile" 'AEROSPACE_STAGE_WORKSPACES="6"' 'tuned three-display stage remains semantic'
 assert_file_contains "$profile" 'AEROSPACE_STAGE_MONITOR_NAME="Built-in Retina Display"' 'temporarily unplugged fixed stage is not collapsed by tune'
 if compgen -G "$profile.backup_*" >/dev/null; then pass; else fail 'tune must back up the previous generated profile'; fi
+
+# `prefer` means "send new windows of this app here". Emitting it for every app
+# of a role sends three terminals to the terminal workspace and two browsers to
+# the web one, so the preference the user picked becomes a pile-up. One app per
+# role keeps it; the rest stay where they are opened, and the preview says so.
+pileup_home="$(new_home)"
+run_advisor "$pileup_home" "$displays_one" "$apps_many" \
+  recommend --non-interactive --scenes coding,web --placement prefer \
+  --apply --yes --config-only
+assert_equal 0 "$last_status" 'a Mac with several apps per role should still apply'
+pileup_routes="$pileup_home/.config/ai-first/advisor-routes.conf"
+assert_equal 1 "$(grep -c '|terminal|prefer|' "$pileup_routes" || true)" 'exactly one terminal owns the terminal workspace'
+assert_equal 1 "$(grep -c '|development|prefer|' "$pileup_routes" || true)" 'exactly one editor owns the development workspace'
+assert_equal 1 "$(grep -c '|web|prefer|' "$pileup_routes" || true)" 'exactly one browser owns the web workspace'
+assert_file_contains "$pileup_routes" 'id|com.apple.Terminal|terminal|prefer|tiling' 'the first detected app of a role is the one that keeps the preference'
+assert_file_contains "$pileup_routes" 'id|dev.warp.Warp-Stable|current|follow|tiling' 'a second terminal follows the current workspace instead'
+assert_file_contains "$pileup_routes" 'id|com.google.Chrome|current|follow|tiling' 'a second browser follows the current workspace instead'
+assert_contains "$last_output" 'already taken by Terminal' 'the preview names which app kept the role'
 
 # A symlink means another manager owns the profile. Refuse before writing the
 # second generated target so apply cannot become a partial mutation.

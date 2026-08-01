@@ -156,7 +156,16 @@ if [ "$apply" -eq 1 ] && [ "$interactive" -eq 0 ] && [ "$assume_yes" -ne 1 ]; th
 fi
 
 advisor_tmp="$(mktemp -d "${TMPDIR:-/tmp}/ai-first-advisor.XXXXXX")"
-trap 'rm -rf "$advisor_tmp"' EXIT
+# Staged copies of the generated files, cleared as each one lands. Whatever is
+# still named here when the script exits was never committed and is removed.
+advisor_staged_profile=''
+advisor_staged_routes=''
+advisor_cleanup() {
+  rm -rf "$advisor_tmp"
+  [ -z "$advisor_staged_profile" ] || rm -f "$advisor_staged_profile"
+  [ -z "$advisor_staged_routes" ] || rm -f "$advisor_staged_routes"
+}
+trap advisor_cleanup EXIT
 displays_file="$advisor_tmp/displays"
 apps_file="$advisor_tmp/apps"
 profile_candidate="$advisor_tmp/profile.conf"
@@ -166,6 +175,7 @@ advisor_detect_displays "$displays_file"
 advisor_detect_apps "$apps_file"
 display_count="$(advisor_display_count "$displays_file")"
 [ "$display_count" -gt 0 ] || display_count=1
+duplicate_display_names="$(advisor_duplicate_display_names "$displays_file" || true)"
 
 advisor_prompt() {
   local prompt="$1" default_value="$2" answer=''
@@ -192,6 +202,21 @@ advisor_print_detected() {
       printf '  Display detection was unavailable; using a conservative one-screen preview.\n'
       ;;
   esac
+  # Dropping a name silently would change the count, and the count changes the
+  # plan. Say it instead.
+  if [ "${ADVISOR_DISPLAYS_SKIPPED:-0}" -gt 0 ]; then
+    printf '  %s display(s) skipped: name contains characters that cannot be stored safely.\n' \
+      "$ADVISOR_DISPLAYS_SKIPPED"
+    printf '  The count above excludes them, so this recommendation does too.\n'
+  fi
+  if [ "$display_count" -gt 1 ]; then
+    printf '  [suggested main] is a suggestion, not a decision: a fixed desk overrides it\n'
+    printf '  with --main-display NAME, and flexible mode resolves roles by position anyway.\n'
+  fi
+  if [ -n "$duplicate_display_names" ]; then
+    printf '  Two or more displays report the same name, which AeroSpace cannot tell apart by name.\n'
+    printf '  Flexible mode resolves roles by position and is unaffected; a fixed desk is refused.\n'
+  fi
   printf 'Installed applications recognized by the advisor:\n'
   if [ -s "$apps_file" ]; then
     while IFS='|' read -r key bundle display scene role layout _rest; do
@@ -325,6 +350,29 @@ if [ "$interactive" -eq 1 ] && [ "$placement_set" -eq 0 ]; then
 fi
 case "$placement" in follow|prefer|fixed) ;; *) printf 'Placement must be follow, prefer, or fixed.\n' >&2; exit 64 ;; esac
 
+# Only one app per workspace role can own a prefer/fixed target. On a terminal
+# the user gets to say which one; everywhere else the first detected app wins,
+# and the preview names the rest. Non-interactive runs never reach the prompt.
+primary_apps=''
+if [ "$interactive" -eq 1 ] && [ "$placement" != 'follow' ]; then
+  contended_roles="$(advisor_contended_roles "$apps_file" "$scenes" || true)"
+  if [ -n "$contended_roles" ]; then
+    printf '\nSeveral detected apps share a workspace role. Only the primary app gets a\n'
+    printf '%s route; the others follow the current workspace.\n' "$placement"
+    for contended_role in $contended_roles; do
+      role_keys="$(advisor_role_app_keys "$apps_file" "$scenes" "$contended_role" || true)"
+      [ -n "$role_keys" ] || continue
+      printf '  %s candidates: %s\n' "$contended_role" "$role_keys"
+      primary_answer="$(advisor_prompt "Primary app for $contended_role" "${role_keys%% *}")"
+      if ! advisor_word_list_contains "$role_keys" "$primary_answer"; then
+        printf '%s is not one of the detected %s apps.\n' "$primary_answer" "$contended_role" >&2
+        exit 64
+      fi
+      primary_apps="${primary_apps:+$primary_apps }$contended_role:$primary_answer"
+    done
+  fi
+fi
+
 default_main="$(advisor_default_main_display "$displays_file")"
 default_stage=''
 default_side=''
@@ -336,6 +384,21 @@ if [ "$display_count" -ge 2 ]; then
 fi
 
 if [ "$desk_mode" = 'fixed' ]; then
+  # Refuse before any role is resolved. Two screens answering to one name make
+  # every "is this display distinct" check below compare a name against itself,
+  # which used to leave a profile with side workspaces and no side display.
+  if [ -n "$duplicate_display_names" ]; then
+    printf 'A fixed desk pins each role to a display name, and these names are not unique:\n' >&2
+    while IFS= read -r duplicate_name; do
+      [ -n "$duplicate_name" ] || continue
+      printf '  %s\n' "$duplicate_name" >&2
+    done <<EOF
+$duplicate_display_names
+EOF
+    printf 'AeroSpace addresses monitors by name and cannot tell same-named screens apart.\n' >&2
+    printf 'Use --desk flexible: roles are resolved by position at runtime and need no names.\n' >&2
+    exit 64
+  fi
   if [ "${ADVISOR_DISPLAY_NAMES_RELIABLE:-0}" -ne 1 ] && \
      { [ "$advisor_command" != 'tune' ] || [ -z "$main_monitor" ]; }; then
     printf 'The display count is usable, but macOS did not expose stable display names.\n' >&2
@@ -381,7 +444,8 @@ advisor_build_workspace_plan "$workspace_mode" "$plan_display_count"
 modules="$(advisor_recommended_modules "$scenes")"
 advisor_generate_profile "$profile_candidate" "$scenes" "$workspace_mode" "$desk_mode" \
   "$placement" "$routing_pack" "$terminal_app" "$main_monitor" "$side_monitor" "$stage_monitor"
-advisor_generate_routes "$routes_candidate" "$apps_file" "$scenes" "$placement"
+advisor_generate_routes "$routes_candidate" "$apps_file" "$scenes" "$placement" "$primary_apps"
+unused_displays="$(advisor_unused_display_names "$displays_file" "$default_main" "$default_side" "$default_stage" || true)"
 
 printf 'Recommended plan\n\n'
 printf '  Scenes:             %s\n' "$scenes"
@@ -396,6 +460,22 @@ printf '  Terminal target:    %s\n' "$terminal_app"
 printf '  Modules:            %s\n' "$modules"
 printf '  Notifications:      off (Full Disk Access is never inferred)\n'
 printf '  Paid/closed apps:   never installed by this recommendation\n'
+
+# main, side and stage is the whole model. A fourth screen is fine, but it must
+# not quietly end up carrying nothing at all.
+if [ -n "$unused_displays" ]; then
+  printf '\nDetected %s displays; this layout uses 3 of them (main, side, stage).\n' "$display_count"
+  while IFS= read -r unused_display; do
+    [ -n "$unused_display" ] || continue
+    printf '  %s will not carry workspaces.\n' "$unused_display"
+  done <<EOF
+$unused_displays
+EOF
+  if [ "$desk_mode" = 'flexible' ]; then
+    printf '  Flexible mode picks the three at runtime, so which screen sits out can change.\n'
+  fi
+fi
+
 printf '\nRecommended module details:\n'
 for module in $modules; do
   printf '  - %-12s %s\n' "$module" "$(catalog_module_description "$module")"
@@ -410,6 +490,20 @@ if [ "$route_count" -gt 0 ]; then
     route[$2] != "" { printf "  - %-22s %s\n", $3, route[$2] }' "$routes_candidate" "$apps_file"
 else
   printf '  - none; applications stay where opened\n'
+fi
+
+# Under prefer/fixed, one route per role is the whole point: three terminals
+# all preferring the terminal workspace is not a preference, it is a pile.
+if [ -n "${ADVISOR_DOWNGRADED_ROUTES:-}" ]; then
+  printf '  Only one %s route per workspace role. These stay where they are opened:\n' "$placement"
+  while IFS='|' read -r downgraded_app downgraded_role downgraded_owner; do
+    [ -n "$downgraded_app" ] || continue
+    printf '  - %-22s %s is already taken by %s\n' \
+      "$downgraded_app" "$downgraded_role" "${downgraded_owner:-the first detected app}"
+  done <<EOF
+$ADVISOR_DOWNGRADED_ROUTES
+EOF
+  printf '  Run recommend on a terminal to choose the primary app for each role.\n'
 fi
 
 profile_target="$profile_path"
@@ -443,20 +537,41 @@ advisor_target_writable() {
   return 0
 }
 
-advisor_apply_generated_file() {
-  local source_file="$1" target="$2" source_label="$3" stamp backup_path
-  if cmp -s "$source_file" "$target" 2>/dev/null; then
-    printf 'Unchanged: %s\n' "$target"
-    return 0
-  fi
+# The profile and the routes describe one recommendation. Applying the profile
+# and then failing on the routes leaves a desk whose workspace plan and app
+# routes disagree, which is worse than applying neither. So everything that can
+# fail - creating the directory, copying, permissions - happens on a staged
+# file beside the target first, and a target is replaced only once both stages
+# are already on disk. A failure at the second rename puts the first one back.
+advisor_stage_generated_file() {
+  local source_file="$1" target="$2" source_label="$3" staged
+  staged="$target.advisor-staged.$$"
   ensure_deploy_dir "$(dirname "$target")" "$source_label" || return 1
+  rm -f "$staged"
+  cp "$source_file" "$staged" || return 1
+  chmod 0644 "$staged" 2>/dev/null || true
+  printf '%s\n' "$staged"
+}
+
+ADVISOR_LAST_BACKUP=''
+advisor_commit_generated_file() {
+  local staged="$1" target="$2" source_label="$3" stamp backup_path
   stamp="$(date +%Y%m%d_%H%M%S)"
   backup_target "$target" "$stamp"
   backup_path="$DOTFILES_BACKUP_PATH"
-  cp "$source_file" "$target"
-  chmod 0644 "$target" 2>/dev/null || true
+  ADVISOR_LAST_BACKUP="$backup_path"
+  mv "$staged" "$target" || return 1
   ledger_record "$source_label" "$target" "$backup_path"
   printf 'Applied: %s\n' "$target"
+}
+
+advisor_rollback_generated_file() {
+  local target="$1" backup_path="${2:-}"
+  rm -f "$target"
+  if [ -n "$backup_path" ] && { [ -e "$backup_path" ] || [ -L "$backup_path" ]; }; then
+    mv "$backup_path" "$target" || true
+  fi
+  printf 'Rolled back: %s\n' "$target" >&2
 }
 
 # Refuse every problematic target before changing either one.
@@ -467,8 +582,48 @@ if [ "$config_only" -eq 0 ]; then
   require_prerequisites
 fi
 
-advisor_apply_generated_file "$profile_candidate" "$profile_target" 'generated/advisor/profile.conf'
-advisor_apply_generated_file "$routes_candidate" "$routes_target" 'generated/advisor/advisor-routes.conf'
+profile_label='generated/advisor/profile.conf'
+routes_label='generated/advisor/advisor-routes.conf'
+profile_committed=0
+profile_backup=''
+
+if cmp -s "$profile_candidate" "$profile_target" 2>/dev/null; then
+  printf 'Unchanged: %s\n' "$profile_target"
+else
+  advisor_staged_profile="$(advisor_stage_generated_file "$profile_candidate" "$profile_target" "$profile_label")" || {
+    printf 'Could not prepare %s; nothing was changed.\n' "$profile_target" >&2
+    exit 1
+  }
+fi
+if cmp -s "$routes_candidate" "$routes_target" 2>/dev/null; then
+  printf 'Unchanged: %s\n' "$routes_target"
+else
+  advisor_staged_routes="$(advisor_stage_generated_file "$routes_candidate" "$routes_target" "$routes_label")" || {
+    printf 'Could not prepare %s; nothing was changed.\n' "$routes_target" >&2
+    exit 1
+  }
+fi
+
+if [ -n "$advisor_staged_profile" ]; then
+  advisor_commit_generated_file "$advisor_staged_profile" "$profile_target" "$profile_label" || {
+    # backup_target may already have moved the old file aside; put it back.
+    advisor_rollback_generated_file "$profile_target" "$ADVISOR_LAST_BACKUP"
+    printf 'Could not write %s; nothing was changed.\n' "$profile_target" >&2
+    exit 1
+  }
+  advisor_staged_profile=''
+  profile_committed=1
+  profile_backup="$ADVISOR_LAST_BACKUP"
+fi
+if [ -n "$advisor_staged_routes" ]; then
+  advisor_commit_generated_file "$advisor_staged_routes" "$routes_target" "$routes_label" || {
+    advisor_staged_routes=''
+    [ "$profile_committed" -eq 0 ] || advisor_rollback_generated_file "$profile_target" "$profile_backup"
+    printf 'Could not write %s; the recommendation was not applied.\n' "$routes_target" >&2
+    exit 1
+  }
+  advisor_staged_routes=''
+fi
 
 install_status=0
 if [ "$config_only" -eq 0 ]; then

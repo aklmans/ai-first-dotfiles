@@ -16,10 +16,19 @@ set -euo pipefail
 #     desk silently ended up with stage workspaces and no stage display name,
 #     and the user saw a raw awk syntax error on stderr.
 #
-# Workspace *counts* are deliberately not asserted here: those move when the
-# advisor stops letting display count drive them. Everything below either pins a
-# grouping shape under an explicit --workspace-mode, or pins display resolution,
-# both of which are independent of that change.
+# It now also pins the other ways a display could change a plan without the
+# user ever being told:
+#
+#   - The workspace *count* used to grow with the display count, so one scene
+#     on a laptop was 4 workspaces and the same scene docked was 8. Count comes
+#     from task load; display count only regroups it.
+#   - Two screens reporting the same name made every "is this display distinct"
+#     check compare a name against itself, and a fixed desk was written with
+#     side workspaces and an empty side display name.
+#   - A fourth display carried no workspaces at all, silently, because the plan
+#     has exactly three roles.
+#   - A display whose name cannot be stored safely was dropped with a bare
+#     `continue`, which changed the count and therefore the recommendation.
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=lib/assert.sh
@@ -86,6 +95,31 @@ EOF
 
 empty_displays="$sandbox_root/displays-empty"
 : >"$empty_displays"
+
+four_displays="$sandbox_root/displays-four"
+cat >"$four_displays" <<'EOF'
+Studio Display|1|0
+DELL U2720Q|0|0
+LG UltraFine|0|0
+Built-in Retina Display|0|1
+EOF
+
+# Two docked monitors of the same model report the same name. AeroSpace
+# addresses monitors by name, so it cannot tell these two apart.
+duplicate_displays="$sandbox_root/displays-duplicate"
+cat >"$duplicate_displays" <<'EOF'
+DELL U2720Q|1|0
+DELL U2720Q|0|0
+EOF
+
+# The middle name carries a character that cannot be written to the data-only
+# profile. Quoted heredoc: the shell must not expand it either.
+unsafe_displays="$sandbox_root/displays-unsafe"
+cat >"$unsafe_displays" <<'EOF'
+Studio Display|1|0
+$(rm -rf /)|0|0
+Side Display|0|0
+EOF
 
 # --- unit: advisor_display_name_at ------------------------------------------
 #
@@ -180,6 +214,84 @@ assert_output_matches "$last_output" 'Main workspaces: +1 2 3' \
   'three displays split the balanced set three/two/one'
 assert_output_matches "$last_output" 'Stage workspaces: +6' \
   'three displays reserve one balanced workspace as the stage'
+
+# --- the workspace count does not move with the display count ---------------
+#
+# Same scenes, different screens: the mode and the total must be identical.
+# Only the main/side/stage split may differ.
+
+auto_mode() {
+  local displays="$1" scene_list="$2" home_dir
+  home_dir="$(new_home)"
+  run_advisor "$home_dir" "$displays" "$no_apps" \
+    recommend --non-interactive --scenes "$scene_list" --config-only
+  printf '%s\n' "$last_output" | /usr/bin/grep 'Workspace mode' | /usr/bin/sed 's/^ *//' || true
+}
+
+for scene_list in coding coding,web coding,ai,web,communication,writing; do
+  one_screen="$(auto_mode "$one_display" "$scene_list")"
+  two_screens="$(auto_mode "$two_displays" "$scene_list")"
+  three_screens="$(auto_mode "$externals_three" "$scene_list")"
+  assert_equal "$one_screen" "$two_screens" \
+    "a second display must not change the workspace count for scenes $scene_list"
+  assert_equal "$one_screen" "$three_screens" \
+    "a third display must not change the workspace count for scenes $scene_list"
+done
+
+# The bands themselves, so a future edit cannot make them all equally wrong.
+assert_output_matches "$(auto_mode "$two_displays" coding)" \
+  'Workspace mode: +focus \(4 workspaces\)' 'one scene is the focus band'
+assert_output_matches "$(auto_mode "$two_displays" coding,ai,web)" \
+  'Workspace mode: +balanced \(6 workspaces\)' 'three scenes are the balanced band'
+assert_output_matches "$(auto_mode "$two_displays" coding,ai,web,writing,communication)" \
+  'Workspace mode: +multitask \(8 workspaces\)' 'five scenes are the multitask band'
+assert_output_matches "$(auto_mode "$one_display" coding,ai,web,writing,communication,media,recording)" \
+  'Workspace mode: +advanced \(10 workspaces\)' 'seven scenes are the advanced band on a single screen'
+
+# --- two displays reporting the same name -----------------------------------
+
+duplicate_fixed_home="$(new_home)"
+run_advisor "$duplicate_fixed_home" "$duplicate_displays" "$no_apps" \
+  recommend --non-interactive --scenes coding,web --desk fixed --config-only
+assert_nonzero "$last_status" 'a fixed desk on two same-named displays must be refused' "$last_stderr"
+assert_output_matches "$last_stderr" 'flexible' 'the refusal names the mode that does work'
+assert_path_absent "$duplicate_fixed_home/.config/ai-first/profile.conf" \
+  'a refused fixed desk writes no profile'
+
+duplicate_flex_home="$(new_home)"
+run_advisor "$duplicate_flex_home" "$duplicate_displays" "$no_apps" \
+  recommend --non-interactive --scenes coding,web --desk flexible \
+  --apply --yes --config-only
+assert_status 0 "$last_status" 'flexible mode is unaffected by duplicate display names' "$last_stderr"
+duplicate_profile="$duplicate_flex_home/.config/ai-first/profile.conf"
+assert_file_contains "$duplicate_profile" 'AI_FIRST_ADVISOR_DESK_MODE="flexible"' \
+  'the flexible recommendation still lands'
+assert_file_contains "$duplicate_profile" 'AEROSPACE_SIDE_MONITOR_NAME=""' \
+  'flexible mode pins no names at all, so an empty one is honest here'
+
+# --- more displays than the layout has roles --------------------------------
+
+four_home="$(new_home)"
+run_advisor "$four_home" "$four_displays" "$no_apps" \
+  recommend --non-interactive --scenes coding,web --config-only
+assert_status 0 "$last_status" 'a four-display desk should still produce a plan' "$last_stderr"
+assert_output_matches "$last_output" 'uses 3 of them' \
+  'the preview states how many of the detected displays the layout uses'
+assert_output_matches "$last_output" 'will not carry workspaces' \
+  'the preview names the display that carries nothing'
+
+# --- a display whose name cannot be stored safely ---------------------------
+
+unsafe_home="$(new_home)"
+run_advisor "$unsafe_home" "$unsafe_displays" "$no_apps" \
+  recommend --non-interactive --scenes coding,web --config-only
+assert_status 0 "$last_status" 'an unsafe display name must not crash detection' "$last_stderr"
+assert_output_matches "$last_output" 'Displays: 2' \
+  'the unsafe name is still filtered out of the detected set'
+assert_output_matches "$last_output" '1 display\(s\) skipped' \
+  'a filtered display is counted, not dropped in silence'
+assert_output_lacks "$last_output" 'rm -rf' \
+  'the rejected name is never echoed back into the preview'
 
 # --- degenerate detection ---------------------------------------------------
 
