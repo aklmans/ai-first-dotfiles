@@ -179,8 +179,12 @@ aerospace_route_for_window() {
         fi
         user_layout="$(printf '%s' "$user_route" | /usr/bin/awk -F '|' '{ print $3 }')"
         if recommended_route="$(aerospace_recommended_route "$app_id" "$app_name" 2>/dev/null)"; then
+            # "\\n" in an awk format string is a literal backslash followed by n,
+            # not a newline. It used to append those two characters to the
+            # workspace field, which then failed every comparison downstream and
+            # silently clamped the app onto the last workspace.
             printf '%s' "$recommended_route" | /usr/bin/awk -F '|' -v layout="$user_layout" \
-                '{ printf "%s|%s|%s|%s\\n", $1, $2, layout, $4 }'
+                '{ printf "%s|%s|%s|%s\n", $1, $2, layout, $4 }'
         else
             printf 'current|follow|%s|\n' "$user_layout"
         fi
@@ -221,7 +225,10 @@ aerospace_regex_escape() {
 # usable set of rules rather than a syntax error waiting to happen.
 if ! type aerospace_layout_clamp_workspace >/dev/null 2>&1; then
     aerospace_layout_clamp_workspace() {
-        printf '%s\n' "${1:-}"
+        case "${1:-}" in
+            ''|*[!A-Za-z0-9_-]*) return 1 ;;
+        esac
+        printf '%s\n' "$1"
     }
     aerospace_layout_clamp_workspace_stream() {
         cat

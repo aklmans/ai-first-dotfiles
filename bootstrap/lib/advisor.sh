@@ -252,8 +252,13 @@ advisor_display_count() {
   /usr/bin/awk -F '|' 'NF >= 3 { count++ } END { print count + 0 }' "$1"
 }
 
+# `index` is an awk built-in function name. Passing it as -v index=... parses,
+# but referencing it in the program body is a syntax error on the awk macOS
+# ships, so this function used to fail on every call and return nothing: the
+# interactive fixed-display chooser rejected every number the user typed, and a
+# three-display desk with no built-in screen silently got an empty stage name.
 advisor_display_name_at() {
-  /usr/bin/awk -F '|' -v index="$2" 'NF >= 3 { count++; if (count == index) { print $1; exit } }' "$1"
+  /usr/bin/awk -F '|' -v want="$2" 'NF >= 3 { count++; if (count == want) { print $1; exit } }' "$1"
 }
 
 advisor_default_main_display() {

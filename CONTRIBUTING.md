@@ -35,6 +35,9 @@ The smoke suites cover the repo:
 | `choice_architecture_smoke.sh` | catalog validity, preset behavior, cost boundaries and copy deployment |
 | `shell_layer_smoke.sh` | `~/.zshenv` takeover, `ZDOTDIR`, not clobbering an existing `~/.zshrc` |
 | `aerospace_workflow_smoke.sh` | Renderers, display resolution, workspace math |
+| `advisor_displays_smoke.sh` | Display detection off the author's desk: no built-in screen, resolving a display by number, degenerate detection |
+| `route_merge_smoke.sh` | The four route layers, the legacy layout-only merge, and the workspace whitelist |
+| `portability_smoke.sh` | awk portability: no `-v` name shadowing a built-in, no doubled `\n` in a format string |
 | `sketchybar_smoke.sh` | Theme sourcing, display resolution, running without AeroSpace |
 | `ai_router_cli_smoke.sh` | Router CLI contract |
 | `ai_router_exports_smoke.sh` | Exported snippets match the prompts |

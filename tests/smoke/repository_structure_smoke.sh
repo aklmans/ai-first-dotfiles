@@ -199,6 +199,10 @@ require_file tests/smoke/ai_router_cli_smoke.sh
 require_file tests/smoke/sketchybar_smoke.sh
 require_file tests/smoke/choice_architecture_smoke.sh
 require_file tests/smoke/advisor_smoke.sh
+require_file tests/smoke/advisor_displays_smoke.sh
+require_file tests/smoke/route_merge_smoke.sh
+require_file tests/smoke/portability_smoke.sh
+require_file tests/smoke/lib/assert.sh
 
 require_absent bootstrap/macos
 require_absent bootstrap/install/gbrain.sh

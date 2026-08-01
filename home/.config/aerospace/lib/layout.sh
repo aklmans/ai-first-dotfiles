@@ -266,6 +266,17 @@ aerospace_layout_clamp_workspace_var() {
     AEROSPACE_LAYOUT_CLAMPED="$needle"
     [ -n "$needle" ] || return 0
 
+    # A workspace name is plain data. Anything else reached this function through
+    # corrupted route data, and clamping it would place a window somewhere the
+    # user never asked for - silently, because the fallback below always lands on
+    # a real workspace. Refuse instead, so the caller drops the rule.
+    case "$needle" in
+        *[!A-Za-z0-9_-]*)
+            AEROSPACE_LAYOUT_CLAMPED=""
+            return 1
+            ;;
+    esac
+
     for workspace in $(aerospace_layout_workspaces); do
         last="$workspace"
         if [ "$workspace" = "$needle" ]; then
@@ -289,7 +300,7 @@ aerospace_layout_clamp_workspace_var() {
 }
 
 aerospace_layout_clamp_workspace() {
-    aerospace_layout_clamp_workspace_var "${1:-}"
+    aerospace_layout_clamp_workspace_var "${1:-}" || return 1
     printf '%s\n' "$AEROSPACE_LAYOUT_CLAMPED"
 }
 
@@ -306,8 +317,14 @@ aerospace_layout_clamp_workspace_stream() {
                 tail="${line#*move-node-to-workspace }"
                 workspace="${tail%%[!0-9]*}"
                 rest="${tail#"$workspace"}"
-                aerospace_layout_clamp_workspace_var "$workspace"
-                printf '%smove-node-to-workspace %s%s\n' "$head" "$AEROSPACE_LAYOUT_CLAMPED" "$rest"
+                # The pattern above guarantees digits, so the refusal branch is
+                # unreachable here; it is spelled out anyway so a caller running
+                # under `set -e` cannot be killed by the clamp's exit status.
+                if aerospace_layout_clamp_workspace_var "$workspace"; then
+                    printf '%smove-node-to-workspace %s%s\n' "$head" "$AEROSPACE_LAYOUT_CLAMPED" "$rest"
+                else
+                    printf '%s\n' "$line"
+                fi
                 ;;
             *)
                 printf '%s\n' "$line"
