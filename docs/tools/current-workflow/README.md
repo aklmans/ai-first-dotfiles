@@ -33,8 +33,10 @@ This document summarizes the current public architecture of this repository.
 - `Alt + H/J/K/L` move focus in tiled layout
 - `Ctrl + Left/Right` cycle workspace groups
 - `Ctrl + Up` / `Ctrl + Down` trigger Mission Control / App Exposé through
-  `home/.config/aerospace/macos-control.sh`, which drives BetterTouchTool. BTT
-  lives in the explicit `gestures` module, so without it these two keys do nothing.
+  `home/.config/aerospace/macos-control.sh`, which picks a route: BetterTouchTool
+  when it is already running, otherwise Hammerspoon's `hs.spaces`, otherwise —
+  Mission Control only — `Mission Control.app`. BTT lives in the explicit
+  `gestures` module and is no longer required for either key.
 
 Full shortcut map: [Shortcut Reference](../../shortcuts.md).
 

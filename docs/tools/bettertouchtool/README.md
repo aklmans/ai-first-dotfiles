@@ -7,10 +7,16 @@ workspace movement.
 > after that, so it is the explicit `gestures` module:
 > `./bootstrap/setup.sh gestures`.
 >
-> Two keyboard shortcuts depend on it as well:
+> Two keyboard shortcuts prefer it but no longer depend on it.
 > `home/.config/aerospace/macos-control.sh` routes `Ctrl + ↑` (Mission Control)
-> and `Ctrl + ↓` (App Exposé) through BTT's `trigger_action` API. Without BTT
-> installed and running, those two keys silently do nothing.
+> and `Ctrl + ↓` (App Exposé) through BTT's `trigger_action` API **when BTT is
+> already running** — the same two predefined actions the gesture preset below
+> binds to swipe up and swipe down. Otherwise it falls back to Hammerspoon's
+> `hs.spaces`, and Mission Control falls back again to `Mission Control.app`.
+>
+> "Already running" is deliberate: `tell application "BetterTouchTool"` launches
+> BTT, and the installer below intentionally does not start it, so a keypress
+> must not start it either.
 
 ![BetterTouchTool workspace gestures](../../../assets/screenshots/bettertouchtool-gestures.png)
 
