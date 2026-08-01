@@ -508,6 +508,15 @@ emit_routes_file_as_toml() {
                 [ -n "$workspace" ] || continue
                 run_workspace="'move-node-to-workspace $workspace'"
                 ;;
+            inherit)
+                # A layout-only row: "shape this window, do not move it". The
+                # shell functions have always honoured it, but this used to fall
+                # into the `continue` below and emit no rule at all, so the same
+                # record behaved one way at runtime and another in the generated
+                # TOML. Nothing shipped reaches it today - a pack author writing
+                # `id|X|-|floating` would have.
+                [ -n "$run_layout" ] || continue
+                ;;
             *) continue ;;
         esac
         if [ -n "$run_layout" ] && [ -n "$run_workspace" ]; then

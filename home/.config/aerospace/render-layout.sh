@@ -271,7 +271,13 @@ render_app_rules_if_wanted() {
     [ "$render_app_rules" -eq 1 ] || return 0
     [ -x "$SCRIPT_DIR/render-app-rules.sh" ] || return 0
 
-    if ! "$SCRIPT_DIR/render-app-rules.sh" "$config_path"; then
+    # Both renderers rewrite the same file in one pass, and both used to keep a
+    # copy - so a first install ended with two .bak files a second apart, of a
+    # file the repo itself had just deployed. One copy of what was there before
+    # this pass started is what recovery needs; the second only made the home
+    # directory look untidy on day one.
+    if ! AEROSPACE_RENDER_BACKUP="${AEROSPACE_RENDER_BACKUP:-}" \
+         "$SCRIPT_DIR/render-app-rules.sh" "$config_path"; then
         printf 'App placement rules could not be re-rendered; %s still has the previous ones.\n' \
             "$config_path" >&2
     fi
@@ -297,6 +303,10 @@ fi
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 cp "$config_path" "$config_path.bak-$stamp-render-layout"
+# Handed to render-app-rules.sh below so it does not keep a second copy of the
+# same file in the same pass.
+AEROSPACE_RENDER_BACKUP="$config_path.bak-$stamp-render-layout"
+export AEROSPACE_RENDER_BACKUP
 cp "$staged" "$config_path"
 
 printf 'Rendered %s from workspaces.conf and displays.conf (%s workspace(s)).\n' \

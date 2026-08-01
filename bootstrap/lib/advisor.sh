@@ -245,18 +245,21 @@ try:
 except Exception:
     raise SystemExit(0)
 
-seen = set()
 rows = []
 skipped = 0
 for gpu in data.get("SPDisplaysDataType", []):
     for display in gpu.get("spdisplays_ndrvs", []):
+        # Two monitors of the same model report the same name, and each is its
+        # own entry here. This used to drop the second one as a duplicate, which
+        # made the display count wrong on exactly the desk where the count
+        # matters most - and hid the repeated name from the check that refuses a
+        # fixed desk it cannot address by name.
         name = str(display.get("_name") or "").strip()
-        if not name or name in seen:
+        if not name:
             continue
         if any(ch in name for ch in ['"', '$', '`', '\n', '\r']):
             skipped += 1
             continue
-        seen.add(name)
         display_type = str(display.get("spdisplays_display_type") or "").lower()
         builtin = int("built" in display_type or "built-in" in name.lower() or "color lcd" in name.lower())
         main_value = str(display.get("spdisplays_main") or "").lower()

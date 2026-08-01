@@ -69,6 +69,79 @@ sketchybar_theme_set_color() {
   fi
 }
 
+SKETCHYBAR_THEME_CONF_WARNED=""
+sketchybar_theme_conf_warn() {
+  local file="$1"
+
+  case " $SKETCHYBAR_THEME_CONF_WARNED " in
+    *" $file "*) return 0 ;;
+  esac
+  SKETCHYBAR_THEME_CONF_WARNED="${SKETCHYBAR_THEME_CONF_WARNED:+$SKETCHYBAR_THEME_CONF_WARNED }$file"
+  printf 'sketchybar: %s holds shell beyond KEY="value", so it is being executed rather than read as data; see the comments at the top of the shipped file for the format\n' \
+    "$file" >&2
+}
+
+# Reads theme.conf without executing it.
+#
+# It used to be sourced, next to colors.sh, and it is sourced by the bar's
+# config plus six item and plugin scripts - so a `$(...)` written into a theme
+# value ran on every repaint. displays.conf and workspaces.conf were made data
+# for the same reason; this is the third of the three files the README tells
+# people to edit.
+#
+# colors.sh deliberately stays a script: its entries are unquoted and reference
+# each other, so there is nothing to parse. The two files are not the same kind
+# of thing and the header of each now says which it is.
+#
+# Every key here is SKETCHYBAR_-prefixed, so the prefix is the whitelist rather
+# than a list of thirty-five names that would go stale the first time one is
+# added. Values are assigned as they are read: a file that turns out to be
+# unparseable falls back to being sourced, and sourcing re-assigns everything
+# this loop had already set from the same lines, so there is nothing to undo.
+sketchybar_theme_read_conf() {
+  local file="$1"
+  local line key raw
+  local blank_re='^[[:space:]]*(#.*)?$'
+  local assignment_re='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$'
+  # Double quotes, single quotes, or a bare token, each with an optional
+  # trailing comment. Same grammar as the AeroSpace conf reader, so the two
+  # files people edit behave the same way.
+  local dq_re='^"([^"]*)"[[:space:]]*(#.*)?$'
+  local sq_re="^'([^']*)'[[:space:]]*(#.*)?\$"
+  local bare_re='^([A-Za-z0-9_.:/+-]*)[[:space:]]*(#.*)?$'
+
+  [ -r "$file" ] || return 0
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [[ "$line" =~ $blank_re ]]; then
+      continue
+    fi
+    if ! [[ "$line" =~ $assignment_re ]]; then
+      sketchybar_theme_conf_warn "$file"
+      # shellcheck source=/dev/null
+      . "$file"
+      return 0
+    fi
+    key="${BASH_REMATCH[1]}"
+    raw="${BASH_REMATCH[2]}"
+
+    if [[ "$raw" =~ $dq_re ]] || [[ "$raw" =~ $sq_re ]] || [[ "$raw" =~ $bare_re ]]; then
+      # A `$(...)` inside a quoted value is not a reason to fall back. It is
+      # the thing this parser exists to stop, and it is stopped by being
+      # assigned literally.
+      case "$key" in
+        SKETCHYBAR_*) printf -v "$key" '%s' "${BASH_REMATCH[1]}" ;;
+      esac
+      continue
+    fi
+
+    sketchybar_theme_conf_warn "$file"
+    # shellcheck source=/dev/null
+    . "$file"
+    return 0
+  done <"$file"
+}
+
 sketchybar_theme_load() {
   local config_dir="${1:-$SKETCHYBAR_THEME_CONFIG_DIR}"
   local env_workspaces
@@ -84,10 +157,7 @@ sketchybar_theme_load() {
     . "$config_dir/colors.sh"
   fi
 
-  if [ -r "$config_dir/theme.conf" ]; then
-    # shellcheck source=/dev/null
-    . "$config_dir/theme.conf"
-  fi
+  sketchybar_theme_read_conf "$config_dir/theme.conf"
 
   [ -z "$env_workspaces" ] || SKETCHYBAR_WORKSPACES="$env_workspaces"
 

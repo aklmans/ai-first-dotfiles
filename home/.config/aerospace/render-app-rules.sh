@@ -48,11 +48,19 @@ if cmp -s "$OUTPUT_FILE" "$CONFIG_PATH"; then
     exit 0
 fi
 
-stamp="$(date +%Y%m%d-%H%M%S)"
-cp "$CONFIG_PATH" "$CONFIG_PATH.bak-$stamp-render-app-rules"
+# render-layout.sh calls this at the end of its own pass and has already kept a
+# copy of the file as it was before either renderer touched it. A second backup
+# one second later is of content the first renderer just generated, which is not
+# what anyone would want to recover.
+backup_path="${AEROSPACE_RENDER_BACKUP:-}"
+if [ -z "$backup_path" ] || [ ! -e "$backup_path" ]; then
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    backup_path="$CONFIG_PATH.bak-$stamp-render-app-rules"
+    cp "$CONFIG_PATH" "$backup_path"
+fi
 cp "$OUTPUT_FILE" "$CONFIG_PATH"
 printf 'Rendered app rules into %s (previous file kept at %s)\n' \
-    "$CONFIG_PATH" "$CONFIG_PATH.bak-$stamp-render-app-rules"
+    "$CONFIG_PATH" "$backup_path"
 
 # A dry run is a courtesy check on a file that has already been written, and
 # AeroSpace not running is not a rendering failure.

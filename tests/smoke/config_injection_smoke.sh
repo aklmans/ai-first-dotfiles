@@ -280,6 +280,36 @@ assert_equal "SF Pro" "$theme_value" "Theming still loads"
 read_theme "$theme_dir" THEME_TOP_INSET
 assert_equal "95" "$theme_value" "Derived top inset still resolves"
 
+# --- theme.conf is read, not run ---------------------------------------------
+#
+# The case above only ever proved the *resolver* was safe. Closing the eval left
+# theme.conf itself still being sourced, so a plain double-quoted value ran its
+# command substitution at source time - before any resolver saw it - and no
+# assertion here noticed, because every check was about colour resolution.
+#
+# This is the file the README tells people to edit for fonts and geometry, and
+# it is read by the bar's config plus six item and plugin scripts, so it runs on
+# every repaint.
+
+cp -R "$repo_root/home/.config/sketchybar/." "$theme_dir/"
+rm -f "$probe"
+printf 'SKETCHYBAR_FONT_FAMILY="$(touch %s)Evil"\n' "$probe" >>"$theme_dir/theme.conf"
+
+read_theme "$theme_dir" THEME_FONT
+assert_path_absent "$probe" "theme.conf must not execute a command substitution in any value"
+assert_equal "\$(touch $probe)Evil" "$theme_value" \
+  "the substitution is kept as literal text, which is what makes it harmless"
+
+# A file holding real shell still works, because someone has been running one.
+cp -R "$repo_root/home/.config/sketchybar/." "$theme_dir/"
+printf 'for _i in 1; do SKETCHYBAR_BAR_HEIGHT="99"; done\n' >>"$theme_dir/theme.conf"
+read_theme "$theme_dir" THEME_BAR_HEIGHT
+assert_equal "99" "$theme_value" "a theme.conf that is genuinely shell still applies"
+assert_output_matches "$theme_stderr" 'holds shell beyond' \
+  "and says once that it is being executed rather than read"
+
+cp -R "$repo_root/home/.config/sketchybar/." "$theme_dir/"
+
 # --- theme.sh: the four behaviours the rewrite had to preserve ---------------
 
 # 1. An empty value is not an empty colour: it collapses to the built-in role

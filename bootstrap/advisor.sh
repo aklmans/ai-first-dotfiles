@@ -220,7 +220,7 @@ advisor_print_detected() {
   printf 'Installed applications recognized by the advisor:\n'
   if [ -s "$apps_file" ]; then
     while IFS='|' read -r key bundle display scene role layout _rest; do
-      printf '  - %-22s %s\n' "$display" "$scene"
+      printf '  - %-10s %s\n' "$scene" "$display"
     done <"$apps_file"
   else
     printf '  - none of the optional known applications; system defaults remain usable\n'
@@ -487,7 +487,7 @@ route_count="$(/usr/bin/awk -F '|' '$1 == "id" { count++ } END { print count + 0
 printf '\nDetected-app route suggestions: %s\n' "$route_count"
 if [ "$route_count" -gt 0 ]; then
   /usr/bin/awk -F '|' 'NR==FNR { if ($1 == "id") route[$2]=$3 " / " $4 " / " $5; next }
-    route[$2] != "" { printf "  - %-22s %s\n", $3, route[$2] }' "$routes_candidate" "$apps_file"
+    route[$2] != "" { printf "  - %-24s %s\n", route[$2], $3 }' "$routes_candidate" "$apps_file"
 else
   printf '  - none; applications stay where opened\n'
 fi
@@ -498,8 +498,11 @@ if [ -n "${ADVISOR_DOWNGRADED_ROUTES:-}" ]; then
   printf '  Only one %s route per workspace role. These stay where they are opened:\n' "$placement"
   while IFS='|' read -r downgraded_app downgraded_role downgraded_owner; do
     [ -n "$downgraded_app" ] || continue
-    printf '  - %-22s %s is already taken by %s\n' \
-      "$downgraded_app" "$downgraded_role" "${downgraded_owner:-the first detected app}"
+    # The role is the only field guaranteed to be ASCII, so it is the only one
+    # padded: printf pads by bytes, and an app called 妙言 or 哔哩哔哩 would
+    # push every following column out of line.
+    printf '  - %-14s belongs to %s; %s follows the current workspace\n' \
+      "$downgraded_role" "${downgraded_owner:-the first detected app}" "$downgraded_app"
   done <<EOF
 $ADVISOR_DOWNGRADED_ROUTES
 EOF

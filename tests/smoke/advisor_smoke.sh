@@ -67,6 +67,7 @@ assert_exists() { if [ -e "$1" ] || [ -L "$1" ]; then pass; else fail "$2" "miss
 assert_missing() { if [ -e "$1" ] || [ -L "$1" ]; then fail "$2" "unexpected: $1"; else pass; fi; }
 assert_file_contains() { if grep -Fq -- "$2" "$1" 2>/dev/null; then pass; else fail "$3" "$(cat "$1" 2>/dev/null || true)"; fi; }
 assert_nonzero() { if [ "$1" -ne 0 ]; then pass; else fail "$2" "$3"; fi; }
+assert_output_matches() { if printf '%s\n' "$1" | grep -Eq -- "$2"; then pass; else fail "$3" "no line matched: $2\n$1"; fi; }
 
 last_status=0
 last_output=''
@@ -179,7 +180,11 @@ assert_equal 1 "$(grep -c '|web|prefer|' "$pileup_routes" || true)" 'exactly one
 assert_file_contains "$pileup_routes" 'id|com.apple.Terminal|terminal|prefer|tiling' 'the first detected app of a role is the one that keeps the preference'
 assert_file_contains "$pileup_routes" 'id|dev.warp.Warp-Stable|current|follow|tiling' 'a second terminal follows the current workspace instead'
 assert_file_contains "$pileup_routes" 'id|com.google.Chrome|current|follow|tiling' 'a second browser follows the current workspace instead'
-assert_contains "$last_output" 'already taken by Terminal' 'the preview names which app kept the role'
+# Asserted as "the role, the winner and the loser all appear on one line",
+# not as a sentence: the wording changed once already, and pinning prose makes
+# the test fail for a reworded message rather than for a wrong answer.
+assert_output_matches "$last_output" 'terminal.*Terminal.*Warp|terminal.*Warp.*Terminal' \
+  'the preview names the role, the app that kept it and the app that did not'
 
 # A symlink means another manager owns the profile. Refuse before writing the
 # second generated target so apply cannot become a partial mutation.
