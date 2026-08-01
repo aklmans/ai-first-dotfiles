@@ -376,16 +376,39 @@ assert_contains "$last_output" "OK: workspace layout matches" "Layout check repo
 
 # The point of this batch. The old script polled for two named monitors that
 # will never appear here, twice, at ten seconds each.
+#
+# Wall clock alone made this check measure the machine instead of the code. The
+# script's own settle delay is 2s plus a 0.5s pause, so the floor is ~2.5s, and
+# process startup during a full suite run pushed the total to 7s against a 6s
+# budget - red for no reason, which is the fastest way to teach people to ignore
+# a red suite. The deterministic half is the poll count: with no monitor named
+# in displays.conf there is nothing to wait for, so the wait has to settle on
+# its first look rather than working through its 32 attempts. Wall clock stays
+# as a coarse net for the 22s regression, with enough room for a loaded machine.
+: >"$single_fixture/list-monitors.log"
 start_seconds="$(date +%s)"
 run_in_home "$single_home" "$single_fixture" "$single_home/.config/aerospace/startup-restore.sh"
 elapsed=$(($(date +%s) - start_seconds))
 assert_status 0 "$last_status" "Login restore must succeed with one display" "$last_output"
-if [[ "$elapsed" -le 6 ]]; then
+
+single_polls="$(grep -c . "$single_fixture/list-monitors.log" 2>/dev/null | tr -d ' ')"
+[[ -n "$single_polls" ]] || single_polls=0
+# One look, every time. Two is slack, not headroom: losing the early return
+# drops the wait into its stability loop, which needs three consecutive equal
+# counts, and naming a monitor that never arrives raises that to twelve. A
+# threshold of four would have let the first of those through.
+if [[ "$single_polls" -le 2 ]]; then
   pass
 else
-  fail "Login restore waited ${elapsed}s on a single-display Mac (was ~22s, budget 6s)" "$last_output"
+  fail "Login restore polled for monitors ${single_polls}x with none configured (it must settle on the first look)" "$last_output"
 fi
-printf 'single-display startup-restore.sh: %ss wall clock (default settle delay)\n' "$elapsed"
+
+if [[ "$elapsed" -le 12 ]]; then
+  pass
+else
+  fail "Login restore waited ${elapsed}s on a single-display Mac (was ~22s)" "$last_output"
+fi
+printf 'single-display startup-restore.sh: %ss wall clock, %s monitor poll(s)\n' "$elapsed" "$single_polls"
 
 # Without the deliberate settle delay, nothing else may block at all.
 start_seconds="$(date +%s)"
