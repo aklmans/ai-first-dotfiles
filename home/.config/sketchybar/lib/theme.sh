@@ -159,6 +159,32 @@ sketchybar_theme_load() {
 
   sketchybar_theme_read_conf "$config_dir/theme.conf"
 
+  # A preset is a set of overrides on top of theme.conf, not a replacement for
+  # it: it wins for the keys it declares and leaves everything else alone. That
+  # way "make the bar readable on a stream" is one line rather than twenty
+  # edits, and switching back is deleting that line rather than restoring a
+  # file from a backup.
+  #
+  # The name goes through the same whitelist as every other value this repo
+  # turns into a path. It arrives from a file the user edits, and
+  # "../../../etc/something" is a config typo away from being a file read.
+  if [ -n "${SKETCHYBAR_THEME_PRESET:-}" ]; then
+    case "$SKETCHYBAR_THEME_PRESET" in
+      *[!A-Za-z0-9_-]*)
+        printf 'sketchybar: theme preset %s is not a plain name, so it is being ignored\n' \
+          "$SKETCHYBAR_THEME_PRESET" >&2
+        ;;
+      *)
+        if [ -r "$config_dir/theme-presets/$SKETCHYBAR_THEME_PRESET.conf" ]; then
+          sketchybar_theme_read_conf "$config_dir/theme-presets/$SKETCHYBAR_THEME_PRESET.conf"
+        else
+          printf 'sketchybar: no theme preset named %s in %s/theme-presets\n' \
+            "$SKETCHYBAR_THEME_PRESET" "$config_dir" >&2
+        fi
+        ;;
+    esac
+  fi
+
   [ -z "$env_workspaces" ] || SKETCHYBAR_WORKSPACES="$env_workspaces"
 
   THEME_FONT="${SKETCHYBAR_FONT_FAMILY:-SF Pro}"
@@ -205,6 +231,14 @@ sketchybar_theme_load() {
   fi
   THEME_TOP_INSET_COMPACT="${SKETCHYBAR_BAR_TOP_INSET_COMPACT:-8}"
 
+  # Depth. Off by default because a shadow under a bar that sits 35px down the
+  # wallpaper is decoration nobody asked for, and blur costs a repaint on every
+  # event. A stream is the case where they earn their keep: on video the bar
+  # otherwise sits flat against whatever is behind it.
+  THEME_BAR_SHADOW="${SKETCHYBAR_BAR_SHADOW:-off}"
+  THEME_BAR_BLUR="${SKETCHYBAR_BAR_BLUR:-0}"
+  THEME_ITEM_SHADOW="${SKETCHYBAR_ITEM_SHADOW:-off}"
+
   sketchybar_theme_set_color THEME_ACCENT_BAR_BORDER "${SKETCHYBAR_ACCENT_BAR_BORDER:-BLUE}" "${BLUE:-}"
   sketchybar_theme_set_color THEME_ACCENT_CLOCK "${SKETCHYBAR_ACCENT_CLOCK:-MAGENTA}" "${MAGENTA:-}"
   sketchybar_theme_set_color THEME_ACCENT_CALENDAR "${SKETCHYBAR_ACCENT_CALENDAR:-BLUE}" "${BLUE:-}"
@@ -234,6 +268,7 @@ sketchybar_theme_load() {
   export THEME_BAR_NOTCH_WIDTH
   export THEME_ITEM_PADDING THEME_ITEM_HEIGHT THEME_ITEM_CORNER_RADIUS
   export THEME_ITEM_BORDER_WIDTH THEME_PILL_CORNER_RADIUS BORDER_WIDTH
+  export THEME_BAR_SHADOW THEME_BAR_BLUR THEME_ITEM_SHADOW
   export THEME_TOP_INSET THEME_TOP_INSET_COMPACT
   export THEME_ACCENT_BAR_BORDER THEME_ACCENT_CLOCK THEME_ACCENT_CALENDAR
   export THEME_ACCENT_BATTERY THEME_ACCENT_VOLUME THEME_ACCENT_FRONT_APP
