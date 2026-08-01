@@ -116,6 +116,7 @@ require_file home/.config/sketchybar/lib/notifications.sh
 require_file home/.config/sketchybar/lib/display-resolver.sh
 require_file home/.config/sketchybar/items/ai_notifications.sh
 require_file home/.config/sketchybar/plugins/ai_app_notifications.sh
+require_file home/.config/sketchybar/plugins/display_rebind.sh
 require_file home/.config/borders/bordersrc
 require_file home/.config/aerospace/app-defaults.sh
 require_file home/.config/aerospace/app-routes.conf

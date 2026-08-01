@@ -143,3 +143,63 @@ sketchybar_workspace_list() {
 
   printf '\n'
 }
+
+# Which display each workspace chip belongs on, as "<workspace> <display id>"
+# per line.
+#
+# The chips carry a display id rather than `display=active`, because the whole
+# point of them is that workspaces 7-12 live on the side monitor whether or not
+# you are looking at it. That id is resolved once, when the bar is configured -
+# so unplugging a monitor left every chip pointing at a display that is no
+# longer there, and the only way back was `sketchybar --reload` by hand.
+#
+# Callers must have sourced display-resolver.sh, and should have re-run
+# aerospace_layout_resolve first if the displays have just changed: both of the
+# lookups below are answered from cached state.
+sketchybar_workspace_display_bindings() {
+  local sid role name main_display="" side_display="" stage_display=""
+
+  # Arrangement id 1 always exists, so an unresolvable role puts its workspaces
+  # on a real display instead of on display 2 or 3 of a laptop that has neither.
+  _binding_display_for_role() {
+    local want="$1" target="$2" resolved=""
+
+    if type aerospace_layout_resolved_name >/dev/null 2>&1; then
+      name="$(aerospace_layout_resolved_name "$want")"
+    else
+      name=""
+    fi
+
+    if [ -n "$name" ] && type sketchybar_display_id_for_monitor_var >/dev/null 2>&1; then
+      sketchybar_display_id_for_monitor_var "$name" || true
+      resolved="${SKETCHYBAR_DISPLAY_ID:-}"
+    fi
+
+    if [ -z "$resolved" ] && [ "$want" != "main" ]; then
+      resolved="$main_display"
+    fi
+
+    printf -v "$target" '%s' "${resolved:-1}"
+  }
+
+  _binding_display_for_role main main_display
+  _binding_display_for_role side side_display
+  _binding_display_for_role stage stage_display
+
+  for sid in $(sketchybar_workspace_list); do
+    [ -n "$sid" ] || continue
+
+    role=main
+    if type aerospace_layout_role_for_workspace >/dev/null 2>&1; then
+      role="$(aerospace_layout_role_for_workspace "$sid" 2>/dev/null || printf 'main')"
+    fi
+
+    case "$role" in
+      side) printf '%s %s\n' "$sid" "$side_display" ;;
+      stage) printf '%s %s\n' "$sid" "$stage_display" ;;
+      *) printf '%s %s\n' "$sid" "$main_display" ;;
+    esac
+  done
+
+  unset -f _binding_display_for_role
+}

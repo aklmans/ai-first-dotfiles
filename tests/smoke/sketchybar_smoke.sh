@@ -202,8 +202,21 @@ STUB
 
 cat >"$stub_dir/hs" <<'STUB'
 #!/bin/bash
-# display-resolver.sh asks for "<name>\t<screen id>\t<uuid>" per screen.
-cat "${HS_STUB_SCREENS:-/dev/null}" 2>/dev/null || true
+# The resolver asks Hammerspoon two different questions, so this has to tell
+# them apart rather than answering both with the same three columns:
+#
+#   screen identity     "<name>\t<screen id>\t<uuid>" per screen
+#   display arrangement "<index>\t<name>" per screen, in macOS's own order
+#
+# The fixture file is the first form, and its line order is the arrangement.
+case "$*" in
+  *ipairs*i\ ..*|*arrangement*)
+    /usr/bin/awk -F '\t' '{ printf "%s\t%s\n", NR, $1 }' "${HS_STUB_SCREENS:-/dev/null}" 2>/dev/null || true
+    ;;
+  *)
+    cat "${HS_STUB_SCREENS:-/dev/null}" 2>/dev/null || true
+    ;;
+esac
 exit 0
 STUB
 
@@ -407,6 +420,35 @@ assert_contains "$without_hs" "Hammerspoon CLI (hs) not found" \
 assert_contains "$without_hs" "id=1" \
   "Without Hammerspoon the resolver falls back to the aerospace monitor order"
 
+# SketchyBar answers `--query displays` with an empty list often enough - after
+# a monitor is unplugged, notably - that what happens next is a normal path.
+# It used to be AeroSpace's monitor order, which is a different order on a desk
+# whose main display is not AeroSpace's monitor 1. On the desk this was found
+# on the two are exactly reversed, so every workspace chip bound to the other
+# screen, and nothing said so: both answers are a plausible small integer.
+empty_displays_fixture="$sandbox_root/fixture-empty-displays"
+mkdir -p "$empty_displays_fixture"
+cp "$fixture/monitors" "$empty_displays_fixture/monitors" 2>/dev/null || true
+printf '[]\n' >"$empty_displays_fixture/displays.json"
+# macOS arranges these the other way round from AeroSpace: index 1 is the side
+# monitor, so "PHL 279C9" is display 2 and AeroSpace's answer would be 1.
+printf '24V5C2\t2\tUUID-SIDE\nPHL 279C9\t3\tUUID-MAIN\n' >"$empty_displays_fixture/screens"
+
+empty_displays="$(env -u XDG_STATE_HOME "HOME=$home_dir" "PATH=/usr/bin:/bin" \
+  "HS_BIN=$stub_dir/hs" "HS_STUB_SCREENS=$empty_displays_fixture/screens" \
+  "AEROSPACE_BIN=$stub_dir/aerospace" "AEROSPACE_STUB_DIR=$empty_displays_fixture" \
+  "SKETCHYBAR_BIN=$stub_dir/sketchybar" \
+  "SKETCHYBAR_STUB_DISPLAYS=$empty_displays_fixture/displays.json" \
+  "$system_bash" -c '
+    set -euo pipefail
+    . "$HOME/.config/sketchybar/lib/display-resolver.sh"
+    printf "id=%s\n" "$(sketchybar_display_id_for_monitor "PHL 279C9" || printf "")"
+  ' 2>&1)"
+assert_contains "$empty_displays" "id=2" \
+  "An empty display list must fall back to macOS's arrangement, not AeroSpace's order"
+assert_contains "$empty_displays" "using macOS's display arrangement" \
+  "Taking that route must say which order produced the answer"
+
 # Neither program: no answer, and the caller can tell.
 without_either="$(env -u XDG_STATE_HOME "HOME=$home_dir" "PATH=/usr/bin:/bin" \
   "HS_BIN=/nonexistent/hs" "AEROSPACE_BIN=/nonexistent/aerospace" \
@@ -430,6 +472,40 @@ assert_status 0 "$last_status" "Workspace items must be created with neither hs 
 displays="$(grep -o -- '--set space\.[0-9]* display=[0-9]*' "$fixture/sketchybar.log" |
   sed 's/.*display=//' | LC_ALL=C sort -u | tr '\n' ' ')"
 assert_equal "1 " "$displays" "Unresolvable displays collapse onto the one that always exists"
+
+# --- case: a monitor comes or goes -------------------------------------------
+# A chip carries a real display id, because workspaces 7-12 belong on the side
+# monitor whether or not that is the one being looked at. That id is resolved
+# when the bar is configured, so unplugging a monitor left every chip pointing
+# at an arrangement that no longer existed - and the way back was knowing to
+# type `sketchybar --reload`.
+
+: >"$fixture/sketchybar.log"
+run_bar_script "$home_dir" "$fixture" \
+  "$home_dir/.config/sketchybar/items/spaces.sh"
+assert_status 0 "$last_status" "Workspace items must be created" "$last_output"
+assert_file_contains "$fixture/sketchybar.log" '--subscribe display_watcher display_change' \
+  "Something has to be listening for a monitor coming or going"
+
+: >"$fixture/sketchybar.log"
+run_bar_script "$home_dir" "$fixture" \
+  "$home_dir/.config/sketchybar/plugins/display_rebind.sh"
+assert_status 0 "$last_status" "The rebind must survive being run" "$last_output"
+rebound="$(grep -c -- '--set space\.[0-9]* display=[0-9]*' "$fixture/sketchybar.log" || true)"
+if [[ "$rebound" -gt 0 ]]; then
+  pass
+else
+  fail "the rebind must re-point the chips rather than only reloading" \
+    "$(cat "$fixture/sketchybar.log" 2>/dev/null)"
+fi
+# A display is not a workspace. Nothing may be added or removed on a display
+# change - that would drop the chips' subscriptions and their highlight state.
+if grep -Fq -- '--add' "$fixture/sketchybar.log" 2>/dev/null; then
+  fail "the rebind must not recreate the items it is re-pointing" \
+    "$(cat "$fixture/sketchybar.log" 2>/dev/null)"
+else
+  pass
+fi
 
 # --- case: five workspaces ---------------------------------------------------
 

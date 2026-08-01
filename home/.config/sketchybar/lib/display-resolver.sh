@@ -66,10 +66,29 @@ screen_info_for_monitor() {
     /usr/bin/awk -F '\t' -v name="$monitor_name" '$1 == name { print $2 "\t" $3; exit }'
 }
 
-# AeroSpace's own view of the displays, used when Hammerspoon is absent.
-# AeroSpace numbers monitors in the same left-to-right order macOS arranges
-# them, so its monitor-id is usually SketchyBar's arrangement-id - usually,
-# which is why taking this route always prints a warning.
+# Where a monitor sits in macOS's own display arrangement, via Hammerspoon.
+# hs.screen.allScreens() returns screens in that order, and that order is what
+# SketchyBar's `display=` counts in.
+#
+# This exists because the AeroSpace fallback below is a guess that can be
+# exactly wrong. On the desk this was found on, macOS puts the menu bar on the
+# side monitor, so its arrangement is [24V5C2, PHL 279C9] while AeroSpace lists
+# [PHL 279C9, 24V5C2] - reversed. Every workspace chip went to the other screen,
+# and nothing said so, because both answers are a plausible small integer.
+hs_arrangement_id_for_monitor() {
+  local monitor_name="$1"
+
+  [ -n "${HS_BIN:-}" ] && [ -x "$HS_BIN" ] || return 1
+  [ -n "$monitor_name" ] || return 1
+
+  "$HS_BIN" -c 'for i, screen in ipairs(hs.screen.allScreens()) do print(i .. "\t" .. screen:name()) end' 2>/dev/null |
+    /usr/bin/awk -F '\t' -v name="$monitor_name" '$2 == name { print $1; exit }' |
+    /usr/bin/grep -E '^[0-9]+$'
+}
+
+# AeroSpace's own view of the displays, the last resort when neither SketchyBar
+# nor Hammerspoon can be asked. AeroSpace numbers monitors in its own order,
+# which is often but not always macOS's, which is why this route always warns.
 aerospace_display_id_for_monitor() {
   local monitor_name="$1"
   local monitor_id
@@ -153,11 +172,23 @@ PY
 )"
 
   if [ -z "$display_id" ]; then
-    # SketchyBar is not running yet, or reports no display matching that
-    # screen. AeroSpace may still know the monitor.
+    # SketchyBar is not running yet, or reports no display matching that screen.
+    # It answers `--query displays` with an empty list often enough - after a
+    # monitor is unplugged, notably - that this is a normal path rather than an
+    # edge case, so what it falls back to has to be right rather than close.
+    #
+    # macOS's arrangement first, because that is the order `display=` counts in.
+    if display_id="$(hs_arrangement_id_for_monitor "$monitor_name")"; then
+      sketchybar_display_warn "sketchybar-unmatched-$monitor_name" \
+        "SketchyBar reports no display matching \"$monitor_name\"; using macOS's display arrangement instead."
+      SKETCHYBAR_DISPLAY_ID="$display_id"
+      return 0
+    fi
+    # AeroSpace's order last, and loudly: it agrees with macOS's on most desks
+    # and is reversed on some, and there is no way to tell from here which.
     if display_id="$(aerospace_display_id_for_monitor "$monitor_name")"; then
       sketchybar_display_warn "sketchybar-unmatched-$monitor_name" \
-        "SketchyBar reports no display matching \"$monitor_name\"; using the aerospace monitor order instead."
+        "SketchyBar reports no display matching \"$monitor_name\" and Hammerspoon could not be asked; falling back to the aerospace monitor order, which is not always macOS's. Bar items may land on the wrong screen."
       SKETCHYBAR_DISPLAY_ID="$display_id"
       return 0
     fi

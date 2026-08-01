@@ -151,3 +151,19 @@ if sketchybar_runtime_has "$(sketchybar_runtime_bin "${AEROSPACE_BIN:-${AEROSPAC
 
   "$PLUGIN_DIR/aerospace_spaces_refresh.sh"
 fi
+
+# A chip's display id is resolved once, above. Plugging a monitor in or pulling
+# one out invalidates every one of them, and until this existed the way back was
+# to know that `sketchybar --reload` fixes it.
+#
+# It draws nothing: an item is how SketchyBar delivers an event to a script, and
+# this one exists only to receive display_change.
+display_watcher=(
+  drawing=off
+  updates=on
+  script="$PLUGIN_DIR/display_rebind.sh"
+)
+
+sketchybar --add item display_watcher left            \
+           --set display_watcher "${display_watcher[@]}" \
+           --subscribe display_watcher display_change
