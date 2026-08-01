@@ -34,6 +34,15 @@ check_command() {
 }
 
 run_check() {
+    # A check that degrades the desktop rather than breaking it passes --warn
+    # first. Two shortcuts falling back to a different route is worth saying out
+    # loud; it is not a reason for this script to exit non-zero.
+    local severity=fail
+    if [ "${1:-}" = "--warn" ]; then
+        severity=warn
+        shift
+    fi
+
     local label="$1"
     shift
 
@@ -64,12 +73,12 @@ run_check() {
     output="$(cat "$output_file")"
 
     if [ -s "$timeout_file" ]; then
-        fail "$label"
+        "$severity" "$label"
         printf '      timed out after %ss\n' "$CHECK_TIMEOUT_SECONDS"
     elif [ "$status" -eq 0 ]; then
         ok "$label"
     else
-        fail "$label"
+        "$severity" "$label"
         if [ -n "$output" ]; then
             printf '%s\n' "$output" | sed 's/^/      /' | head -n 6
         fi
@@ -140,6 +149,15 @@ run_check "AeroSpace config dry-run" aerospace reload-config --dry-run --no-gui
 run_check "SketchyBar responds" sketchybar --query bar
 run_check "Hammerspoon CLI responds" hs -c 'return true'
 
+# Ctrl+Up and Ctrl+Down run under `exec-and-forget`, which reads no output at
+# all, so a machine with nothing left to serve them has no other way to say so.
+# `--probe` names the route and runs nothing, and the failing output it prints
+# is the sentence that says which install would fix it.
+run_check --warn "Ctrl+Up has a Mission Control route" \
+    "$AEROSPACE_DIR/macos-control.sh" --probe mission-control
+run_check --warn "Ctrl+Down has an App Exposé route" \
+    "$AEROSPACE_DIR/macos-control.sh" --probe app-expose
+
 printf '\nSyntax\n'
 run_check "Hammerspoon Lua syntax" lua -e "assert(loadfile('$HAMMERSPOON_CONFIG'))"
 run_check "layout.sh syntax" bash -n "$AEROSPACE_DIR/lib/layout.sh"
@@ -149,6 +167,7 @@ run_check "plan.sh syntax" bash -n "$AEROSPACE_DIR/plan.sh"
 run_check "focus-workspace-arrow.sh syntax" bash -n "$AEROSPACE_DIR/focus-workspace-arrow.sh"
 run_check "reset-apps-to-default-workspaces.sh syntax" bash -n "$AEROSPACE_DIR/reset-apps-to-default-workspaces.sh"
 run_check "check-display-layout.sh syntax" bash -n "$AEROSPACE_DIR/check-display-layout.sh"
+run_check "macos-control.sh syntax" bash -n "$AEROSPACE_DIR/macos-control.sh"
 run_check "toggle-sketchybar-space.sh syntax" bash -n "$AEROSPACE_DIR/toggle-sketchybar-space.sh"
 run_check "render-layout.sh syntax" bash -n "$AEROSPACE_DIR/render-layout.sh"
 run_check "aerospace_spaces.sh syntax" bash -n "$SKETCHYBAR_PLUGINS/aerospace_spaces.sh"
@@ -174,6 +193,7 @@ check_file_executable "$AEROSPACE_DIR/plan.sh"
 check_file_executable "$AEROSPACE_DIR/focus-workspace-arrow.sh"
 check_file_executable "$AEROSPACE_DIR/reset-apps-to-default-workspaces.sh"
 check_file_executable "$AEROSPACE_DIR/check-display-layout.sh"
+check_file_executable "$AEROSPACE_DIR/macos-control.sh"
 check_file_executable "$AEROSPACE_DIR/toggle-sketchybar-space.sh"
 check_file_executable "$AEROSPACE_DIR/render-layout.sh"
 check_file_executable "$SKETCHYBAR_PLUGINS/aerospace_spaces.sh"

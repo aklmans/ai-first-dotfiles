@@ -717,6 +717,209 @@ assert_file_contains "$deploy_home/.config/aerospace/displays.conf" "Studio Disp
 assert_file_contains "$deploy_home/.aerospace.toml" "'1' = ['Studio Display', 'main']" \
   "Redeploy re-renders the AeroSpace config from the user's display config"
 
+# --- case: Ctrl+Up / Ctrl+Down without BetterTouchTool ----------------------
+#
+# macos-control.sh used to be a single osascript aimed at BetterTouchTool. BTT
+# is free for 45 days and paid after that, so it sits in the `extras` profile
+# and is not there on a default install - and AeroSpace runs these two bindings
+# with `exec-and-forget`, which reads neither stdout nor stderr. The result had
+# no symptom: two keys README.md and docs/shortcuts.md advertise did nothing,
+# and said nothing about it. These cases pin the fallback chain down.
+
+macos_control="$(cat "$repo_root/home/.config/aerospace/macos-control.sh")"
+assert_contains "$macos_control" "hs.spaces" "macos-control.sh needs a Hammerspoon route"
+assert_contains "$macos_control" "Mission Control.app" "macos-control.sh needs a Mission Control.app route"
+
+# Ctrl+Up and Ctrl+Down are the chords AeroSpace binds to this script. A
+# synthesised chord re-enters the same system hotkey layer, so the binding fires
+# the script again - which is why System Events key codes are not a route. The
+# comments are allowed to explain that; the code is not allowed to do it, so
+# this reads the file with its comments stripped.
+macos_control_code="$(grep -v '^[[:space:]]*#' "$repo_root/home/.config/aerospace/macos-control.sh")"
+assert_not_contains "$macos_control_code" "key code" \
+  "macos-control.sh must not synthesise the chord that invoked it"
+assert_not_contains "$macos_control_code" "System Events" \
+  "macos-control.sh must not drive the shortcut through System Events"
+assert_contains "$toml" "macos-control.sh mission-control" "Ctrl+Up still routes through macos-control.sh"
+assert_contains "$toml" "macos-control.sh app-expose" "Ctrl+Down still routes through macos-control.sh"
+
+macos_control_stub_dir="$sandbox_root/macos-control-bin"
+mkdir -p "$macos_control_stub_dir"
+
+cat >"$macos_control_stub_dir/pgrep" <<'STUB'
+#!/bin/bash
+# `pgrep -x BetterTouchTool`. MACOS_CONTROL_STUB_BTT_RUNNING is the answer.
+printf '%s\n' "$*" >>"$MACOS_CONTROL_STUB_LOG_DIR/pgrep.log"
+[ "${MACOS_CONTROL_STUB_BTT_RUNNING:-0}" = "1" ] || exit 1
+printf '4242\n'
+exit 0
+STUB
+
+cat >"$macos_control_stub_dir/osascript" <<'STUB'
+#!/bin/bash
+printf '%s\n' "$*" >>"$MACOS_CONTROL_STUB_LOG_DIR/osascript.log"
+exit 0
+STUB
+
+cat >"$macos_control_stub_dir/open" <<'STUB'
+#!/bin/bash
+printf '%s\n' "$*" >>"$MACOS_CONTROL_STUB_LOG_DIR/open.log"
+exit 0
+STUB
+
+cat >"$macos_control_stub_dir/hs" <<'STUB'
+#!/bin/bash
+# `hs -c <lua>`, answering the way the real CLI does: the snippet's value on
+# stdout. MACOS_CONTROL_STUB_HS_SPACES=0 stands in for a Hammerspoon older than
+# hs.spaces, where the guarded snippet returns an empty string and exits 0.
+printf '%s\n' "${2:-}" >>"$MACOS_CONTROL_STUB_LOG_DIR/hs.log"
+if [ "${MACOS_CONTROL_STUB_HS_SPACES:-1}" != "1" ]; then
+  printf '\n'
+  exit 0
+fi
+case "${2:-}" in
+  *macos-control-ok*) printf 'macos-control-ok\n' ;;
+  *) printf '\n' ;;
+esac
+exit 0
+STUB
+
+for stub in pgrep osascript open hs; do
+  chmod +x "$macos_control_stub_dir/$stub"
+done
+
+macos_control_home="$(new_home)"
+macos_control_log_dir="$sandbox_root/macos-control-log"
+
+# What the machine has. Each case sets these, then calls run_macos_control.
+btt_running=0
+hs_installed=1
+hs_has_spaces=1
+mission_control_app="/System/Applications/Mission Control.app"
+
+run_macos_control() {
+  local hs_bin="$macos_control_stub_dir/hs"
+
+  # An HS_BIN that names a path which is not there is how "Hammerspoon was
+  # never installed" reaches the script: it resolves the override rather than
+  # searching PATH, where this suite's other `hs` stub lives.
+  [[ "$hs_installed" == "1" ]] || hs_bin="$macos_control_stub_dir/no-hammerspoon-here"
+
+  rm -rf "$macos_control_log_dir"
+  mkdir -p "$macos_control_log_dir"
+
+  last_status=0
+  last_output="$(env \
+    "HOME=$macos_control_home" \
+    "PATH=$stub_dir:$PATH" \
+    "MACOS_CONTROL_STUB_LOG_DIR=$macos_control_log_dir" \
+    "MACOS_CONTROL_STUB_BTT_RUNNING=$btt_running" \
+    "MACOS_CONTROL_STUB_HS_SPACES=$hs_has_spaces" \
+    "MACOS_CONTROL_PGREP=$macos_control_stub_dir/pgrep" \
+    "MACOS_CONTROL_OSASCRIPT=$macos_control_stub_dir/osascript" \
+    "MACOS_CONTROL_OPEN=$macos_control_stub_dir/open" \
+    "MACOS_CONTROL_MISSION_CONTROL_APP=$mission_control_app" \
+    "HS_BIN=$hs_bin" \
+    "$system_bash" "$macos_control_home/.config/aerospace/macos-control.sh" "$@" 2>&1)" || last_status=$?
+}
+
+macos_control_log() {
+  cat "$macos_control_log_dir/$1.log" 2>/dev/null || true
+}
+
+# A running BetterTouchTool is still the first choice: it is the same pair of
+# predefined actions the tracked gesture preset binds to 3/4-finger swipes.
+btt_running=1
+run_macos_control mission-control
+assert_status 0 "$last_status" "Ctrl+Up must work with BetterTouchTool running" "$last_output"
+assert_contains "$(macos_control_log osascript)" "BetterTouchTool" \
+  "A running BetterTouchTool still gets the keypress"
+assert_contains "$(macos_control_log osascript)" ":7}" "Mission Control is BTT predefined action 7"
+assert_equal "" "$(macos_control_log hs)" "Hammerspoon is not asked once BetterTouchTool has answered"
+
+btt_running=1
+run_macos_control app-expose
+assert_status 0 "$last_status" "Ctrl+Down must work with BetterTouchTool running" "$last_output"
+assert_contains "$(macos_control_log osascript)" ":6}" "App Exposé is BTT predefined action 6"
+
+# The default install. BTT is not running - and must not be started, because
+# `tell application "BetterTouchTool"` launches it and
+# bootstrap/install/bettertouchtool.sh deliberately does not.
+btt_running=0
+run_macos_control mission-control
+assert_status 0 "$last_status" "Ctrl+Up must work without BetterTouchTool" "$last_output"
+assert_equal "" "$(macos_control_log osascript)" \
+  "A stopped BetterTouchTool must not be launched by AppleScript"
+assert_contains "$(macos_control_log hs)" "hs.spaces.toggleMissionControl()" \
+  "Ctrl+Up falls back to Hammerspoon"
+assert_equal "" "$(macos_control_log open)" "Hammerspoon answered, so nothing further is tried"
+
+run_macos_control app-expose
+assert_status 0 "$last_status" "Ctrl+Down must work without BetterTouchTool" "$last_output"
+assert_contains "$(macos_control_log hs)" "hs.spaces.toggleAppExpose()" \
+  "Ctrl+Down falls back to Hammerspoon"
+assert_equal "" "$(macos_control_log osascript)" \
+  "App Exposé must not launch BetterTouchTool either"
+
+# Neither BTT nor Hammerspoon: AeroSpace on its own. Mission Control still has
+# a bundle to open.
+hs_installed=0
+run_macos_control mission-control
+assert_status 0 "$last_status" "Ctrl+Up must work with AeroSpace alone" "$last_output"
+assert_contains "$(macos_control_log open)" "Mission Control.app" \
+  "Ctrl+Up falls back to opening Mission Control.app"
+
+# App Exposé has no bundle to open, so this is the one combination with no
+# route left. It has to say so rather than exit 0 and do nothing.
+run_macos_control app-expose
+assert_status 69 "$last_status" "App Exposé with no route must fail, not exit 0" "$last_output"
+assert_contains "$last_output" "no route for app-expose" "The failure names what did not happen"
+assert_contains "$last_output" "setup.sh desktop" "The failure names the Hammerspoon fix"
+assert_contains "$last_output" "setup.sh extras" "The failure names the BetterTouchTool fix"
+
+# hs.spaces arrived in Hammerspoon 0.9.90. An older one must fall through to
+# the next route instead of raising and taking the keypress with it.
+hs_installed=1
+hs_has_spaces=0
+run_macos_control mission-control
+assert_status 0 "$last_status" "A Hammerspoon without hs.spaces must not break Ctrl+Up" "$last_output"
+assert_contains "$(macos_control_log open)" "Mission Control.app" \
+  "A Hammerspoon without hs.spaces falls through to Mission Control.app"
+
+# --probe is what doctor.sh asks, so it must name the route without firing it.
+hs_has_spaces=1
+run_macos_control --probe mission-control
+assert_status 0 "$last_status" "--probe must succeed when a route exists" "$last_output"
+assert_equal "hammerspoon" "$last_output" "--probe names the route it would use"
+assert_not_contains "$(macos_control_log hs)" "toggleMissionControl()" \
+  "--probe must not actually open Mission Control"
+assert_equal "" "$(macos_control_log open)" "--probe opens nothing"
+assert_equal "" "$(macos_control_log osascript)" "--probe triggers nothing in BetterTouchTool"
+
+btt_running=1
+run_macos_control --probe app-expose
+assert_equal "bettertouchtool" "$last_output" "--probe prefers a running BetterTouchTool"
+assert_equal "" "$(macos_control_log osascript)" "--probe must not trigger the BTT action"
+
+btt_running=0
+hs_installed=0
+mission_control_app="$sandbox_root/no-such-mission-control.app"
+run_macos_control --probe mission-control
+assert_status 69 "$last_status" "--probe must fail when nothing can serve the shortcut" "$last_output"
+assert_contains "$last_output" "no route for mission-control" "--probe explains what is missing"
+
+# The original argument contract survives: anything that is not one of the two
+# actions is a usage error, not a silent success.
+run_macos_control bogus-action
+assert_status 64 "$last_status" "An unknown action is a usage error" "$last_output"
+run_macos_control --probe
+assert_status 64 "$last_status" "--probe without an action is a usage error" "$last_output"
+
+last_status=0
+last_output="$(env "HOME=$macos_control_home" "$system_bash" \
+  "$macos_control_home/.config/aerospace/macos-control.sh" 2>&1)" || last_status=$?
+assert_status 64 "$last_status" "No action at all is a usage error" "$last_output"
+
 # --- report -----------------------------------------------------------------
 
 if [[ "$failures" -gt 0 ]]; then

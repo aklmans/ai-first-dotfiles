@@ -196,9 +196,14 @@ your back. Turn the rules on yourself:
 > Karabiner-Elements → Complex Modifications → Add rule →
 > **CapsLock AI Lite (ai-first-dotfiles)** → Enable All
 
-**`Ctrl + ↑` / `Ctrl + ↓` need BetterTouchTool.** They route Mission Control and
-App Exposé through BTT, which is the explicit `gestures` module. Without it those
-two keys silently do nothing.
+**`Ctrl + ↑` / `Ctrl + ↓` want Hammerspoon, but no longer require it.** They ask
+for Mission Control and App Exposé over whichever route this Mac has: a running
+BetterTouchTool if you have one, otherwise Hammerspoon's `hs.spaces` — which the
+`automation` module already installs — and Mission Control falls back to
+`Mission Control.app`. With none of those, only App Exposé has nothing left to
+try, and `~/.config/aerospace/doctor.sh` says so rather than leaving you to
+wonder: AeroSpace runs these two bindings with `exec-and-forget`, which reads no
+output at all.
 
 ---
 

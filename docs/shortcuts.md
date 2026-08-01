@@ -47,8 +47,8 @@ below is the `author-full` reference map, not a requirement for other presets.
 | `Ctrl + Shift + <workspace key>` | Move the focused window to that configured workspace and follow it |
 | `Ctrl + Left` / `Ctrl + Right` | Move to previous / next workspace group |
 | `Alt + Tab` | Toggle back to the previously focused workspace |
-| `Ctrl + Up` | Mission Control — **requires BetterTouchTool** (`setup.sh gestures`) |
-| `Ctrl + Down` | App Exposé — **requires BetterTouchTool** (`setup.sh gestures`) |
+| `Ctrl + Up` | Mission Control — a running BetterTouchTool, else Hammerspoon, else `Mission Control.app` |
+| `Ctrl + Down` | App Exposé — a running BetterTouchTool, else Hammerspoon (`setup.sh automation`) |
 
 ## Window Focus And Layout
 
