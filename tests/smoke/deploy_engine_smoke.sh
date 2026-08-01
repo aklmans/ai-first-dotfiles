@@ -144,6 +144,14 @@ assert_output_matches() {
   fi
 }
 
+assert_output_lacks() {
+  if printf '%s\n' "$1" | grep -Fq "$2"; then
+    fail "$3" "$1"
+  else
+    pass
+  fi
+}
+
 # --- runner -----------------------------------------------------------------
 
 RUN_ENV=()
@@ -757,6 +765,52 @@ case_skipped_symlink_does_not_abort_setup() {
   fi
 }
 
+# --- case: a file that cannot be moved aside is never replaced ---------------
+# The engine's whole promise is that whatever it replaces is backed up first.
+# backup_target used to run `mv` bare and print "Backed up ..." whether or not
+# it worked, and `set -e` did not catch it: a deploy reached through
+# `deploy_repo_path ... || status=$?` runs with errexit suspended for the entire
+# call tree, so a failed mv fell straight through to the cp underneath. The user
+# lost the file, no backup existed, the run said it had backed one up and exited
+# 0, and the ledger pointed uninstall at a path that had never been created.
+#
+# An unwritable parent directory is the cheapest way to make mv fail for real.
+
+case_unbackupable_file_is_not_replaced() {
+  local home guarded content
+  home="$(new_home)"
+  guarded="$home/.config/aerospace"
+
+  mkdir -p "$guarded"
+  printf 'USER PRECIOUS DATA\n' >"$guarded/app-routes.conf"
+  chmod 555 "$guarded"
+
+  RUN_ENV=("DOTFILES_SKIP_PREFLIGHT=1")
+  run_home "$home" "$repo_root/bootstrap/install/aerospace.sh" --deploy-only
+  chmod 755 "$guarded"
+
+  content="$(cat "$guarded/app-routes.conf" 2>/dev/null || true)"
+  assert_equal 'USER PRECIOUS DATA' "$content" \
+    'a file that could not be backed up must still hold what the user put there'
+
+  assert_output_matches "$last_output" '[Cc]ould not move' \
+    'the run must say the file could not be moved aside'
+  assert_output_lacks "$last_output" "Backed up $guarded/app-routes.conf" \
+    'a failed backup must never be reported as a backup'
+
+  # Nothing may claim in the ledger that a backup exists when it does not.
+  local ledger
+  ledger="$home/.local/state/ai-first-dotfiles/backups.tsv"
+  if [[ -f "$ledger" ]]; then
+    local recorded
+    recorded="$(grep -F 'app-routes.conf' "$ledger" | grep -Fc 'backup_' || true)"
+    assert_equal '0' "$recorded" \
+      'no ledger row may point at a backup that was never written'
+  else
+    pass
+  fi
+}
+
 # --- run --------------------------------------------------------------------
 
 case_user_files_survive
@@ -779,6 +833,7 @@ case_uninstall_summary_counts_real_removals
 case_uninstall_dry_run_separates_pending_directories
 case_state_dir_failure_is_survivable
 case_skipped_symlink_does_not_abort_setup
+case_unbackupable_file_is_not_replaced
 
 if [[ "$failures" -gt 0 ]]; then
   printf '\ndeploy_engine_smoke.sh: %s of %s checks failed\n' "$failures" "$checks" >&2

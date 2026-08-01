@@ -498,7 +498,21 @@ backup_target() {
     suffix=$((suffix + 1))
   done
 
-  mv "$target" "$backup_path"
+  # Returns non-zero when the file could not be moved aside, and every caller
+  # must then leave the target alone.
+  #
+  # This used to run `mv` bare and announce success regardless. `set -e` did not
+  # save it: a deploy reached from `deploy_repo_path ... || status=$?` runs with
+  # errexit suspended for the whole call tree, so a failed mv carried straight
+  # on to the `cp` below it. The result was the exact thing this engine exists to
+  # prevent - the user's file overwritten, no backup on disk, "Backed up ..."
+  # printed, exit status 0, and a ledger row pointing at a path that was never
+  # created, so uninstall could not put it back either.
+  if ! mv "$target" "$backup_path" 2>/dev/null; then
+    DOTFILES_BACKUP_PATH=""
+    printf 'Could not move %s aside (check permissions on its directory).\n' "$target" >&2
+    return 1
+  fi
   DOTFILES_BACKUP_PATH="$backup_path"
   printf 'Backed up %s -> %s\n' "$target" "$backup_path"
 }
@@ -798,8 +812,19 @@ deploy_single_file() {
     fi
   fi
 
-  backup_target "$target_file" "$stamp"
-  cp "$source_file" "$target_file"
+  if ! backup_target "$target_file" "$stamp"; then
+    deploy_skip "$target_file" 'could not be moved aside, so it was not replaced'
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  fi
+  if ! cp "$source_file" "$target_file"; then
+    # The original is already at DOTFILES_BACKUP_PATH. Record it so uninstall
+    # can put it back, and say so rather than leaving a hole with no history.
+    ledger_record "$source_rel" "$target_file" "$DOTFILES_BACKUP_PATH"
+    deploy_skip "$target_file" "could not be written; the previous file is at ${DOTFILES_BACKUP_PATH:-none}"
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  fi
   sync_file_mode "$source_file" "$target_file"
   ledger_record "$source_rel" "$target_file" "$DOTFILES_BACKUP_PATH"
 
@@ -827,10 +852,16 @@ deploy_directory() {
       deploy_skip "$target_dir" 'target is a symlink; another tool manages this path'
       return 0
     fi
-    backup_target "$target_dir" "$stamp"
+    if ! backup_target "$target_dir" "$stamp"; then
+      deploy_skip "$target_dir" 'could not be moved aside, so it was not replaced'
+      return 0
+    fi
     dir_backup="$DOTFILES_BACKUP_PATH"
   elif [[ -e "$target_dir" && ! -d "$target_dir" ]]; then
-    backup_target "$target_dir" "$stamp"
+    if ! backup_target "$target_dir" "$stamp"; then
+      deploy_skip "$target_dir" 'could not be moved aside, so it was not replaced'
+      return 0
+    fi
     dir_backup="$DOTFILES_BACKUP_PATH"
   fi
 
@@ -875,11 +906,21 @@ deploy_directory() {
           skipped=$((skipped + 1))
           continue
         fi
-        backup_target "$target_entry" "$stamp"
+        if ! backup_target "$target_entry" "$stamp"; then
+          deploy_skip "$target_entry" 'could not be moved aside, so it was not replaced'
+          pruned+=("$rel/")
+          skipped=$((skipped + 1))
+          continue
+        fi
         ledger_record "$source_rel/$rel" "$target_entry" "$DOTFILES_BACKUP_PATH"
         entry_recorded=1
       elif [[ -e "$target_entry" && ! -d "$target_entry" ]]; then
-        backup_target "$target_entry" "$stamp"
+        if ! backup_target "$target_entry" "$stamp"; then
+          deploy_skip "$target_entry" 'could not be moved aside, so it was not replaced'
+          pruned+=("$rel/")
+          skipped=$((skipped + 1))
+          continue
+        fi
         ledger_record "$source_rel/$rel" "$target_entry" "$DOTFILES_BACKUP_PATH"
         entry_recorded=1
       fi

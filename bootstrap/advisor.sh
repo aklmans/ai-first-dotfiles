@@ -557,7 +557,12 @@ ADVISOR_LAST_BACKUP=''
 advisor_commit_generated_file() {
   local staged="$1" target="$2" source_label="$3" stamp backup_path
   stamp="$(date +%Y%m%d_%H%M%S)"
-  backup_target "$target" "$stamp"
+  # A target that cannot be moved aside must not be replaced: without the backup
+  # there is nothing to roll back to, and nothing for uninstall to restore.
+  if ! backup_target "$target" "$stamp"; then
+    printf 'Not replacing %s because it could not be backed up first.\n' "$target" >&2
+    return 1
+  fi
   backup_path="$DOTFILES_BACKUP_PATH"
   ADVISOR_LAST_BACKUP="$backup_path"
   mv "$staged" "$target" || return 1
