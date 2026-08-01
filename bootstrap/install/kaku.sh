@@ -9,7 +9,7 @@ parse_install_args "$@"
 
 echo "Installing Kaku"
 ensure_brew_tap tw93/tap
-brew_install tw93/tap/kakuku
+brew_install_cask tw93/tap/kakuku
 
 echo "Setting up Kaku"
 if should_deploy; then

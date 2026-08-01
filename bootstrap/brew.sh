@@ -38,6 +38,10 @@ install_base() {
 
   # Language runtimes, developer toolchains, and update orchestration.
   brew_install composer go golangci-lint lua mise node protobuf topgrade uv
+
+  # Mobile and native build helpers, plus duti for setting default applications
+  # from the shell.
+  brew_install cocoapods duti watchman
 }
 
 install_infra() {
@@ -68,14 +72,17 @@ install_apps() {
   ensure_brew_tap tw93/tap
 
   # Optional terminal, utility, and desktop apps currently installed on this machine.
-  brew_install tw93/tap/kakuku
-  brew_install_cask adguard alt-tab bettertouchtool karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast
+  # kakuku is a cask, so it goes through brew_install_cask - which also refuses to
+  # reinstall over a copy of the app that Homebrew did not put there.
+  brew_install_cask tw93/tap/kakuku
+  brew_install_cask adguard alt-tab bettertouchtool karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast libreoffice typora warp
 
   # Optional AI, developer, and workflow GUI tools currently installed on this machine.
-  brew_install_cask apifox cc-switch chatgpt claude claude-code codex steipete/tap/codexbar cursor openclaw postman visual-studio-code
+  brew_install_cask apifox cc-switch chatgpt claude claude-code codex steipete/tap/codexbar cursor devin-desktop openclaw postman visual-studio-code windsurf
+  brew_install opencode
 
   # Optional browser, writing, and communication apps currently installed on this machine.
-  brew_install_cask arc google-chrome obsidian wechat
+  brew_install_cask arc google-chrome obsidian wechat lark tencent-meeting bilibili shadow
 }
 
 install_quicklook() {
