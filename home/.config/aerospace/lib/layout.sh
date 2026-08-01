@@ -44,6 +44,126 @@ aerospace_layout_roles() {
     printf 'main side stage\n'
 }
 
+# Files already warned about, so a login that reads the same file from four
+# scripts prints one line, not four.
+AEROSPACE_LAYOUT_CONF_WARNED="${AEROSPACE_LAYOUT_CONF_WARNED:-}"
+
+aerospace_layout_conf_warn() {
+    local file="$1"
+
+    case " $AEROSPACE_LAYOUT_CONF_WARNED " in
+        *" $file "*) return 0 ;;
+    esac
+    AEROSPACE_LAYOUT_CONF_WARNED="${AEROSPACE_LAYOUT_CONF_WARNED:+$AEROSPACE_LAYOUT_CONF_WARNED }$file"
+    printf 'aerospace: %s holds shell beyond KEY="value", so it is being executed rather than read as data; see the comments at the top of the shipped file for the format\n' \
+        "$file" >&2
+}
+
+# One value, unwrapped. Sets AEROSPACE_LAYOUT_CONF_VALUE rather than printing
+# it: this runs per line of two files at login and on every workspace repaint,
+# and command substitution would fork for each one.
+#
+# Returns 1 when the text is not a value this parser can represent, which is
+# the caller's signal to fall back.
+AEROSPACE_LAYOUT_CONF_VALUE=""
+aerospace_layout_conf_value() {
+    local raw="$1"
+    # Double quotes, single quotes, or one bare token, each with an optional
+    # trailing comment. Bare is accepted because `AEROSPACE_STAGE_WORKSPACES=13`
+    # has always worked and sketchybar/lib/workspaces.sh already reads it.
+    local dq_re='^"([^"]*)"[[:space:]]*(#.*)?$'
+    local sq_re="^'([^']*)'[[:space:]]*(#.*)?\$"
+    local bare_re='^([A-Za-z0-9_.:/+-]*)[[:space:]]*(#.*)?$'
+
+    AEROSPACE_LAYOUT_CONF_VALUE=""
+    if [[ "$raw" =~ $dq_re ]] || [[ "$raw" =~ $sq_re ]] || [[ "$raw" =~ $bare_re ]]; then
+        AEROSPACE_LAYOUT_CONF_VALUE="${BASH_REMATCH[1]}"
+        return 0
+    fi
+    return 1
+}
+
+# Reads one config file without executing it.
+#
+# displays.conf and workspaces.conf used to be `source`d. They are the two
+# files this setup tells people to edit, they are read at login and on every
+# bar repaint that asks for the workspace list, and so a monitor name written
+# as "$(...)" ran as a command - twelve times a minute, invisibly. They are
+# data now, like profile.conf next door.
+#
+# The accepted grammar is deliberately wider than profile.conf's, because two
+# readers already accept more and an upgrade must not break a config either of
+# them was happy with. Hammerspoon's screencast.lua matches
+# `^%s*KEY%s*=%s*"..."` and the single-quoted form; sketchybar/lib/workspaces.sh
+# strips either quote. So:
+#
+#     [indent] KEY [space] = [space] "value" | 'value' | bare-token [# comment]
+#
+# A `$(...)` inside a quoted value is not a reason to fall back - it is the
+# attack, and it is handled by being taken literally.
+#
+# What does fall back is a file this parser cannot represent at all: `export`,
+# a loop, a conditional, a line continuation. Such a file is sourced exactly as
+# before and one warning names it, so a config someone has been running for a
+# year keeps working and its owner is told why it is the odd one out.
+#
+# A well-formed line whose key is not one of the seven is parsed and ignored.
+# Falling back on it instead would hand the execution path back to anyone who
+# can add a line, which is the thing this function exists to close.
+aerospace_layout_read_conf() {
+    local file="$1"
+    local line key
+    local main_name='' side_name='' stage_name=''
+    local main_ws='' side_ws='' stage_ws='' role_map=''
+    local main_name_set='' side_name_set='' stage_name_set=''
+    local main_ws_set='' side_ws_set='' stage_ws_set='' role_map_set=''
+    local blank_re='^[[:space:]]*(#.*)?$'
+    local assignment_re='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$'
+
+    [ -r "$file" ] || return 0
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ "$line" =~ $blank_re ]]; then
+            continue
+        fi
+        if ! [[ "$line" =~ $assignment_re ]]; then
+            aerospace_layout_conf_warn "$file"
+            # shellcheck source=/dev/null
+            . "$file"
+            return 0
+        fi
+        key="${BASH_REMATCH[1]}"
+        if ! aerospace_layout_conf_value "${BASH_REMATCH[2]}"; then
+            aerospace_layout_conf_warn "$file"
+            # shellcheck source=/dev/null
+            . "$file"
+            return 0
+        fi
+        # The whole surface these two files have: seven keys. Every other name
+        # in them was already dead weight, because nothing here has ever read
+        # one.
+        case "$key" in
+            AEROSPACE_MAIN_MONITOR_NAME) main_name="$AEROSPACE_LAYOUT_CONF_VALUE"; main_name_set=x ;;
+            AEROSPACE_SIDE_MONITOR_NAME) side_name="$AEROSPACE_LAYOUT_CONF_VALUE"; side_name_set=x ;;
+            AEROSPACE_STAGE_MONITOR_NAME) stage_name="$AEROSPACE_LAYOUT_CONF_VALUE"; stage_name_set=x ;;
+            AEROSPACE_MAIN_WORKSPACES) main_ws="$AEROSPACE_LAYOUT_CONF_VALUE"; main_ws_set=x ;;
+            AEROSPACE_SIDE_WORKSPACES) side_ws="$AEROSPACE_LAYOUT_CONF_VALUE"; side_ws_set=x ;;
+            AEROSPACE_STAGE_WORKSPACES) stage_ws="$AEROSPACE_LAYOUT_CONF_VALUE"; stage_ws_set=x ;;
+            AEROSPACE_WORKSPACE_ROLE_MAP) role_map="$AEROSPACE_LAYOUT_CONF_VALUE"; role_map_set=x ;;
+        esac
+    done <"$file"
+
+    # Applied only once the whole file parsed, so a file that falls back does
+    # not get its first few lines applied twice.
+    [ -z "$main_name_set" ] || AEROSPACE_MAIN_MONITOR_NAME="$main_name"
+    [ -z "$side_name_set" ] || AEROSPACE_SIDE_MONITOR_NAME="$side_name"
+    [ -z "$stage_name_set" ] || AEROSPACE_STAGE_MONITOR_NAME="$stage_name"
+    [ -z "$main_ws_set" ] || AEROSPACE_MAIN_WORKSPACES="$main_ws"
+    [ -z "$side_ws_set" ] || AEROSPACE_SIDE_WORKSPACES="$side_ws"
+    [ -z "$stage_ws_set" ] || AEROSPACE_STAGE_WORKSPACES="$stage_ws"
+    [ -z "$role_map_set" ] || AEROSPACE_WORKSPACE_ROLE_MAP="$role_map"
+}
+
 # Collapses runs of whitespace so a config value can be written across lines or
 # with stray spacing and still compare and iterate cleanly.
 aerospace_layout_normalize_list() {
@@ -61,7 +181,7 @@ aerospace_layout_normalize_list() {
     printf '\n'
 }
 
-# Sources displays.conf and workspaces.conf. Values already present in the
+# Reads displays.conf and workspaces.conf. Values already present in the
 # environment win over the files, so `AEROSPACE_MAIN_MONITOR_NAME=... script`
 # keeps working for one-off runs and for tests.
 aerospace_layout_load_config() {
@@ -102,10 +222,7 @@ aerospace_layout_load_config() {
     AEROSPACE_WORKSPACE_ROLE_MAP="$AEROSPACE_LAYOUT_DEFAULT_WORKSPACE_ROLE_MAP"
 
     for config_file in displays workspaces; do
-        if [ -r "$AEROSPACE_CONFIG_DIR/$config_file.conf" ]; then
-            # shellcheck source=/dev/null
-            . "$AEROSPACE_CONFIG_DIR/$config_file.conf"
-        fi
+        aerospace_layout_read_conf "$AEROSPACE_CONFIG_DIR/$config_file.conf"
     done
 
     # A named installer preset is a machine-owned layer above the shipped

@@ -51,27 +51,38 @@ sketchybar_workspaces_normalize() {
 
 # Reads the three role lists out of workspaces.conf without sourcing it, so a
 # stray command in a config file cannot run inside a bar callback.
+#
+# The grammar is the one workspaces.conf documents and aerospace/lib/layout.sh
+# parses: leading indent, spaces around the `=`, either quote or none, and an
+# optional trailing comment. Three programs read that file - this one,
+# layout.sh and Hammerspoon's screencast.lua - and a line one of them accepts
+# and another silently skips is a workspace that exists on the bar and not in
+# the window manager, which is worse than either answer alone.
 sketchybar_workspaces_from_conf() {
   local conf="$1"
-  local line key value main="" side="" stage=""
+  local line key raw value main="" side="" stage=""
+  local assignment_re='^[[:space:]]*(AEROSPACE_(MAIN|SIDE|STAGE)_WORKSPACES)[[:space:]]*=[[:space:]]*(.*)$'
+  local dq_re='^"([^"]*)"[[:space:]]*(#.*)?$'
+  local sq_re="^'([^']*)'[[:space:]]*(#.*)?\$"
+  local bare_re='^([A-Za-z0-9_.:/+-]*)[[:space:]]*(#.*)?$'
 
   [ -r "$conf" ] || return 1
 
   while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      AEROSPACE_MAIN_WORKSPACES=*|AEROSPACE_SIDE_WORKSPACES=*|AEROSPACE_STAGE_WORKSPACES=*)
-        key="${line%%=*}"
-        value="${line#*=}"
-        value="${value%\"}"
-        value="${value#\"}"
-        value="${value%\'}"
-        value="${value#\'}"
-        case "$key" in
-          AEROSPACE_MAIN_WORKSPACES) main="$value" ;;
-          AEROSPACE_SIDE_WORKSPACES) side="$value" ;;
-          AEROSPACE_STAGE_WORKSPACES) stage="$value" ;;
-        esac
-        ;;
+    if ! [[ "$line" =~ $assignment_re ]]; then
+      continue
+    fi
+    key="${BASH_REMATCH[1]}"
+    raw="${BASH_REMATCH[3]}"
+    if [[ "$raw" =~ $dq_re ]] || [[ "$raw" =~ $sq_re ]] || [[ "$raw" =~ $bare_re ]]; then
+      value="${BASH_REMATCH[1]}"
+    else
+      continue
+    fi
+    case "$key" in
+      AEROSPACE_MAIN_WORKSPACES) main="$value" ;;
+      AEROSPACE_SIDE_WORKSPACES) side="$value" ;;
+      AEROSPACE_STAGE_WORKSPACES) stage="$value" ;;
     esac
   done <"$conf"
 

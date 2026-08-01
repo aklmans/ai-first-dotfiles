@@ -7,6 +7,33 @@
 # focused workspace - is decided in theme.conf, which is read after this file
 # and can also override any entry below. Everything on the bar goes through one
 # of the two, so a colour never has to be changed in six places again.
+#
+# THIS FILE IS A SHELL SCRIPT AND IT IS EXECUTED. That is not true of every
+# file you are invited to edit here, and the difference matters:
+#
+#   colors.sh    shell, deliberately. Every line runs. `$BAR_COLOR` below is a
+#                real variable reference resolved by bash - which is why one
+#                entry can be defined in terms of another, and why the values
+#                are unquoted and carry trailing comments. Anything else you
+#                write here runs too, on every SketchyBar event that repaints
+#                an item. Treat it the way you treat ~/.zshrc: only put in it
+#                what you would be happy to have run at login and all day.
+#
+#   theme.conf   held to a data format: one `KEY="value"` per line, no
+#                references to other variables, nothing cleverer than a literal.
+#                Hammerspoon and Python read it with a line matcher rather than
+#                a shell, so a value they cannot see is a value that silently
+#                stops applying; tests/smoke/sketchybar_smoke.sh fails the build
+#                if a line in it stops being plain. It is still read by bash, so
+#                the format rule is what keeps it data - keep to it.
+#
+#   ~/.config/aerospace/displays.conf, workspaces.conf
+#                data, and parsed rather than executed. `$(...)` in one of those
+#                is punctuation.
+#
+# So a palette lives here and a choice about the palette lives in theme.conf.
+# If what you want to write is a literal colour or the name of one of the
+# entries below, theme.conf is the place for it.
 
 ### Sonokai
 # export BLACK=0xff181819

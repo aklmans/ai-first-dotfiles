@@ -28,6 +28,19 @@ SKETCHYBAR_THEME_CONFIG_DIR="${SKETCHYBAR_THEME_CONFIG_DIR:-$SKETCHYBAR_THEME_LI
 #
 # Assigns rather than prints: resolving twelve roles through command
 # substitution would fork twelve times per event callback.
+#
+# The name lookup used to build `${<value>:-}` as a string and hand it back to
+# the shell to run. That is not a palette lookup, it is a general expansion
+# over whatever theme.conf said, re-run on every SketchyBar event: a role
+# written as `x:-$(...)}` closed the brace and the command substitution ran.
+# `${!value}` is the same lookup with no second parse, and `printf -v` assigns
+# without one either, so the file stays data.
+#
+# The behaviour on the way in is unchanged: a literal 0x colour passes through
+# unvalidated, and a name that resolves to nothing - unset, empty, or not a
+# variable name at all - degrades silently to the shipped fallback, because a
+# misspelt palette entry is a typo in a config file, not a reason to take the
+# bar down.
 sketchybar_theme_set_color() {
   local target="$1"
   local value="${2:-}"
@@ -35,21 +48,24 @@ sketchybar_theme_set_color() {
   local resolved
 
   case "$value" in
-    '')
-      eval "$target=\"\$fallback\""
+    0x*)
+      printf -v "$target" '%s' "$value"
       return 0
       ;;
-    0x*)
-      eval "$target=\"\$value\""
+    # Empty, or not a variable name, so there is nothing to look up. Screened
+    # here rather than inside ${!value}, where a bare "!" or "@" expands to a
+    # special parameter and can abort a `set -u` plugin mid-repaint.
+    ''|*[!A-Za-z0-9_]*|[0-9]*)
+      printf -v "$target" '%s' "$fallback"
       return 0
       ;;
   esac
 
-  eval "resolved=\${$value:-}"
+  resolved="${!value:-}"
   if [ -n "$resolved" ]; then
-    eval "$target=\"\$resolved\""
+    printf -v "$target" '%s' "$resolved"
   else
-    eval "$target=\"\$fallback\""
+    printf -v "$target" '%s' "$fallback"
   fi
 }
 
@@ -169,7 +185,15 @@ sketchybar_theme_load
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   case "${1:-print}" in
     get)
-      eval "printf '%s\n' \"\${${2:?missing variable name}:-}\""
+      # argv[2] used to be spliced into a string the shell then re-parsed, so
+      # `theme.sh get 'x};id;#'` ran whatever the caller passed. Same lookup,
+      # no second parse: anything that is not a variable name resolves to
+      # nothing, which is what an unset name has always printed.
+      sketchybar_theme_get_name="${2:?missing variable name}"
+      case "$sketchybar_theme_get_name" in
+        *[!A-Za-z0-9_]*|[0-9]*) printf '\n' ;;
+        *) printf '%s\n' "${!sketchybar_theme_get_name:-}" ;;
+      esac
       ;;
     print)
       set | /usr/bin/grep '^THEME_' || true
