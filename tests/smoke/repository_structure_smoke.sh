@@ -157,6 +157,8 @@ require_file bootstrap/modules/warp.conf
 require_file bootstrap/presets/minimal.conf
 require_file bootstrap/presets/developer.conf
 require_file bootstrap/presets/author-full.conf
+require_file home/.config/aerospace/recording-target.sh
+require_file tests/lua/quiet_profile_runtime.lua
 require_file bootstrap/setup.sh
 require_file bootstrap/app-store.sh
 require_file bootstrap/uninstall.sh

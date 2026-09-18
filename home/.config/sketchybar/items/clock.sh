@@ -1,5 +1,10 @@
 #!/bin/bash
 
+clock_update_freq=1
+if [ "${AI_FIRST_CLOCK_SECONDS:-1}" = '0' ]; then
+  clock_update_freq=60
+fi
+
 clock=(
   icon=􀐫
   icon.padding_left=10
@@ -14,7 +19,7 @@ clock=(
 	background.border_width=$THEME_ITEM_BORDER_WIDTH
 	background.border_color=$BAR_COLOR
   background.color=$THEME_ACCENT_CLOCK
-  update_freq=1
+  update_freq=$clock_update_freq
   script="$PLUGIN_DIR/clock.sh"
   # click_script="$PLUGIN_DIR/zen.sh"
 )

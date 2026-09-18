@@ -30,6 +30,8 @@ ai_first_profile_apply_file() {
         AI_FIRST_FEATURE_AI_HOTKEYS) [ -n "$env_ai_hotkeys_set" ] || AI_FIRST_FEATURE_AI_HOTKEYS="$value" ;;
         AI_FIRST_FEATURE_NOTIFICATIONS) [ -n "$env_notifications_set" ] || AI_FIRST_FEATURE_NOTIFICATIONS="$value" ;;
         AI_FIRST_FEATURE_RECORDING) [ -n "$env_recording_set" ] || AI_FIRST_FEATURE_RECORDING="$value" ;;
+        AI_FIRST_FEATURE_WINDOW_AUTOMATION) [ -n "$env_window_automation_set" ] || AI_FIRST_FEATURE_WINDOW_AUTOMATION="$value" ;;
+        AI_FIRST_CLOCK_SECONDS) [ -n "$env_clock_seconds_set" ] || AI_FIRST_CLOCK_SECONDS="$value" ;;
         AI_FIRST_BAR_LEFT_ITEMS) [ -n "$env_bar_left_set" ] || AI_FIRST_BAR_LEFT_ITEMS="$value" ;;
         AI_FIRST_BAR_CENTER_ITEMS) [ -n "$env_bar_center_set" ] || AI_FIRST_BAR_CENTER_ITEMS="$value" ;;
         AI_FIRST_BAR_RIGHT_ITEMS) [ -n "$env_bar_right_set" ] || AI_FIRST_BAR_RIGHT_ITEMS="$value" ;;
@@ -61,6 +63,8 @@ ai_first_profile_load() {
   local env_ai_hotkeys_set="${AI_FIRST_FEATURE_AI_HOTKEYS+x}"
   local env_notifications_set="${AI_FIRST_FEATURE_NOTIFICATIONS+x}"
   local env_recording_set="${AI_FIRST_FEATURE_RECORDING+x}"
+  local env_window_automation_set="${AI_FIRST_FEATURE_WINDOW_AUTOMATION+x}"
+  local env_clock_seconds_set="${AI_FIRST_CLOCK_SECONDS+x}"
   local env_bar_left_set="${AI_FIRST_BAR_LEFT_ITEMS+x}"
   local env_bar_center_set="${AI_FIRST_BAR_CENTER_ITEMS+x}"
   local env_bar_right_set="${AI_FIRST_BAR_RIGHT_ITEMS+x}"
@@ -98,6 +102,8 @@ ai_first_profile_load() {
   AI_FIRST_FEATURE_AI_HOTKEYS="${AI_FIRST_FEATURE_AI_HOTKEYS-1}"
   AI_FIRST_FEATURE_NOTIFICATIONS="${AI_FIRST_FEATURE_NOTIFICATIONS-1}"
   AI_FIRST_FEATURE_RECORDING="${AI_FIRST_FEATURE_RECORDING-1}"
+  AI_FIRST_FEATURE_WINDOW_AUTOMATION="${AI_FIRST_FEATURE_WINDOW_AUTOMATION-1}"
+  AI_FIRST_CLOCK_SECONDS="${AI_FIRST_CLOCK_SECONDS-1}"
   AI_FIRST_BAR_LEFT_ITEMS="${AI_FIRST_BAR_LEFT_ITEMS-apple spaces aerospace_layout front_app}"
   AI_FIRST_BAR_CENTER_ITEMS="${AI_FIRST_BAR_CENTER_ITEMS-spotify media}"
   AI_FIRST_BAR_RIGHT_ITEMS="${AI_FIRST_BAR_RIGHT_ITEMS-clock calendar ai_notifications battery volume}"
@@ -138,6 +144,7 @@ ai_first_profile_load() {
   export AI_FIRST_ROUTING_PACK
   export AI_FIRST_FEATURE_AI_HOTKEYS AI_FIRST_FEATURE_NOTIFICATIONS
   export AI_FIRST_FEATURE_RECORDING AI_FIRST_BAR_LEFT_ITEMS
+  export AI_FIRST_FEATURE_WINDOW_AUTOMATION AI_FIRST_CLOCK_SECONDS
   export AI_FIRST_BAR_CENTER_ITEMS AI_FIRST_BAR_RIGHT_ITEMS
   export AI_FIRST_NOTIFICATION_APPS AI_FIRST_TERMINAL_APP
   export AI_FIRST_ADD_BAR_RIGHT_ITEMS

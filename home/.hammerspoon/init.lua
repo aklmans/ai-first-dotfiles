@@ -61,11 +61,13 @@ end
 local aiFirstAIHotkeysEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_AI_HOTKEYS", true)
 local aiFirstNotificationsEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_NOTIFICATIONS", true)
 local aiFirstRecordingEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_RECORDING", true)
+local aiFirstWindowAutomationEnabled = aiFirstFeatureEnabled("AI_FIRST_FEATURE_WINDOW_AUTOMATION", true)
 local aiFirstAppRoutingEnabled = aiFirstFeatureEnabled("AI_FIRST_APP_ROUTING", true)
 local aiFirstRoutingPack = os.getenv("AI_FIRST_ROUTING_PACK")
   or aiFirstProfile["AI_FIRST_ROUTING_PACK"]
   or "author"
-local aiFirstWorkspaceInheritanceEnabled = aiFirstAppRoutingEnabled and aiFirstRoutingPack == "author"
+local aiFirstWorkspaceInheritanceEnabled = aiFirstWindowAutomationEnabled
+  and aiFirstAppRoutingEnabled and aiFirstRoutingPack == "author"
 local aiFirstNotificationApps = os.getenv("AI_FIRST_NOTIFICATION_APPS")
   or aiFirstProfile["AI_FIRST_NOTIFICATION_APPS"]
 if aiFirstNotificationApps == nil then
@@ -791,30 +793,34 @@ end
 
 if _G.wowTerminalNewWindowEventTap then
   _G.wowTerminalNewWindowEventTap:stop()
+  _G.wowTerminalNewWindowEventTap = nil
 end
 
-_G.wowTerminalNewWindowEventTap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
-  if hs.timer.secondsSinceEpoch() < terminalNewWindowPassthroughUntil then
-    return false
-  end
+-- Opting out leaves native Command-N untouched, including key repeat.
+if aiFirstWindowAutomationEnabled then
+  _G.wowTerminalNewWindowEventTap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
+    if hs.timer.secondsSinceEpoch() < terminalNewWindowPassthroughUntil then
+      return false
+    end
 
-  if not isPlainCommandN(event) then
-    return false
-  end
+    if not isPlainCommandN(event) then
+      return false
+    end
 
-  local app = hs.application.frontmostApplication()
-  if not isTerminalMasterStackBundle(app and app:bundleID()) then
-    return false
-  end
+    local app = hs.application.frontmostApplication()
+    if not isTerminalMasterStackBundle(app and app:bundleID()) then
+      return false
+    end
 
-  if event:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) == 1 then
+    if event:getProperty(hs.eventtap.event.properties.keyboardEventAutorepeat) == 1 then
+      return true
+    end
+
+    prepareTerminalSplitForNewWindow(sendNativeTerminalNewWindow)
     return true
-  end
-
-  prepareTerminalSplitForNewWindow(sendNativeTerminalNewWindow)
-  return true
-end)
-_G.wowTerminalNewWindowEventTap:start()
+  end)
+  _G.wowTerminalNewWindowEventTap:start()
+end
 
 local function moveCreatedWindow(win, bundleID, title, workspaceCandidates, key)
   if not win or not win:isStandard() then
@@ -934,7 +940,7 @@ local function inheritWorkspaceForCreatedWindow(win)
 end
 
 local function repairJetBrainsSecondaryWindow(win)
-  if not aiFirstAppRoutingEnabled then
+  if not aiFirstWindowAutomationEnabled or not aiFirstAppRoutingEnabled then
     return
   end
   local app = win and win:application()
@@ -947,7 +953,7 @@ local function repairJetBrainsSecondaryWindow(win)
 end
 
 local function repairExistingJetBrainsSecondaryWindows()
-  if not aiFirstAppRoutingEnabled then
+  if not aiFirstWindowAutomationEnabled or not aiFirstAppRoutingEnabled then
     return
   end
   listAeroWindowsAsync(function(windows)
@@ -981,6 +987,9 @@ local function repairExistingJetBrainsSecondaryWindows()
 end
 
 local function scheduleExistingJetBrainsRepair(delay)
+  if not aiFirstWindowAutomationEnabled then
+    return
+  end
   if _G.wowJetBrainsRepairTimer then
     _G.wowJetBrainsRepairTimer:stop()
   end
@@ -993,7 +1002,9 @@ end
 
 hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(win)
   repairJetBrainsSecondaryWindow(win)
-  scheduleRememberFocusedWindow(0.05)
+  if aiFirstWindowAutomationEnabled then
+    scheduleRememberFocusedWindow(0.05)
+  end
   local app = win and win:application()
   if aiFirstNotificationsEnabled then
     scheduleClearAINotificationForBundle(app and app:bundleID())
@@ -1007,7 +1018,9 @@ end)
 hs.window.filter.default:subscribe(hs.window.filter.windowTitleChanged, repairJetBrainsSecondaryWindow)
 
 hs.window.filter.default:subscribe(hs.window.filter.windowDestroyed, function()
-  scheduleWorkspaceSettle(0.08)
+  if aiFirstWindowAutomationEnabled then
+    scheduleWorkspaceSettle(0.08)
+  end
 end)
 
 local aiHotkeys = os.getenv("HOME") .. "/.hammerspoon/ai_hotkeys.lua"
@@ -1016,8 +1029,11 @@ if aiFirstAIHotkeysEnabled and hs.fs.attributes(aiHotkeys, "mode") == "file" the
 end
 
 local appReveal = os.getenv("HOME") .. "/.hammerspoon/app_reveal.lua"
-if hs.fs.attributes(appReveal, "mode") == "file" then
+if aiFirstNotificationsEnabled and hs.fs.attributes(appReveal, "mode") == "file" then
   dofile(appReveal)
+elseif _G.wowAppRevealWatcher then
+  _G.wowAppRevealWatcher:stop()
+  _G.wowAppRevealWatcher = nil
 end
 
 local airForceQuit = os.getenv("HOME") .. "/.hammerspoon/air_force_quit.lua"
@@ -1030,7 +1046,9 @@ if aiFirstRecordingEnabled and hs.fs.attributes(screencastWindow, "mode") == "fi
   dofile(screencastWindow)
 end
 
-scheduleRememberFocusedWindow(0.05)
+if aiFirstWindowAutomationEnabled then
+  scheduleRememberFocusedWindow(0.05)
+end
 scheduleExistingJetBrainsRepair(0.4)
 if aiFirstNotificationsEnabled then
   if _G.wowAINotificationRefreshTimer then

@@ -4,6 +4,7 @@
 
 - [ ] Every dimension in [Product quality](product-quality.md) has current evidence and scores at least 8.5.
 - [ ] `minimal`, `developer` and `author-full` previews match the catalog.
+- [ ] Custom profiles: recording follows the configured task role, single-screen fallback works, and opting out stops background window rearranging/notification watchers.
 - [ ] Paid, closed-source, account and permission requirements are visible before install.
 - [ ] The README screenshots represent the current UI; add a short keyboard-to-outcome demo when available.
       Currently false: [screenshots](screenshots.md) lists `capslock-chooser.png` and

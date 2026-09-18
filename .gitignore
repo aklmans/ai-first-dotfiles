@@ -91,3 +91,6 @@ home/.config/aerospace/warp-launch-agent.sh
 # work on another machine and it publishes a username. Warp rewrites this
 # directory as you use it.
 home/.warp/tab_configs/
+
+# Local-only notes and personal delivery artifacts.
+.docs/

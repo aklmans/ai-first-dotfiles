@@ -277,7 +277,8 @@ mkdir -p "$deploy_home"
 choice_stub_dir="$sandbox_root/stub-bin"
 mkdir -p "$choice_stub_dir"
 printf '#!/bin/sh\nexit 1\n' > "$choice_stub_dir/aerospace"
-chmod +x "$choice_stub_dir/aerospace"
+printf '#!/bin/sh\nexit 1\n' > "$choice_stub_dir/hs"
+chmod +x "$choice_stub_dir/aerospace" "$choice_stub_dir/hs"
 deploy_output="$(HOME="$deploy_home" PATH="$choice_stub_dir:$PATH" DOTFILES_SKIP_PREFLIGHT=1 /bin/bash "$repo_root/bootstrap/setup.sh" minimal --deploy-only 2>&1)"
 assert_contains "$(cat "$deploy_home/.config/ai-first/profile.conf")" 'AI_FIRST_PRESET="minimal"' 'minimal deploy writes its profile'
 if find "$deploy_home" -type l -print -quit | grep -q .; then
@@ -331,6 +332,15 @@ if find "$deploy_home/.config/ai-first" -maxdepth 1 -name 'profile.conf.backup_*
 else
   fail 'switching presets must back up the previous profile'
 fi
+
+recording_deploy="$(HOME="$deploy_home" PATH="$choice_stub_dir:$PATH" DOTFILES_SKIP_PREFLIGHT=1 \
+  /bin/bash "$repo_root/bootstrap/setup.sh" developer recording --deploy-only 2>&1)"
+recording_profile="$(HOME="$deploy_home" /bin/bash -c 'source "$1"; printf "%s|%s|%s|%s" "$AI_FIRST_PRESET" "$AI_FIRST_ROUTING_PACK" "$AI_FIRST_FEATURE_NOTIFICATIONS" "$AI_FIRST_FEATURE_RECORDING"' _ "$deploy_home/.config/ai-first/lib/profile.sh")"
+assert_equal 'developer|creator|0|1' "$recording_profile" \
+  'adding recording must activate its own pack without enabling notifications'
+assert_equal '8' "$(HOME="$deploy_home" /bin/bash "$deploy_home/.config/aerospace/recording-target.sh")" \
+  'copy-deployed recording helper follows the public preset task role'
+assert_missing "$recording_deploy" 'brew install' 'recording deploy-only must not install applications'
 
 if [ "$failures" -gt 0 ]; then
   printf '\nchoice_architecture_smoke.sh: %s of %s checks failed\n' "$failures" "$checks" >&2

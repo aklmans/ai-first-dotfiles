@@ -58,9 +58,16 @@ wait_for_screen_metadata
 "$SKETCHYBAR_BIN" --reload >/dev/null 2>&1 || true
 sleep 0.5
 
-if [ -x "$RESET_SCRIPT" ]; then
-    "$RESET_SCRIPT" >/dev/null 2>&1 || true
-fi
+# A quiet desk retains the user's window arrangements across startup. Screen
+# rebinding still runs; only the optional all-app layout reset is skipped.
+aerospace_layout_load_config
+case "${AI_FIRST_FEATURE_WINDOW_AUTOMATION:-1}" in
+  1|true|TRUE|yes|YES|on|ON|enabled|ENABLED)
+    if [ -x "$RESET_SCRIPT" ]; then
+        "$RESET_SCRIPT" >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
 
 if [ -x "$SPACE_PLUGIN" ]; then
     "$SPACE_PLUGIN" >/dev/null 2>&1 || true

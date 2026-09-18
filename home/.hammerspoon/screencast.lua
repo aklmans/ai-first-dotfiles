@@ -4,54 +4,16 @@ local module = {}
 local pendingWindow = nil
 local home = os.getenv("HOME") or ""
 local sketchybarSpaceScript = home .. "/.config/aerospace/toggle-sketchybar-space.sh"
-local workspacesConfig = home .. "/.config/aerospace/workspaces.conf"
+local recordingTargetScript = home .. "/.config/aerospace/recording-target.sh"
 
--- Recording Mode parks the window on the stage workspace. Which workspace that
--- is comes from workspaces.conf rather than from the number 13 written here,
--- so someone running five workspaces does not get sent to a workspace that no
--- longer exists. Falls back to the last side workspace, then the last main one,
--- for a config with no stage role at all.
-local function readWorkspaceList(key)
-  local file = io.open(workspacesConfig, "r")
-  if not file then
-    return {}
-  end
-
-  local value = nil
-  for line in file:lines() do
-    local found = line:match("^%s*" .. key .. '%s*=%s*"([^"]*)"')
-      or line:match("^%s*" .. key .. "%s*=%s*'([^']*)'")
-    if found then
-      value = found
-    end
-  end
-  file:close()
-
-  local workspaces = {}
-  for item in string.gmatch(value or "", "%S+") do
-    table.insert(workspaces, item)
-  end
-
-  return workspaces
+-- Resolve on invocation so a profile edit takes effect without a Lua reload.
+-- This helper is read-only and shares AeroSpace's data parser and overlays.
+local function recordingWorkspace()
+  local quoted = "'" .. recordingTargetScript:gsub("'", "'\\''") .. "'"
+  local output, ok = hs.execute("/bin/bash " .. quoted .. " 2>/dev/null", false)
+  local workspace = ok and output and output:match("^([%w_-]+)%s*$")
+  return workspace or nil
 end
-
-local function stageWorkspace()
-  local stage = readWorkspaceList("AEROSPACE_STAGE_WORKSPACES")
-  if #stage > 0 then
-    return stage[1]
-  end
-
-  for _, key in ipairs({ "AEROSPACE_SIDE_WORKSPACES", "AEROSPACE_MAIN_WORKSPACES" }) do
-    local list = readWorkspaceList(key)
-    if #list > 0 then
-      return list[#list]
-    end
-  end
-
-  return "13"
-end
-
-local recordingWorkspace = stageWorkspace()
 local recordingTopInset = 20
 local recorderBundleIDs = {
   "com.techsmith.camtasia",
@@ -318,6 +280,11 @@ function module.restoreTiling()
 end
 
 function module.enterRecordingMode(name, winOverride)
+  local workspace = recordingWorkspace()
+  if not workspace then
+    hs.alert.show("Recording workspace is invalid; run AeroSpace plan.sh --check")
+    return
+  end
   local win = targetWindow(winOverride)
   if not win then
     hs.alert.show("No focused window")
@@ -326,7 +293,7 @@ function module.enterRecordingMode(name, winOverride)
 
   local presetName = name or "16x9"
 
-  moveWindowToWorkspace(win, recordingWorkspace, function(ok)
+  moveWindowToWorkspace(win, workspace, function(ok)
     if not ok then
       hs.alert.show("Could not move window to recording workspace")
       return
@@ -363,7 +330,7 @@ function module.showChooser()
       text = "Enter Recording Mode",
       subText = string.format(
         "Move focused window to workspace %s, hide bar, fit 16:9, open recorder",
-        recordingWorkspace
+        recordingWorkspace() or "(not configured)"
       ),
       value = "recording",
     },

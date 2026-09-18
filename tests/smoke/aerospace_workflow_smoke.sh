@@ -155,7 +155,7 @@ assert_contains "$hammerspoon" 'aiFirstRoutingPack == "author"' "workspace inher
 assert_contains "$hammerspoon" 'routePolicyByBundle' "explicit route policies must override Hammerspoon inheritance"
 
 screencast="$(cat "$repo_root/home/.hammerspoon/screencast.lua")"
-assert_contains "$screencast" "AEROSPACE_STAGE_WORKSPACES" "Recording workspace read from workspaces.conf"
+assert_contains "$screencast" "recording-target.sh" "Recording workspace uses the shared profile resolver"
 assert_not_contains "$screencast" 'recordingWorkspace = "13"' "Recording workspace must not be hard-coded"
 
 rules="$(HOME="$sandbox_root/default-rules-home" AI_FIRST_PROFILE_LIB=/private/tmp/ai-first-no-profile \

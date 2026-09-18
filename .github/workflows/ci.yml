@@ -23,18 +23,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install ripgrep
+      - name: Install test tools
         # The smoke tests hard-fail without rg rather than passing vacuously.
-        # Nothing else is installed here: the install scripts are exercised
-        # against stubs, so CI never runs a real `brew install` of the 73
-        # packages in bootstrap/brew.sh.
-        run: brew list ripgrep >/dev/null 2>&1 || brew install ripgrep
+        # Lua exercises the actual Hammerspoon entry points with test doubles.
+        # Desktop app installers still run against stubs, not the machine.
+        run: |
+          brew list ripgrep >/dev/null 2>&1 || brew install ripgrep
+          brew list lua >/dev/null 2>&1 || brew install lua
 
       - name: Report toolchain
         run: |
           /bin/bash --version | head -n 1
           rg --version | head -n 1
           python3 --version
+          lua -v
           sw_vers
 
       - name: Run smoke tests

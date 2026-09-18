@@ -7,6 +7,8 @@ Notable changes to this project. Format loosely follows
 
 ### Added
 
+- Opt-outs for background window automation and clock seconds, with behavior
+  tests for display topology, routing, native Command-N and recording targets.
 - A public capability catalog with composable modules and three explicit presets:
   `minimal`, `developer`, and the opinionated `author-full` reference setup.
 - Exact Homebrew tap/formula/cask output in `--dry-run`; previews now disclose
@@ -32,6 +34,10 @@ Notable changes to this project. Format loosely follows
 
 ### Changed
 
+- Recording Mode now resolves its semantic task from the shared profile/overlay
+  reader on invocation instead of reading only the old workspace file. Invalid
+  targets fail closed. Disabling notifications also stops the activation-clear
+  watcher rather than leaving it running in the background.
 - Running `setup.sh` with no module is now inert and shows the catalog. New users
   are guided to `minimal --dry-run` instead of the compatibility `all` profile.
 - Shared dependencies execute once when modules are composed. Presets install a

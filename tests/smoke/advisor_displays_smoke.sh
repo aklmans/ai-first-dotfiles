@@ -44,6 +44,15 @@ setup_sh="$repo_root/bootstrap/setup.sh"
 sandbox_root="$(mktemp -d "${TMPDIR:-/tmp}/advisor-displays-smoke.XXXXXX")"
 trap 'rm -rf "$sandbox_root"' EXIT
 
+# An empty fixture deliberately exercises fallback detection. Never let that
+# escape to a contributor's real GUI IPC or physical display inventory.
+fallback_stub_dir="$sandbox_root/fallback-bin"
+mkdir -p "$fallback_stub_dir"
+for detector in aerospace hs system_profiler python3; do
+  printf '#!/bin/sh\nexit 1\n' >"$fallback_stub_dir/$detector"
+  chmod +x "$fallback_stub_dir/$detector"
+done
+
 new_home() { mktemp -d "$sandbox_root/home.XXXXXX"; }
 
 last_output=''
@@ -63,6 +72,7 @@ run_advisor() {
     -u DOTFILES_FORCE \
     -u XDG_STATE_HOME \
     "HOME=$home_dir" \
+    "PATH=$fallback_stub_dir:$PATH" \
     "XDG_STATE_HOME=$home_dir/.state" \
     "AI_FIRST_ADVISOR_DISPLAYS_FILE=$displays" \
     "AI_FIRST_ADVISOR_APPLICATIONS_FILE=$apps" \

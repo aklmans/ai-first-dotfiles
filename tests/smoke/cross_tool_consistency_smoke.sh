@@ -158,18 +158,18 @@ assert_equal '1' "$(plan_status "$drift_home" --check)" \
 assert_equal '0' "$(plan_status "$drift_home")" \
   'cross-tool disagreement must still leave the plain report at exit 0'
 
-# A profile that moves the stage role without editing workspaces.conf: AeroSpace
-# stages on 8, Recording Mode still reads 13 out of the file.
+# A profile-only stage move must reach Recording Mode through the shared reader.
 stage_home="$(new_full_home)"
 cat >"$stage_home/.config/ai-first/profile.conf" <<'EOF'
 AI_FIRST_PRESET="custom"
 AEROSPACE_MAIN_WORKSPACES="1 2 3 4 5 6"
 AEROSPACE_SIDE_WORKSPACES="7 9 10 11 12"
 AEROSPACE_STAGE_WORKSPACES="8"
+AEROSPACE_WORKSPACE_ROLE_MAP="stage:8"
 EOF
 stage_plan="$(in_home "$stage_home" "$stage_home/.config/aerospace/plan.sh")"
-assert_output_matches "$stage_plan" 'drift .*Recording Mode would park on workspace 13, outside the stage group \[8\]' \
-  'a stage role that only the profile knows about must be reported'
+assert_output_matches "$stage_plan" 'ok .*Recording Mode parks on workspace 8' \
+  'Recording Mode must follow a stage role set only in the profile'
 
 # A Karabiner install whose complex modification was never deployed is a choice,
 # not a fault: Karabiner-Elements creates that directory by itself.

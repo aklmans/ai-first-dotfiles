@@ -206,10 +206,8 @@ check_sketchybar_workspaces() {
   report_drift "SketchyBar would show [$bar_list] but AeroSpace runs [$ours]"
 }
 
-# screencast.lua reads workspaces.conf directly and takes the first stage
-# workspace, falling back to the last side then the last main one. A profile
-# that overrides the stage list without editing workspaces.conf is exactly the
-# case where Recording Mode and AeroSpace stop agreeing.
+# Current Recording Mode shares the semantic stage resolver. Keep checking the
+# old direct-file reader as well: repo and live deployments may differ.
 check_hammerspoon_stage() {
   local screencast="$HOME/.hammerspoon/screencast.lua"
   local conf="$config_dir/workspaces.conf"
@@ -217,6 +215,19 @@ check_hammerspoon_stage() {
 
   if [ ! -r "$screencast" ]; then
     report_skip "Hammerspoon Recording Mode is not deployed ($screencast)"
+    return 0
+  fi
+  if /usr/bin/grep -Fq 'recording-target.sh' "$screencast"; then
+    if [ ! -r "$config_dir/recording-target.sh" ]; then
+      report_drift 'Recording Mode needs recording-target.sh; deploy the workspace module too'
+      return 0
+    fi
+    if picked="$(/bin/bash "$config_dir/recording-target.sh" 2>/dev/null)" &&
+       aerospace_layout_workspace_is_configured "$picked"; then
+      report_ok "Recording Mode parks on workspace $picked (shared task-role resolver)"
+    else
+      report_drift 'Recording Mode has no valid target in the active profile'
+    fi
     return 0
   fi
   if [ ! -r "$conf" ]; then

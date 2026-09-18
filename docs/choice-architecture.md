@@ -99,6 +99,8 @@ It is deliberately not a general shell hook.
 | `AI_FIRST_FEATURE_AI_HOTKEYS` | load Hammerspoon AI chooser/hotkeys |
 | `AI_FIRST_FEATURE_NOTIFICATIONS` | run notification watchers |
 | `AI_FIRST_FEATURE_RECORDING` | load recording window presets |
+| `AI_FIRST_FEATURE_WINDOW_AUTOMATION` | terminal Command-N interception, window inheritance/repair, close-time balancing and startup app reset; default `1` |
+| `AI_FIRST_CLOCK_SECONDS` | `0` for a minute clock refreshed every 60 seconds; default `1` includes seconds |
 | `AI_FIRST_BAR_LEFT_ITEMS` | left item scripts in order |
 | `AI_FIRST_BAR_CENTER_ITEMS` | center item scripts in order |
 | `AI_FIRST_BAR_RIGHT_ITEMS` | right item scripts in order |
@@ -254,6 +256,24 @@ history database or background behavior tracking.
 - `author-full`: workspaces 1–6 on PHL 279C9, 7–12 on 24V5C2, 13 on Built-in
   Retina Display; full bar; Warp terminal; notifications limited to Warp,
   Codex, IntelliJ IDEA and GoLand.
+
+Recording Mode resolves the semantic `stage` task through the same profile and
+overlays as AeroSpace. It need not live on a third physical display. An invalid
+explicit target stops the operation; it does not silently create workspace 13.
+
+To reduce background intervention without changing workspace or app choices,
+set these optional preferences in your active profile (or its module overlay):
+
+```bash
+AI_FIRST_FEATURE_WINDOW_AUTOMATION="0"
+AI_FIRST_CLOCK_SECONDS="0"
+```
+
+Reload Hammerspoon and SketchyBar after changing them. Native terminal
+Command-N, existing window arrangements and manual workspace moves stay yours;
+display rebinding, AeroSpace tiling and explicitly invoked recording tools
+still work. These flags default to `1`, so existing setups do not change.
+Notifications and the AI chooser have their own independent feature flags.
 
 The author routing pack preserves OBS → 11, Bilibili → 10, and Shadow → 2 tiled.
 Finder and Preview deliberately follow the workspace that opened them instead
