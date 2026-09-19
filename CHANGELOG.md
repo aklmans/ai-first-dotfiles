@@ -48,6 +48,20 @@ Notable changes to this project. Format loosely follows
 
 ### Changed
 
+- Window/attention diagnostics are off by default; explicit short sessions write
+  only bounded event codes to private files. Legacy logs are untouched.
+- Bar/config reloads no longer unload macOS OSD services, install the Hammerspoon
+  CLI, or change login startup settings. Those choices remain explicit.
+- Display names render as escaped anchored patterns; duplicate/unknown display
+  identity is reported instead of substituting another tool's monitor numbers.
+- Recording preparation stops on failed move/bar/float/resize steps, checks the
+  resulting frame, and does not report earlier partial steps as total success.
+- Main-only bar hiding refuses unknown identity before changing gaps, propagates
+  visibility failure and does not rebalance windows. Gap writes are validated,
+  backed up and replaced through the shared write guard.
+- JetBrains dialog-title matching uses Lua-compatible prefix checks. Doctor can
+  warn about saved macOS number-key shortcut conflicts without changing them.
+
 - Adding/reinstalling modules preserves existing preferences unless their shown
   defaults are explicitly accepted. Recording no longer selects a routing pack.
 - Doctor distinguishes selected, installed, configured enablement, static config

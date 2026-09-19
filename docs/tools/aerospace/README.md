@@ -78,6 +78,13 @@ and `stage` all resolve to the built-in screen, every workspace lands there,
 `Option + Shift + Space` hides that screen's bar, and `doctor.sh` is green.
 Nothing waits at login for a display that is not there.
 
+Named displays are literal names, rendered as escaped, anchored AeroSpace
+patterns (AeroSpace still compares them case-insensitively). Two connected
+displays with the same name are ambiguous; plan/runtime role resolution refuses
+to silently pick the first. A UUID correlation for SketchyBar cannot make an
+AeroSpace name unique. Inspect and configure each tool's supported identifiers
+separately when names collide. See [AeroSpace monitor patterns](https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors).
+
 With two or three displays and no names configured, roles are handed out in the
 order `aerospace list-monitors` reports them.
 

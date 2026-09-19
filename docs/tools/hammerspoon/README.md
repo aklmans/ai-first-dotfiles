@@ -20,6 +20,16 @@ Hammerspoon is the event and workflow glue that connects keyboard shortcuts, Aer
 
 Open Hammerspoon and allow Accessibility + Automation permissions.
 
+Loading/reloading config no longer installs `hs` or changes launch-at-login.
+Make these optional, one-time choices explicitly in Hammerspoon Console:
+
+```lua
+require("hs.ipc").cliInstall() -- CLI integration, if wanted
+hs.autoLaunch(true)           -- launch at login, if wanted
+```
+
+Existing CLI/login settings are left alone, not automatically reversed.
+
 ## Key responsibilities
 
 - Launch/activate desktop windows and recover workspace focus.
@@ -36,7 +46,9 @@ Open Hammerspoon and allow Accessibility + Automation permissions.
 - Reads catalog/data from `~/.config/ai-router/`.
 - Writes AI attention clear requests through `~/.config/sketchybar/plugins/ai_app_notifications.sh`.
 - Does not read the macOS notification database directly.
-- Keeps `tmp` logs local and does not persist secrets.
+- Window/attention event logging is off by default; even opt-in diagnostics
+  contain only event codes and exit status, never window titles or raw errors.
+  See [diagnostics and legacy logs](../../privacy.md#window-diagnostics).
 
 ## AI attention bridge
 
@@ -65,6 +77,16 @@ lua -e "assert(loadfile('home/.hammerspoon/ai_hotkeys.lua'))"
 ## Screencast window presets
 
 The screencast helper temporarily sets the focused window to AeroSpace floating, then applies a centered recording frame. Recording Mode additionally moves the focused window to the configured semantic `stage` workspace, hides SketchyBar, applies the compact outer gaps, and opens Camtasia or Snagit when available. The read-only `recording-target.sh` resolves the profile and overlays on each invocation: `author-full` uses workspace `13`, while a custom profile can put the recording role on any configured workspace, including one on its main display. Invalid targets stop without moving the window.
+
+Move, bar/gaps and float failures stop the chain. A resize is checked by reading
+the resulting frame, with a 3-point tolerance; apps may impose minimum sizes.
+Commands have a 15-second watchdog and task-start failures are reported.
+Earlier steps can remain applied on failure; there is no automatic window or
+bar rollback. Exit restores bar/gaps, **not** tiling or the original workspace.
+Recording Mode's explicit `hide` applies to all bars; Option+Shift+Space remains
+main-only. If SketchyBar is absent, visibility is skipped and only gaps change.
+Dimensions are macOS logical points, not guaranteed encoded video pixels.
+Preparing a window does not start capture or verify resolution, audio or privacy.
 
 | Shortcut | Action |
 |---|---|

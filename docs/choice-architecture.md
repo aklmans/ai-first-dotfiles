@@ -121,6 +121,16 @@ neutral base, so `automation` alone does not silently activate AI,
 notifications or recording. Switching presets ignores overlays from other
 scopes; returning to a preset restores the choices previously added to it.
 
+Effective display/workspace values are read from the local `displays.conf` and
+`workspaces.conf`, then `profile.conf`, then sorted overlays for the active
+scope; explicit process-environment values win. Feature switches use the
+profile/overlays and then environment. A value in an active overlay can therefore
+override the same profile key. Maintenance preserves both layers, not a
+flattened duplicate. Route priority is separate: pack < advisor < captured <
+handwritten app routes. `plan.sh` explains effective roles/routes; it is not a
+complete per-key provenance trace. Deployment copies files; only explicit
+activation or a documented interactive runtime command changes desktop state.
+
 The scope is taken from the profile already installed, not from the command
 line. On an existing install, review the proposal and explicitly opt in:
 

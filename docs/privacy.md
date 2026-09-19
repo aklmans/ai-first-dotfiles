@@ -92,6 +92,26 @@ restart SketchyBar, or remove the module's overlay under
 that remains true. It has never meant *nothing is written down*, and this page
 previously did not say which local state existed.
 
+## Window diagnostics
+
+Hammerspoon's workspace and attention helpers do not log by default. For a short
+diagnostic session, set `wowDiagnosticsUntil = os.time() + 900` in its Console;
+set it to `nil` to stop early. No portable preference silently re-enables it.
+Only fixed event codes, timestamps and numeric exit statuses are accepted by
+the writer. Window titles, app names, paths and raw stderr are not written.
+
+Opt-in output is `~/.hammerspoon/diagnostics/events.log`: directory mode `0700`,
+file mode `0600`, capped at 64 KiB. Existing content older than 24 hours is
+discarded **on the next enabled write**, not by a background cleanup service.
+If diagnostics are never used again, the last file remains until you remove it.
+Linked paths, non-private permissions and non-regular files are refused.
+
+Old `/tmp/hammerspoon-workspace-inherit.log`, its `.1` rotation and
+`/tmp/hammerspoon-app-reveal.log` may contain titles. Updating does not read,
+upload, chmod or delete them. Decide separately whether to retain or remove
+your own old logs. Notification caches and AI-router logs have separate policies;
+these changes do not certify those optional modules.
+
 ## Personal inventories
 
 App Store manifests are the easiest place for a machine snapshot to survive a

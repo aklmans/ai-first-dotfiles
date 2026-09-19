@@ -51,3 +51,13 @@ route drift, ordered multi-operation rollback, failed/partial writes, interrupte
 restore retry, user-edit/link/corrupt-image refusal, activation failure, asset
 inventory parity, full TOML rejection, literal parser agreement and private
 export/import into a fresh HOME. No real desktop activation is part of this drill.
+
+## Desktop compatibility regression
+
+`desktop_compatibility_smoke.sh` checks private diagnostics, literal monitor
+patterns, duplicate/unknown identity, main-only refusal before writes, bar
+failure status and saved shortcut conflicts. The Lua recording harness executes
+the actual module with move/bar/float/resize/start/timeout failure injection.
+The quiet-profile harness tests real JetBrains title classification and refuses
+implicit CLI or login-setting changes. These are simulated checks, not real
+keyboard delivery, hot-plug, sleep/wake, or captured-video acceptance.

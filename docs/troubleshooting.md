@@ -28,6 +28,15 @@ ship enabled. Turn them off under System Settings → Keyboard → Keyboard
 Shortcuts… → Mission Control. Same panel for **Switch to Desktop N**, which
 collides with `Ctrl + 1..9` when you keep more than one macOS Desktop.
 
+If only `Ctrl + 3` fails, first compare the running binding with
+`aerospace config --get mode.main.binding.ctrl-3` (expected `workspace 3`) and
+check that `aerospace list-workspaces --all` includes `3`. Then inspect **Switch
+to Desktop 3** in that macOS panel; this is a different desktop system from
+AeroSpace. Disable only the conflicting entry. Do not replace your workspace
+layout or blanket-disable all system shortcuts. `setup.sh doctor workspace`
+also reports matching enabled number-row chords from saved macOS preferences;
+it never changes them and cannot prove the current key-event state.
+
 Every CapsLock tap switches input source: macOS still has **Use the Caps Lock
 key to switch to and from ABC** enabled under Keyboard → Input Sources → Edit…
 Turn it off; Karabiner owns the whole key now.

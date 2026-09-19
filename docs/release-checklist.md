@@ -23,6 +23,9 @@
 - [ ] Selected-only update preserves private intent; three-update rollback, partial failure, user edits and legacy refusal fixtures pass.
 - [ ] A private intent bundle restores into a clean temporary HOME at the same implementation revision/content; its off-device destination is chosen separately.
 - [ ] Live config is inspected separately; no release test silently deploys repository config into it.
+- [ ] Default window logging and implicit OSD/CLI/login mutations are absent; old logs/settings have a separate user-approved retention/recovery decision.
+- [ ] Escaped display names, duplicate/unknown identity, failed recording steps and saved shortcut conflicts have negative-path fixtures.
+- [ ] With saved work and explicit approval: dual external → single portable → dual external, sleep/wake, main-only bar/gaps, context-local Finder/Preview and actual recording output are checked separately from simulation.
 
 ## Communication
 

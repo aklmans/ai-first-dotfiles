@@ -129,7 +129,7 @@ Hammerspoon applies these presets to the focused window. The window is temporari
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl + Alt + Cmd + M` | Enter Recording Mode: move the focused window to workspace `13`, hide SketchyBar, fit a 16:9 stage, and open Camtasia/Snagit |
+| `Ctrl + Alt + Cmd + M` | Enter Recording Mode: move to the configured semantic `stage` workspace (`13` only in author-full), hide SketchyBar, fit a 16:9 stage, and open Camtasia/Snagit |
 | `Ctrl + Alt + Cmd + Shift + M` | Exit Recording Mode: restore SketchyBar and the normal AeroSpace outer gaps |
 | `Ctrl + Alt + Cmd + R` | Set focused window to a 720p recording size |
 | `Ctrl + Alt + Cmd + F` | Set focused window to the largest centered 16:9 recording region on the current display |

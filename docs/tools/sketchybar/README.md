@@ -18,7 +18,11 @@
 - Runtime helper scripts in `home/.config/sketchybar/` and the border style in `home/.config/borders/bordersrc`.
 - AeroSpace workspace integration via plugin callbacks.
 - Workspace badges are assigned by display *role* - main, side, stage - rather than by monitor model. Which display plays which role, and how many workspaces exist, come from `~/.config/aerospace/displays.conf` and `~/.config/aerospace/workspaces.conf`; a single-display Mac resolves all three roles onto the one display.
-- A role resolves to a SketchyBar arrangement ID through Hammerspoon screen UUID/DirectDisplayID metadata, so two external displays cannot swap bars when macOS renumbers them after login, lid open/close, or reconnect. Without Hammerspoon the resolver falls back to AeroSpace's monitor order and prints one line saying it did.
+- A role resolves to a SketchyBar arrangement ID only when an unambiguous
+  Hammerspoon screen identity matches its display query. Missing/duplicate names
+  or unavailable identity are reported; chips become unassigned (`display=all`).
+  AeroSpace monitor numbers and Hammerspoon enumeration order are never used as
+  SketchyBar arrangement IDs. This is not a guarantee across every hot-plug race.
 - `SKETCHYBAR_MAIN_MONITOR_NAME`, `SKETCHYBAR_SIDE_MONITOR_NAME` and `SKETCHYBAR_STAGE_MONITOR_NAME` still override the resolved names for a one-off run.
 - AI attention indicators for selected tools and IDEs.
 - `Option + Shift + Space` hides/shows SketchyBar on the main display through AeroSpace and also updates that display's outer gaps so captured windows reclaim or release the bar area.
@@ -77,13 +81,15 @@ AeroSpace, SketchyBar and Hammerspoon are three separate installs, and any one o
 | Missing | What happens |
 | --- | --- |
 | `aerospace` | Workspace chips stop being repainted and clicking one cannot switch workspaces; one line says so. Every other item on the bar keeps working. |
-| `hs` | Display roles resolve through AeroSpace's monitor order instead of screen identity; one line says so, because the fallback can put a bar on the wrong screen after macOS renumbers displays. |
-| `sketchybar` | AeroSpace's `Option + Shift + Space` degrades to "every display" instead of a per-display list, and says so. |
+| `hs` | Chips show on all displays with an identity warning. Multi-display main-only hide refuses before changing gaps; single-display hide does not need identity correlation. |
+| `sketchybar` | Bar visibility is explicitly skipped; AeroSpace can still change its gaps. An installed but nonresponsive bar is an error, not absence. |
 
 Which workspaces get a chip is resolved in this order: `SKETCHYBAR_WORKSPACES`, then `~/.config/aerospace/lib/layout.sh`, then `~/.config/aerospace/workspaces.conf`, then `aerospace list-workspaces --all`, then none. Set `SKETCHYBAR_WORKSPACES` in `theme.conf` to pin a list on a machine that has the bar but not this repo's AeroSpace config.
 
 ## Core behavior
 
+- Bar startup does not unload macOS volume/brightness OSD services, and does not
+  attempt to reverse unknown historical settings. Bar shadow/blur remain off.
 - No user session state is tracked in this repo.
 - SketchyBar plugin cache/sockets are runtime-only and recreated per machine.
 - AI attention runtime state is stored in `~/Library/Caches/sketchybar/ai_attention.json`.
