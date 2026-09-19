@@ -132,7 +132,7 @@ are in [Coexisting with your dotfiles](docs/coexisting.md).
 | Desktop UI | [SketchyBar](https://github.com/FelixKratz/SketchyBar), [JankyBorders](https://github.com/FelixKratz/JankyBorders) | Workspace row with live app icons, a border around the focused window |
 | Keyboard layer | [Karabiner-Elements](https://karabiner-elements.pqrs.org) | CapsLock: tap for `Esc`, hold for Hyper, plus arrow/delete chords under the home row |
 | Automation | [Hammerspoon](https://www.hammerspoon.org) | Turns those chords into actions: AI palette, agent chooser, screencast window presets |
-| AI workflows | `ai-router` | 18 prompts, selection capture, provider fallback, Raycast snippet export — all local files |
+| AI workflows | `ai-router` | local prompt rendering, agent launcher and Raycast snippet export; text execution is safety-gated |
 | Terminal | Terminal.app, [Kaku](https://github.com/tw93/kaku), Warp, zsh, [Starship](https://starship.rs), [Yazi](https://yazi-rs.github.io) | choose the terminal separately from the workflow; Warp is never implied by AI |
 | Editors / media | IdeaVim, Sublime Text, [mpv](https://mpv.io) | Vim bindings in JetBrains IDEs, open-in-terminal from Sublime, media player config |
 
@@ -351,10 +351,11 @@ for selection migration, preference opt-in, activation and export/import.
 
 ## Security & privacy
 
-- **No API keys, anywhere.** The AI layer stores no credentials: every provider
-  shells out to a CLI you have already signed into (`codex`, `claude`, `gemini`,
-  `ollama`, …), and `ai-router` redacts key-shaped strings out of its own error
-  logs before writing them.
+- **No bundled credentials.** Prompt rendering is local. Prebuilt text-provider
+  execution is quarantined pending isolation checks; custom adapters require
+  explicit per-request recipients. Failed provider output is discarded, not
+  treated as safe after regex redaction. External clients retain their own
+  credentials/history policies. See the [AI execution boundary](docs/tools/ai-router/safety.md).
 - Machine-local secrets belong in `~/.config/zsh/private.zsh`, which is not
   tracked. `home/.config/zsh/private.zsh.example` shows the shape.
 - The tracked Karabiner config carries no `vendor_id`/`product_id` pairs — those
@@ -395,7 +396,7 @@ Details: [docs/privacy.md](docs/privacy.md).
 - **[Compared to yabai, Amethyst, Rectangle](docs/comparison.md)** — and when this is the wrong thing to install
 - **[Coexisting with your dotfiles](docs/coexisting.md)** — the four deploy rules, and how to check them first
 - **[Choice architecture](docs/choice-architecture.md)** — modules, presets and safe preference points
-- **[Product quality scorecard](docs/product-quality.md)** — the 8.5 release gate and evidence
+- **[Product quality evidence](docs/product-quality.md)** — release gates, current limits and remaining acceptance
 - **[Troubleshooting](docs/troubleshooting.md)** — it installed but nothing happens
 - **[Shortcut reference](docs/shortcuts.md)** — every binding in one page
 - **[Privacy & public safety](docs/privacy.md)** — what is excluded and why

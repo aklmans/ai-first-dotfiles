@@ -167,6 +167,11 @@ These chords work anywhere Karabiner is active.
 Hammerspoon receives these chords and calls AI Workflow Router.
 The default behavior renders a prompt with the current selection and copies the result to the clipboard.
 
+Router 2.5 gates text execution behind a per-request recipient and a reviewed
+adapter. The older modified-key/Shift+Enter run gestures currently refuse;
+they do not silently pick a cloud provider. Render and agent-menu gestures are
+unchanged. See [execution boundaries](tools/ai-router/safety.md).
+
 | Shortcut | Action |
 |---|---|
 | `CapsLock + Space` | Open AI workflow palette |

@@ -1,5 +1,10 @@
 # AI Workflow Router - Design Notes
 
+> Historical design record. Router 2.5 supersedes the provider/fallback/logging
+> and GUI-run behavior described below: see [current safety contract](safety.md).
+> Render, snippets and coding-agent launch remain; no stock text adapter is
+> currently enabled. Any live reload requires a separate deployment decision.
+
 Last updated: 2026-07-26
 
 This is the "why it is built this way" document for the AI Workflow Router. The

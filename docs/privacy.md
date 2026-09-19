@@ -49,14 +49,18 @@ Copy and fill it at your private local location; never commit a filled version.
 
 ## Credentials
 
-The AI layer stores none. Every provider under
-`home/.config/ai-router/providers/` shells out to a CLI you have already signed
-into — `codex`, `claude`, `gemini`, `kimi`, `ollama` — so no API key is ever read
-from, written to, or tracked in this repository.
+The repository supplies no credentials. Rendering is local; coding clients
+manage their own credentials and retention. Stock text adapters are quarantined
+pending isolation verification. Custom adapters are trusted executable code and
+may use credentials outside this repository; installing a CLI is not consent to
+send a request to it.
 
-`home/.config/ai-router/lib/router_tools.py` additionally redacts anything
-shaped like `api_key`, `token`, `password`, `secret` or `bearer` out of error
-text before it reaches the log.
+Router text execution requires explicit per-request recipients. Failure logs
+contain router-generated status metadata, never raw provider stdout/stderr.
+Legacy raw-debug switches are ignored; regex redaction is not a secret filter
+guarantee. Successful output is still cached, and render-only may cache selected
+text. Existing logs/caches and external-client histories are not removed by an
+update. See [AI execution and cancellation limits](tools/ai-router/safety.md).
 
 ## What the notification module reads, and what it keeps
 

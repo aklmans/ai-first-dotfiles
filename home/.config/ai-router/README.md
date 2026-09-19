@@ -1,5 +1,11 @@
 # AI Workflow Router
 
+**2.5 safety gate:** the default workflow is render → review → use your chosen
+client. Text execution requires an explicit per-request recipient and a reviewed
+adapter. All prebuilt text adapters are currently quarantined; installing a CLI
+does not enable them. See `docs/tools/ai-router/safety.md` in the repository for
+the complete contract, limits and migration notes.
+
 AI Workflow Router is the layer above CapsLock AI Lite. It is not organized around
 "which AI tool do I open" but around "which piece of work am I trying to finish".
 
@@ -24,7 +30,7 @@ Karabiner is not modified by this layer.
 | CapsLock + Y | Render `translate-to-en` and translate the selection into English |
 | CapsLock + = | Render `optimize-prompt` and sharpen the selected prompt |
 | CapsLock + C | Coding agent menu |
-| CapsLock + Shift + the same letter | Send that prompt through a provider - the answer lands in the notification and on the clipboard |
+| CapsLock + Shift + the same letter | Legacy run gesture; currently refuses without per-request recipient selection |
 
 The agent menu opens a new tab in whichever terminal `terminal.app` names in
 `config.json` and pastes the command. It does not run it.
@@ -32,8 +38,8 @@ The agent menu opens a new tab in whichever terminal `terminal.app` names in
 Calling a provider is an explicit second gesture, never the default:
 
 - `CapsLock + letter` only ever renders the prompt to the clipboard. Fast, predictable, free.
-- `CapsLock + Shift + letter` calls a provider. A "Running ..." notification fires immediately; when it finishes the answer (or the failure) is in the notification.
-- In the palette, `Enter` copies and `Shift + Enter` runs.
+- `CapsLock + Shift + letter` requests execution but currently refuses: the GUI has no per-request recipient selection yet.
+- In the palette, `Enter` copies; `Shift + Enter` has the same execution gate.
 
 How the two are told apart: Karabiner emits Hyper as the four **right-side**
 modifiers, so holding any **left-side** modifier on top of it is a signal Hyper
@@ -66,7 +72,7 @@ through the Hammerspoon menu.
 | Skill | An agent capability description or calling convention |
 | Plugin | A tool extension, integration or plugin config |
 | Agent | A long-running executor such as Codex CLI, Claude Code or Junie |
-| Provider | A concrete AI backend or client such as Claude, Codex, Gemini or Kimi |
+| Provider | A reviewed text-only adapter with known input and recipient boundaries, separate from coding agents |
 
 ## Directory layout
 
@@ -135,7 +141,7 @@ same ids and use the same swap.
 
 ```bash
 # Piped input: no macOS permissions and no GUI required
-git diff --staged | ~/.config/ai-router/ai-router.sh run commit-message
+git diff --staged | ~/.config/ai-router/ai-router.sh render commit-message
 
 # Run this first after installing: what works, and how to install the rest
 ~/.config/ai-router/ai-router.sh doctor
@@ -144,8 +150,8 @@ git diff --staged | ~/.config/ai-router/ai-router.sh run commit-message
 ~/.config/ai-router/ai-router.sh show summarize
 
 ~/.config/ai-router/ai-router.sh render summarize
-~/.config/ai-router/ai-router.sh run summarize
-~/.config/ai-router/ai-router.sh run translate
+# After reviewing your own text adapter (no enabled stock adapter is supplied):
+~/.config/ai-router/ai-router.sh run summarize --provider my-text-api --from selection
 ~/.config/ai-router/ai-router.sh palette
 ~/.config/ai-router/ai-router.sh agent-menu
 ~/.config/ai-router/ai-router.sh favorite list
@@ -154,7 +160,8 @@ git diff --staged | ~/.config/ai-router/ai-router.sh run commit-message
 ~/.config/ai-router/ai-router.sh index
 ~/.config/ai-router/ai-router.sh export-snippets all
 ~/.config/ai-router/ai-router.sh list providers
-bash ~/.config/ai-router/tests/run.sh
+# From the repository, within its OS isolation boundary:
+bash tests/run-all.sh home/.config/ai-router/tests/run.sh
 ```
 
 ## Adding a prompt
@@ -169,8 +176,6 @@ description: What this prompt is for
 category: writing
 hotkey: z
 priority: 300
-default_provider: claude
-fallback_provider: codex
 input: selection
 output: clipboard
 allow_replace: false
@@ -290,8 +295,8 @@ snippet**.
 
 ## Adding a provider
 
-A provider is any executable script under `providers/`. There is no allowlist.
-Copy the template:
+A provider is trusted executable code under `providers/`, not a sandboxed plugin.
+Copy the template, then review and implement the contract before enabling it:
 
 ```bash
 cp ~/.config/ai-router/providers/_template.sh ~/.config/ai-router/providers/my-provider.sh
@@ -301,29 +306,27 @@ chmod +x ~/.config/ai-router/providers/my-provider.sh
 
 The contract:
 
-- Read the full prompt from stdin, write the result to stdout. On failure, write stderr and exit non-zero.
-- `--health-check`: exit 0 when usable. Exit non-zero when not (CLI missing, model not pulled, no key) and the router moves to the next provider.
+- Read only the explicit prompt from stdin; write the result to stdout. No tools, MCP, hooks, project discovery, hidden recipient fallback or daemonization.
+- `--text-contract`: print exactly `text-v1` only after verifying those properties. The copied template refuses by default; this marker is an assertion, not proof.
+- `--health-check`: exit 0 when usable, nonzero otherwise. A successful check is not permission to send input.
 - `--install-hint`: one line of install instructions. A line starting with `install:` means "installing this makes it work", and `doctor` prints it verbatim.
 - Filenames starting with `_` are never treated as providers, so the template itself is not a routing target.
 
 Adapters shipped with the repository:
 
-- `claude`: `claude --print`
-- `codex`: `codex exec`, read-only sandbox, no session files, final answer only
-- `ollama`: local models, pick one with `AI_ROUTER_OLLAMA_MODEL`; the health check fails when the model has not been pulled
-- `gemini` / `kimi`: need their own CLI and key
-- `junie`: disabled as a text provider by default; use the coding agent menu instead
+- `claude`, `codex`, `gemini`, `kimi`, `junie`, `ollama`: text execution quarantined until version-scoped isolation/recipient checks exist. Agent-menu launch remains separate.
 - `warp-agent` / `app-opener`: not text providers, shown as `[helper]` in `doctor`
 
-The default chain comes from `config.json`:
+Legacy provider preferences may still exist in old `config.json` or prompt files:
 
 ```json
-"providers": { "default": ["claude", "codex"] }
+"providers": { "default": [] }
 ```
 
-A prompt's `default_provider` / `fallback_provider` are preferences that come
-before that chain; `providers.default` is always appended last, so a machine with
-only one CLI installed still routes somewhere.
+They are metadata only, never used to authorize routing. `--provider NAME`
+selects this request's recipient; `--fallback NAME,NAME` explicitly approves
+additional recipients in order. Nothing else is appended. A failed selection
+does not substitute clipboard input; use `--from clipboard` explicitly.
 
 ## Output and logs
 
@@ -331,11 +334,11 @@ only one CLI installed still routes somewhere.
 - `output: clipboard` prompts also copy the result to the clipboard.
 - `output: preview` prompts save and notify only; open the result from the palette with `Tool: Open Last Output`.
 - Events go to `logs/events.jsonl` with `request_id`, `input_source`, `selection_source`, `selection_ms` and related metadata.
-- When a provider is unavailable or fails, the sanitized and capped error is copied to the clipboard and written to `logs/errors/<request_id>.log`.
-- To debug the raw provider error, set `AI_ROUTER_DEBUG_FULL_LOG=1` and it is written to `logs/errors/<request_id>.raw.log`.
+- Failures write router-generated status metadata to `logs/errors/<request_id>.log`; the clipboard is left unchanged.
+- Provider stderr and failed stdout are discarded. Legacy `AI_ROUTER_DEBUG_FULL_LOG` / `privacy.debug_full_error_log` cannot enable raw retention. Old logs are not automatically erased.
 - The most recent failure is mirrored to `logs/errors/latest.log`, reachable from the palette as `Tool: Open Last Error`.
 - Logs record metadata only - never the full selection, prompt or output.
-- `privacy.log_events: false` in `config.json` turns `logs/events.jsonl` off entirely; `privacy.debug_full_error_log: true` is the config equivalent of `AI_ROUTER_DEBUG_FULL_LOG=1`. Both switches are really wired to the code.
+- `privacy.log_events: false` disables event logs, not output caches or external-client histories.
 
 The agent menu is built from the `agents` block in `config.json`. The Hammerspoon
 chooser reads `ai-router.sh agent-menu` first and only uses its built-in fallback
@@ -364,13 +367,13 @@ AI_ROUTER_PROVIDER_TIMEOUT_SECONDS=60
 The input source can be set explicitly:
 
 ```bash
-AI_ROUTER_INPUT='text to process' ~/.config/ai-router/ai-router.sh run summarize
-printf 'text' | ~/.config/ai-router/ai-router.sh run summarize
-~/.config/ai-router/ai-router.sh run summarize --from selection   # ignore stdin, read the selection
-~/.config/ai-router/ai-router.sh run summarize --quiet            # no system notification, the caller reports
+AI_ROUTER_INPUT='text to process' ~/.config/ai-router/ai-router.sh render summarize
+printf 'text' | ~/.config/ai-router/ai-router.sh run summarize --provider my-text-api
+~/.config/ai-router/ai-router.sh run summarize --provider my-text-api --from selection
+~/.config/ai-router/ai-router.sh run summarize --provider my-text-api --quiet
 ```
 
-Priority: `AI_ROUTER_INPUT` > piped stdin > selection > clipboard. Hammerspoon
+Render priority: `AI_ROUTER_INPUT` > piped stdin > selection > clipboard. Hammerspoon
 always passes `--from selection`, so a hotkey never reads a pipe that is not its
 own.
 
@@ -379,18 +382,20 @@ off it falls back to the fixed `AI_ROUTER_SELECTION_COPY_DELAY=0.28` wait. With
 `AI_ROUTER_SELECTION_STRICT=1`, failing to read a selection fails loudly instead
 of silently using the clipboard.
 
-Normally an unreadable selection falls back to clipboard input, marked as
-`clipboard input` in the notification and the log. Providers time out after 60
-seconds by default. A failed provider call continues down the fallback chain;
-when every provider fails the input prompt is not written back over the
-clipboard - the error is copied instead.
+Render-only can fall back to the clipboard; execution cannot. Provider probes
+and execution share a 60-second deadline by default. Each runs in a neutral
+temporary directory and an owned process group; ordinary children are stopped
+on completion, timeout or handled cancellation. Fallback requires explicit
+recipients and confirmed cleanup; cancellation stops the chain. This does not
+stop intentionally detached daemons or guarantee remote billing cancellation.
+Custom adapters remain trusted code with access to the user environment.
 
 ## Tests
 
 Core tests live under `tests/`:
 
 ```bash
-bash ~/.config/ai-router/tests/run.sh
+bash tests/run-all.sh home/.config/ai-router/tests/run.sh
 ```
 
 They cover:
@@ -398,7 +403,7 @@ They cover:
 - prompt rendering and UTF-8 text
 - selection read metadata
 - catalog, hotkey and cached palette generation
-- provider fallback after a failure
+- explicit-only fallback, process-group cleanup, handled cancellation and failure privacy
 - usage and favorites state files
 
 ## Reloading Hammerspoon

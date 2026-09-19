@@ -175,9 +175,14 @@ lua -e "assert(loadfile('home/.hammerspoon/ai_hotkeys.lua'))"
 If the exported snippets drift from the prompts:
 
 ```bash
-HOME="$PWD/home" bash home/.config/ai-router/tests/run.sh
-bash tests/smoke/ai_router_exports_smoke.sh
+bash tests/run-all.sh home/.config/ai-router/tests/run.sh tests/smoke/ai_router_exports_smoke.sh
 ```
+
+In Router 2.5, `run` requires an explicit `--provider`, and unverified stock
+text adapters refuse with status 78. This is intentional, not a missing login.
+Use `render` and review in your client; do not restore automatic fallback to
+fix it. Agent terminal launch remains independent. See the
+[execution boundary](tools/ai-router/safety.md).
 
 ### Terminal (Kaku / Warp / Yazi)
 

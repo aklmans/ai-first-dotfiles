@@ -1,28 +1,27 @@
 # AI Workflow Router Roadmap
 
-What is planned next, in rough priority order. The design rules behind these, and
-the history of what has already been decided, are in
-`docs/tools/ai-router/design-notes.md`.
+Feature growth is frozen. Keep local prompt rendering, reusable snippets/exports
+and the explicit coding-agent terminal menu working. They do not require text
+execution, extra subscriptions, another launcher or background context capture.
 
-- **Template upgrade.** Rendering is plain string replacement. Add default values
-  and simple conditionals - enough for prompts that need optional context without
-  pulling in a template engine.
-- **Generate the snippet exports at install time.** `exports/*.json` are build
-  artifacts that are currently committed and diffed by a smoke test, so editing a
-  snippet without re-exporting fails CI. Generating them during install removes
-  the trap.
-- **More runtime context, under strict privacy limits.** Browser URL, repository
-  path and active file are the useful ones. Each must be independently optional,
-  never logged in full, and kept off the direct hotkey path if it is slow.
-- **A retrieval surface better than the Hammerspoon chooser.** Raycast snippet
-  import first, since the export already exists. A dedicated app only if the data
-  model proves itself there.
-- **Context-aware ranking.** `state/usage.json` already records what gets used;
-  ranking by frontmost app or project would make the palette useful without
-  typing.
+Router 2.5 gates each text request behind an explicit recipient and a reviewed
+adapter. Stock text adapters are quarantined. The full contract is in
+`docs/tools/ai-router/safety.md`; old routing defaults are metadata only.
 
-Not planned, on purpose:
+Only reopen text execution for an actual workflow, one adapter at a time:
 
-- No provider execution on the default `CapsLock + letter` gesture.
-- No auto-replacement of selected text.
-- No growth of the Hammerspoon chooser into a Raycast replacement.
+1. Verify explicit stdin and recipient/locality with supported client versions.
+2. Verify no tools, MCP, hooks, project discovery or hidden retention. Unsupported
+   versions refuse; a read-only coding-agent flag is insufficient.
+3. Verify timeout/cancel/ordinary-descendant cleanup plus remote cancellation
+   separately. Local process exit does not establish that billing stopped.
+4. Add recipient/input preview to a GUI only if users need GUI execution. Until
+   then modified-key run gestures refuse and plain render gestures remain.
+
+Deferred, not promised: richer templating, generated-at-install exports,
+context-aware ranking, extra providers and a replacement chooser. Do not expand
+these just to increase feature count. Custom adapters remain trusted local code,
+not sandboxed plugins, regardless of a text-contract marker.
+
+Not planned: automatic text replacement, default-hotkey provider calls, ambient
+project/clipboard collection for text requests or migration to an AI platform.

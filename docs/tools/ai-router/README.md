@@ -1,6 +1,12 @@
 # AI Workflow Router
 
 `AI Router` standardizes prompt rendering, snippet generation, agent selection, and provider execution.
+
+**2.5 safety gate:** render/snippets/agent launch remain available. Text execution
+requires a reviewed adapter and an explicit `--provider` per request; the stock
+text adapters and old GUI run gestures currently refuse. Read the
+[execution boundary](safety.md) before using `run`; older prompt provider fields
+are metadata, not permission to send input.
 It is the central automation service used by the CapsLock AI workflow.
 
 ![AI Router CapsLock chooser](../../../assets/screenshots/capslock-chooser.png)
@@ -29,7 +35,7 @@ This will deploy files, make scripts executable, build indices, and export snipp
 
 - **Prompt**: Markdown template with frontmatter + variables (e.g. `{{selection}}`).
 - **Snippet**: Small reusable text blocks for repeated insertion patterns.
-- **Provider**: Back-end executor (`claude`, `codex`, `ollama`, `gemini`, `kimi`).
+- **Provider**: Reviewed text-only adapter with explicit input and recipient boundaries; currently no enabled stock adapter.
 - **Agent**: Long-running command executors (`codex`, `claude`, `junie`, etc.).
 - **Skill/Tool/Plugin**: Optional UI or operational entries shown in chooser modes.
 
@@ -67,7 +73,7 @@ same ids.
 ### Run a prompt directly
 
 ```bash
-~/.config/ai-router/ai-router.sh run summarize
+~/.config/ai-router/ai-router.sh run summarize --provider my-reviewed-text-api
 ```
 
 ### Open chooser

@@ -48,6 +48,21 @@ Notable changes to this project. Format loosely follows
 
 ### Changed
 
+- AI Router 2.5 requires per-request text recipients, never appends legacy
+  fallback chains, and refuses unverified stock text adapters. Render, snippets
+  and agent launch remain; old GUI run gestures now refuse pending a recipient UI.
+- Provider requests use neutral temporary cwd, bounded input/output and owned
+  process groups with timeout/cancellation cleanup. Raw failure output is
+  discarded even with legacy debug switches; failures preserve the clipboard.
+  Custom adapters remain trusted code, not sandboxed extensions.
+- Failed Hammerspoon/SketchyBar display queries now explain why targeting stays
+  unchanged instead of silently returning no identity.
+- Test isolation now also denies absolute clipboard clients (`pbcopy`/`pbpaste`);
+  a fake HOME alone must not give tests access to the real pasteboard.
+- Release readiness uses explicit evidence and unresolved gates, not numerical
+  self-scoring. Hardware, provider and third-party-user acceptance stay separate
+  from isolated fixtures.
+
 - Window/attention diagnostics are off by default; explicit short sessions write
   only bounded event codes to private files. Legacy logs are untouched.
 - Bar/config reloads no longer unload macOS OSD services, install the Hammerspoon

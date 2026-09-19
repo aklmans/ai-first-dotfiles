@@ -181,4 +181,4 @@ services, uninstall packages or reverse unknown system settings. See
 - [Choice architecture](choice-architecture.md)
 - [Troubleshooting](troubleshooting.md)
 - [Shortcut reference](shortcuts.md)
-- [Product quality scorecard](product-quality.md)
+- [Product quality evidence](product-quality.md)

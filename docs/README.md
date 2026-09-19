@@ -10,7 +10,7 @@ Start here if the [README](../README.md) sent you looking for detail.
 | [Choice architecture](choice-architecture.md) | You want modules, presets and safe preference points |
 | [Coexisting with your dotfiles](coexisting.md) | You already have a setup and want to know what this will and will not touch |
 | [Compared to yabai, Amethyst, Rectangle](comparison.md) | You are still deciding whether you want a tiling window manager at all |
-| [Product quality scorecard](product-quality.md) | You are evaluating public readiness with an 8.5 gate |
+| [Product quality evidence](product-quality.md) | You are checking release gates and unresolved acceptance |
 | [Release checklist](release-checklist.md) | You are preparing a version or public launch |
 | [Troubleshooting](troubleshooting.md) | It installed and nothing happens |
 | [Shortcut reference](shortcuts.md) | You want every binding in one page |

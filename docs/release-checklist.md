@@ -2,15 +2,15 @@
 
 ## Product gate
 
-- [ ] Every dimension in [Product quality](product-quality.md) has current evidence and scores at least 8.5.
+- [ ] Every in-scope [quality gate](product-quality.md) has dated evidence; unresolved high-risk behavior is fixed, disabled or explicitly excluded from the release's claims.
 - [ ] `minimal`, `developer` and `author-full` previews match the catalog.
 - [ ] Custom profiles: recording follows the configured task role, single-screen fallback works, and opting out stops background window rearranging/notification watchers.
 - [ ] Paid, closed-source, account and permission requirements are visible before install.
 - [ ] The README screenshots represent the current UI; add a short keyboard-to-outcome demo when available.
       Currently false: [screenshots](screenshots.md) lists `capslock-chooser.png` and
       `karabiner-profile.png` as stale, and both are still linked from module docs.
-- [ ] Every scored dimension has evidence from a machine that is not the maintainer's.
-      A score read off the source has been wrong every time it was checked.
+- [ ] Public onboarding/usability claims have observations from non-author users,
+      separately from maintainer tests. Do not turn source inspection into scores.
 
 ## Verification
 
@@ -25,6 +25,7 @@
 - [ ] Live config is inspected separately; no release test silently deploys repository config into it.
 - [ ] Default window logging and implicit OSD/CLI/login mutations are absent; old logs/settings have a separate user-approved retention/recovery decision.
 - [ ] Escaped display names, duplicate/unknown identity, failed recording steps and saved shortcut conflicts have negative-path fixtures.
+- [ ] AI text requests require explicit recipients; unverified adapters refuse; timeout/cancel/descendant and raw-failure non-retention fixtures pass. No claim of remote cancellation or arbitrary-plugin sandboxing is made.
 - [ ] With saved work and explicit approval: dual external → single portable → dual external, sleep/wake, main-only bar/gaps, context-local Finder/Preview and actual recording output are checked separately from simulation.
 
 ## Communication

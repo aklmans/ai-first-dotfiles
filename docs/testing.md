@@ -14,7 +14,7 @@ starting configurations on one machine, not two hardware validations.
 
 `sandbox-exec` denies network access, writes outside the temporary boundary, and
 known absolute desktop/system clients such as AeroSpace, Hammerspoon,
-`defaults`, `open`, `osascript` and `launchctl`. PATH entries for external tools
+`defaults`, `open`, `osascript`, `pbcopy`, `pbpaste` and `launchctl`. PATH entries for external tools
 refuse calls unless a test supplies its own fixture executable. GUI command
 environment overrides point to refusal stubs as well. Missing or unusable OS
 isolation stops the run; it never falls back to running unprotected.
@@ -61,3 +61,18 @@ the actual module with move/bar/float/resize/start/timeout failure injection.
 The quiet-profile harness tests real JetBrains title classification and refuses
 implicit CLI or login-setting changes. These are simulated checks, not real
 keyboard delivery, hot-plug, sleep/wake, or captured-video acceptance.
+
+## Optional AI execution regression
+
+The router suite uses fake local adapters only. It covers explicit recipient and
+fallback flags, unsupported-contract refusal, failed-output non-retention even
+with legacy debug flags, neutral cwd, size/deadline bounds, ordinary descendant
+cleanup after success/timeout, and TERM/foreground INT/HUP to the top-level shell.
+Delayed-write fixtures check that children did not merely disappear from an
+instantaneous observation. The Mac process-state probe distinguishes exited
+zombies from running descendants without reading command arguments.
+
+No real provider is invoked, and no cloud cancellation, client-version safety,
+daemon deliberately escaping the group or billing result is certified. The
+[text execution boundary](tools/ai-router/safety.md) explains why stock text
+adapters remain unavailable while render/snippets/agent launch stay available.
