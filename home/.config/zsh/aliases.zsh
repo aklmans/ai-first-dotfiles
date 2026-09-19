@@ -101,13 +101,15 @@ emptytrash() {
 command -v lazygit >/dev/null 2>&1 && alias lg='lazygit'
 command -v lazydocker >/dev/null 2>&1 && alias lzd='lazydocker'
 
-# One maintenance alias, not four. `mas` joins the chain only when it is
-# installed, since a missing App Store CLI would otherwise fail the whole run.
-if command -v mas >/dev/null 2>&1; then
-  alias update='brew update && brew upgrade && brew cleanup && mas upgrade'
-else
-  alias update='brew update && brew upgrade && brew cleanup'
-fi
+# Do not hide package upgrades, service disruption and cleanup behind a generic
+# alias. Dotfile updates and software updates are different workflows.
+unalias update 2>/dev/null || true
+update() {
+  printf '%s\n' 'No changes made. From the dotfiles checkout run:' \
+    '  ./bootstrap/setup.sh software plan    # software ownership/update guidance' \
+    '  ./bootstrap/setup.sh update           # selected dotfiles preview' \
+    'Review targets before using a vendor/package-manager updater.'
+}
 
 # --- your own ---------------------------------------------------------------
 # aliases.local.zsh is sourced by .zshrc when it exists, and is never tracked or

@@ -331,6 +331,17 @@ permission checklist.
 
 ## Update and recovery
 
+Software updates are separate from dotfile deployment:
+
+```bash
+./bootstrap/setup.sh software plan  # inventory + source-aware guidance; no upgrades
+./bootstrap/setup.sh software check # partial version checks; no installs/restarts
+```
+
+Optional brew apps now come from your **private** manifest, not the author's
+collection. See [software ownership and private lists](docs/software-maintenance.md)
+for coverage, update limits, App Store lists and keeping personal data out of Git.
+
 ```bash
 ./bootstrap/setup.sh select         # inspect saved selection or legacy candidate
 ./bootstrap/setup.sh update         # preview only selected modules

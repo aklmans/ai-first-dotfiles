@@ -122,8 +122,11 @@ App Store manifests are the easiest place for a machine snapshot to survive a
 review, because a bundle id does not look like personal data until you read the
 list. `manifests/app-store/mas-default.txt` therefore ships empty, and
 `bootstrap/app-store.sh` prints what it is about to install and asks first.
-`manifests/app-store/mas-personal.example.txt` is one person's list, kept as a
-format example and never read by any script.
+`manifests/app-store/mas-personal.example.txt` contains only commented format
+examples and is never read automatically. Keep real choices in private manifests
+outside the checkout. Software inventory JSON also belongs outside Git: it
+includes installed apps and paths. The inventory discards mas usage/purchase
+metadata rather than retaining irrelevant history.
 
 Karabiner configuration deserves the same care in the other direction:
 `home/.config/karabiner/karabiner.json` carries `vendor_id`/`product_id` pairs
@@ -139,7 +142,7 @@ Do not include real account names, real paths, real chats, production URLs, or t
 ## Recommended checks before sharing
 
 - Run privacy smoke checks:
-  - `bash tests/smoke/privacy_scan_smoke.sh`
+  - `bash tests/run-all.sh tests/smoke/privacy_scan_smoke.sh`
   - `bash tests/smoke/repository_structure_smoke.sh`
 - Keep a clean commit history and avoid adding private files by accident.
 - Review diffs for unexpected machine-specific paths before publishing.

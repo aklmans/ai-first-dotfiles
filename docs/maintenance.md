@@ -40,6 +40,10 @@ AI-router prompt-index rebuild, or automatic removal of obsolete files.
 preference-preserving update. Independently invoked installers keep their
 installation behavior; use `--deploy-only` to suppress package/system actions.
 
+For installed software, use the separate read-only `setup.sh software plan` /
+`software check` workflow. See [software ownership](software-maintenance.md):
+private install lists, package owners and vendor updaters are not module selection.
+
 ## Adding and enabling a module
 
 ```bash

@@ -63,6 +63,8 @@ _ai_first_path_add() {
 _ai_first_path=()
 _ai_first_path_add \
   "$HOME/.local/bin" \
+  "$HOME/.kimi-code/bin" \
+  "$HOME/.local/share/pnpm/bin" \
   "$GOBIN" \
   "$BUN_INSTALL/bin" \
   "$HOME/.cargo/bin" \
@@ -72,6 +74,8 @@ _ai_first_path_add \
   /opt/homebrew/bin \
   /opt/homebrew/sbin \
   "$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
+
+[[ -n "${PNPM_HOME:-}" ]] && _ai_first_path_add "$PNPM_HOME"
 
 path=($_ai_first_path $path)
 

@@ -15,12 +15,13 @@ Profiles:
   infra      local services and infrastructure CLIs
   desktop    window-management dependencies
   fonts      fonts required by tracked terminal and shell configs
-  apps       optional GUI apps used on this machine
+  apps       only apps in your private manifest (empty if none is configured)
   quicklook  optional Finder preview plugins
   all        install every profile above
 
 Options:
   --plan     Print every tap, formula and cask; run no Homebrew command.
+  --apps-manifest FILE  Private apps list; never evaluated as shell/Ruby.
 EOF
 }
 
@@ -51,9 +52,8 @@ install_infra() {
 
 install_desktop() {
   # Desktop status bar, borders, and audio helpers.
-  # BetterTouchTool is deliberately not here: it is free for 45 days and paid
-  # afterwards, so it lives in the optional `apps` profile and is installed by
-  # `setup.sh extras` rather than by the recommended bootstrap.
+  # BetterTouchTool is deliberately not here: it is paid after trial. Select
+  # `setup.sh gestures`/`extras` or add it to your private apps manifest.
   ensure_brew_tap felixkratz/formulae
   ensure_brew_tap nikitabobko/tap
   brew_install felixkratz/formulae/borders felixkratz/formulae/sketchybar nowplaying-cli switchaudio-osx
@@ -66,23 +66,39 @@ install_fonts() {
 }
 
 install_apps() {
-  # Explicit tap dependency for the locally managed cc-switch cask.
-  ensure_brew_tap farion1231/ccswitch
-  ensure_brew_tap steipete/tap
-  ensure_brew_tap tw93/tap
+  local kind token extra
+  if [[ ! -f "$apps_manifest" ]]; then
+    printf 'No private apps manifest: %s. No optional apps selected.\n' "$apps_manifest"
+    return 0
+  fi
+  while read -r kind token extra || [[ -n "${kind:-}" ]]; do
+    [[ -z "$kind" || "$kind" == \#* ]] && continue
+    case "$kind" in
+      tap) ensure_brew_tap "$token" ;;
+      formula) brew_install "$token" ;;
+      cask) brew_install_cask "$token" ;;
+    esac
+  done <"$apps_manifest"
+}
 
-  # Optional terminal, utility, and desktop apps currently installed on this machine.
-  # kakuku is a cask, so it goes through brew_install_cask - which also refuses to
-  # reinstall over a copy of the app that Homebrew did not put there.
-  brew_install_cask tw93/tap/kakuku
-  brew_install_cask adguard alt-tab bettertouchtool karabiner-elements logi-options+ miaoyan ogdesign-eagle raycast libreoffice typora warp
-
-  # Optional AI, developer, and workflow GUI tools currently installed on this machine.
-  brew_install_cask apifox cc-switch chatgpt claude claude-code codex steipete/tap/codexbar cursor devin-desktop openclaw postman visual-studio-code windsurf
-  brew_install opencode
-
-  # Optional browser, writing, and communication apps currently installed on this machine.
-  brew_install_cask arc google-chrome obsidian wechat lark tencent-meeting bilibili shadow
+validate_apps_manifest() {
+  local kind token extra
+  if [[ ! -f "$apps_manifest" ]]; then
+    [[ "$apps_manifest_explicit" == 0 ]] && return 0
+    printf 'Apps manifest is missing or not a regular file: %s\n' "$apps_manifest" >&2
+    return 64
+  fi
+  # Validate the whole file before any package action, including base/all.
+  while read -r kind token extra || [[ -n "${kind:-}" ]]; do
+    [[ -z "$kind" || "$kind" == \#* ]] && continue
+    case "$kind" in tap|formula|cask) ;; *) return 64 ;; esac
+    [[ -z "$extra" || "$extra" == \#* ]] || return 64
+    [[ "$token" =~ ^[A-Za-z0-9][A-Za-z0-9@+._/-]*$ ]] || return 64
+    case "/$token/" in */../*|*/./*|*//*) return 64 ;; esac
+    if [[ "$kind" == tap ]]; then
+      [[ "$token" =~ ^[A-Za-z0-9_-]+/[A-Za-z0-9_.-]+$ ]] || return 64
+    fi
+  done <"$apps_manifest"
 }
 
 install_quicklook() {
@@ -105,8 +121,17 @@ install_all() {
 }
 
 profile_args=()
-for arg in "$@"; do
+apps_manifest="${AI_FIRST_BREW_APPS_MANIFEST:-${XDG_CONFIG_HOME:-$HOME/.config}/ai-first/software/brew-apps.txt}"
+apps_manifest_explicit=0
+while [[ "$#" -gt 0 ]]; do
+  arg="$1"
   case "$arg" in
+    --apps-manifest)
+      [[ "$#" -ge 2 && -n "$2" ]] || { printf '%s requires a file path.\n' "$arg" >&2; exit 64; }
+      apps_manifest="$2"
+      apps_manifest_explicit=1
+      shift
+      ;;
     --plan)
       DOTFILES_BREW_PLAN=1
       ;;
@@ -114,11 +139,20 @@ for arg in "$@"; do
       profile_args+=("$arg")
       ;;
   esac
+  shift
 done
 
 if [[ "${#profile_args[@]}" -eq 0 ]]; then
   profile_args=(base)
 fi
+
+for profile in "${profile_args[@]}"; do
+  case "$profile" in
+    apps|all)
+      validate_apps_manifest || { printf 'Invalid apps manifest; no packages changed. Expected: tap|formula|cask TOKEN.\n' >&2; exit 64; }
+      ;;
+  esac
+done
 
 for profile in "${profile_args[@]}"; do
   case "$profile" in

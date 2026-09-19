@@ -62,6 +62,19 @@ The quiet-profile harness tests real JetBrains title classification and refuses
 implicit CLI or login-setting changes. These are simulated checks, not real
 keyboard delivery, hot-plug, sleep/wake, or captured-video acceptance.
 
+## Software inventory regression
+
+`software_inventory_smoke.sh` separately verifies source detection, missing and
+broken executables, duplicate/wrapper refusal, fixed read-only checks, private
+manifest validation, the non-mutating public update function and pnpm/native
+Kimi PATH setup without inherited terminal variables. Tests use
+fixtures only; native updater/GUI behavior and account-dependent App Store
+freshness require separate manual acceptance.
+
+The privacy scan allows ignored/untracked `.docs` rehearsal evidence, but refuses
+any staged/tracked file there or removal of the ignore rule. Public configuration
+and script scans are unchanged.
+
 ## App icon regression
 
 `app_icons_smoke.sh` verifies the bundled font and source hashes, actual cmap /

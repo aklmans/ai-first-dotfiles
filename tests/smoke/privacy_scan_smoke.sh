@@ -127,9 +127,18 @@ assert_path_absent "docs/tools/yabai"
 assert_path_absent "docs/tools/wezterm"
 assert_path_absent "docs/tools/oh-my-posh"
 
-# block common sensitive file naming patterns while skipping .git internals
+# Private rehearsal evidence belongs in ignored .docs, not in the public scan.
+# Refuse any tracked/staged .docs file before pruning the local-only directory.
+private_tracked="$(git -C "$repo_root" ls-files -- .docs)"
+if [ -n "$private_tracked" ] || ! git -C "$repo_root" check-ignore -q .docs/privacy-boundary-probe; then
+  printf '.docs must remain ignored and completely untracked.\n' >&2
+  exit 1
+fi
+
+# block sensitive names outside Git internals and the verified private boundary
 find "$repo_root" \
   -path "$repo_root/.git" -prune -o \
+  -path "$repo_root/.docs" -prune -o \
   -type f \
   \( -iname "*.env*" -o -iname "*secret*" -o -iname "*token*" -o -iname "*backup*" -o -iname "*.bak" \) \
   ! -path "$repo_root/home/.config/ai-router/.env.local.example" \
@@ -142,6 +151,7 @@ fi
 
 find "$repo_root" \
   -path "$repo_root/.git" -prune -o \
+  -path "$repo_root/.docs" -prune -o \
   -type d \( -name cache -o -name logs -o -name state \) \
   -print > "$runtime_dir_matches_file"
 if [ -s "$runtime_dir_matches_file" ]; then

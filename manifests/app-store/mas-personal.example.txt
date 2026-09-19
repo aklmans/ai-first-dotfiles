@@ -1,39 +1,20 @@
 # Example App Store manifest.
 #
-# This is the maintainer's own list, kept as a worked example of the format.
-# Nothing here is installed by anything in this repository: bootstrap/app-store.sh
-# only ever reads mas-default.txt and mas-large.txt.
+# This is a format example, not the maintainer's paid/private app collection.
+# It is never read automatically by bootstrap/app-store.sh.
 #
 # To use it as a starting point:
 #
-#   cp manifests/app-store/mas-personal.example.txt manifests/app-store/mas-default.txt
-#   $EDITOR manifests/app-store/mas-default.txt
+#   mkdir -p ~/.config/ai-first/software
+#   cp manifests/app-store/mas-personal.example.txt ~/.config/ai-first/software/mas.txt
+#   $EDITOR ~/.config/ai-first/software/mas.txt
+#   ./bootstrap/app-store.sh --manifest ~/.config/ai-first/software/mas.txt
 #
-# Then delete the lines you do not want. Most of these are paid apps, several are
-# region-specific, and one is printer software. Read the list before you copy it.
+# Uncomment only apps you actually want and already own. Keep your list outside
+# the repository. Copying an inventory is not choosing what to install.
 #
 # Format: <bundle id><TAB><display name>. Lines starting with # are ignored.
-# Find the bundle id of an app you already have with: mas list
+# `mas list` primarily reports numeric App Store IDs; these are NOT bundle IDs.
+# Inspect the app's Contents/Info.plist CFBundleIdentifier for the value below.
 
-QReader.MarginStudy.easy	MarginNote 4
-app.spokenly	Spokenly
-cn.better365.AutoSwitchInputPro	AutoSwitchInput Pro
-cn.better365.iRightMousePro	iRightMouse Pro
-cn.better365.iShotPro	iShot Pro
-com.bandisoft.mac.bandizip	Bandizip
-com.criminalbird.typeface	Typeface
-com.culturedcode.ThingsMac	Things3
-com.hp.SmartMac	HP Smart
-com.kingsoft.wpsoffice.mac	WPS Office
-com.linnk.Linnk	Cubox
-com.lukilabs.lukiapp	Craft
-com.mac.utility.screen.recorder	OmniRecorder
-com.mac.utility.video.player.PotPlayerX	PotPlayerX
-com.nara.gifCreator	GIFfun
-com.renfei.SnippetsLab	SnippetsLab
-com.tinyapp.TablePlus	TablePlus
-com.zykloid.Posterino4	Posterino
-cool.eagle.extension	Eagle for Safari
-de.ixeau.CursorPro	Cursor Pro
-mobi.musicparadise.AudioEditorMac	Audio Editor
-org.zrey.metion	Metion
+# com.apple.iWork.Keynote	Keynote

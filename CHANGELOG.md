@@ -7,6 +7,13 @@ Notable changes to this project. Format loosely follows
 
 ### Added
 
+- Private, data-only software update ownership, vendor-cask queue exclusions,
+  Homebrew pin checks and hash-verified CLI wrapper ownership.
+- Read-only `software inventory/plan/check` commands with package/source evidence,
+  broken/duplicate executable detection and explicit partial-check limitations.
+- Private optional-app manifests for Homebrew and explicit App Store manifest
+  paths; public examples no longer carry the author's personal app collection.
+
 - A bundled, reproducible monochrome app font with ZCode, Kimi Code, Kimi,
   Surge, Loopback, Qoder, WorkBuddy, TRAE, DoubaoWork, Doubao, Cola, Camtasia,
   EdrawMax and EdrawMind/MindMaster glyphs; exact app
@@ -52,6 +59,13 @@ Notable changes to this project. Format loosely follows
   quality scorecard and release checklist.
 
 ### Changed
+
+- Existing pnpm global-bin and native Kimi Code directories join the shell PATH
+  without installer rewrites or reliance on a parent terminal's environment;
+  pristine-environment regressions cover resolution and deduplication.
+- The public shell `update` entry no longer performs broad brew/mas upgrades or
+  cleanup. Optional Homebrew apps require a personal list instead of a shipped
+  shopping list, including the optional-app part of compatibility `all` installs.
 
 - Intent import refusals now use the CLI's documented exit status and concise
   error message. Corrupt, incompatible and unsafe bundles remain rejected before

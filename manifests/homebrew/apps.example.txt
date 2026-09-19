@@ -1,0 +1,11 @@
+# Your optional software choices belong outside Git, not in the public preset.
+# Copy to ~/.config/ai-first/software/brew-apps.txt, then uncomment YOUR choices.
+# Format: tap|formula|cask TOKEN. No commands, flags, variables or Ruby.
+# Preview: ./bootstrap/brew.sh apps --plan --apps-manifest /path/to/private-list
+# Installer: ./bootstrap/brew.sh apps --apps-manifest /path/to/private-list
+# Keep a single installation owner. Do not add a native/npm CLI here as well.
+# A Homebrew cask named codex is the CLI, not the desktop ChatGPT/Codex app.
+#
+# cask codex
+# cask warp
+# cask typora

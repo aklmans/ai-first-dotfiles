@@ -29,6 +29,8 @@ list. Both manifests ship without any apps in them, so a fresh clone installs
 nothing until you have put something there yourself.
 
 Options:
+  --manifest FILE        Read your private app list outside the Git checkout.
+  --large-manifest FILE  Read your private large-download list.
   --yes       Answer yes to every prompt. For a machine you have already set up
               from your own manifests; do not use it on a fresh clone.
   -h, --help  Show this help.
@@ -44,6 +46,14 @@ assume_yes=0
 
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
+    --manifest|--large-manifest)
+      if [[ "$#" -lt 2 || -z "$2" ]]; then
+        printf '%s requires a file path.\n' "$1" >&2
+        exit 64
+      fi
+      if [[ "$1" == --manifest ]]; then default_manifest="$2"; else large_manifest="$2"; fi
+      shift
+      ;;
     --yes)
       assume_yes=1
       ;;
@@ -84,6 +94,10 @@ manifest_entries() {
 
   while IFS=$'\t' read -r bundle_id app_name || [[ -n "${bundle_id:-}" || -n "${app_name:-}" ]]; do
     [[ -z "$bundle_id" || "$bundle_id" == \#* ]] && continue
+    if [[ ! "$bundle_id" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ || "$bundle_id" != *.* ]]; then
+      printf 'Invalid bundle ID in %s; use bundle IDs, not numeric App Store IDs or shell commands.\n' "$manifest_path" >&2
+      return 64
+    fi
     printf '%s\t%s\n' "$bundle_id" "${app_name:-$bundle_id}"
   done <"$manifest_path"
 }
@@ -160,6 +174,11 @@ EOF
 }
 
 main() {
+  # Validate both lists before the first possible install. Never execute a list.
+  require_manifest "$default_manifest"
+  require_manifest "$large_manifest"
+  manifest_entries "$default_manifest" >/dev/null
+  manifest_entries "$large_manifest" >/dev/null
   require_mas
 
   printf 'Make sure you are signed into the App Store before running this script.\n'

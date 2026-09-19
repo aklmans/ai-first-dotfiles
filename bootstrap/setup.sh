@@ -11,6 +11,10 @@ repo_root="$(repo_root_dir)"
 # parser so `recommend --apply` and `tune --workspace-feedback fewer` remain
 # data-oriented commands rather than pretending their flags are setup modules.
 case "${1:-}" in
+  software)
+    shift
+    exec python3 -B "$script_dir/lib/software.py" "$@"
+    ;;
   select|update|operations|rollback|export|import)
     exec python3 -B "$script_dir/lib/maintenance.py" "$@"
     ;;
@@ -50,6 +54,7 @@ Usage: ./bootstrap/setup.sh <module|preset>... [options]
 Start here:
   list          Show independent modules, costs, permissions and presets
   doctor        Read-only health check; accepts an optional module or preset
+  software      Read-only installed-software inventory and update guidance
   recommend     Detect this Mac, ask about common scenes, and preview a layout
   tune          Refine an advisor-generated profile from explicit feedback
   capture-current  Propose app routes from the desktop you arranged yourself

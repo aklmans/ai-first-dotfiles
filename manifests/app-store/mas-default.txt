@@ -8,8 +8,10 @@
 #
 #   <bundle id><TAB><display name>
 #
-# Find the bundle id of an app you already have with `mas list`. See
+# `mas list` reports numeric App Store IDs, not the bundle IDs used here.
+# Read CFBundleIdentifier in the app's Contents/Info.plist. See
 # mas-personal.example.txt for a worked example.
+# Prefer a private list outside Git via `bootstrap/app-store.sh --manifest FILE`.
 #
 # bootstrap/app-store.sh shows you the full list and asks before installing
 # anything, so an entry here is a proposal rather than an instruction.
