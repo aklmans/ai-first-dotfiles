@@ -41,8 +41,14 @@ sketchybar_display_id_for_monitor_var() {
     sketchybar_display_warn identity-missing "Display identity unknown: SketchyBar or Python unavailable."
     return 1
   fi
-  screens="$("$HS_BIN" -c 'for _, screen in ipairs(hs.screen.allScreens()) do print(screen:name() .. "\t" .. screen:id() .. "\t" .. screen:getUUID()) end' 2>/dev/null)" || return 1
-  displays_json="$("$SKETCHYBAR_BIN" --query displays 2>/dev/null)" || return 1
+  if ! screens="$("$HS_BIN" -c 'for _, screen in ipairs(hs.screen.allScreens()) do print(screen:name() .. "\t" .. screen:id() .. "\t" .. screen:getUUID()) end' 2>/dev/null)"; then
+    sketchybar_display_warn hs-query-failed "Hammerspoon screen query failed; leaving display targeting unchanged."
+    return 1
+  fi
+  if ! displays_json="$("$SKETCHYBAR_BIN" --query displays 2>/dev/null)"; then
+    sketchybar_display_warn bar-query-failed "SketchyBar display query failed; leaving display targeting unchanged."
+    return 1
+  fi
   if ! SKETCHYBAR_DISPLAY_ID="$("$PYTHON_BIN" - "$monitor_name" "$screens" "$displays_json" <<'PY'
 import json
 import sys

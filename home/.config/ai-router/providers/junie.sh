@@ -1,26 +1,15 @@
 #!/usr/bin/env bash
+# Quarantined text adapter. An installed/authenticated CLI is not a verified
+# no-tools/no-project-discovery interface. Keep render and manual agent use.
+# Re-enable only with version-scoped isolation and recipient tests.
 set -euo pipefail
 
-if [ "${1:-}" = "--install-hint" ]; then
-  printf '%s\n' "install: JetBrains Junie CLI, then AI_ROUTER_ENABLE_JUNIE_PROVIDER=1"
-  exit 0
-fi
+case "${1:-}" in
+  --install-hint)
+    printf '%s\n' "text execution quarantined: junie; use render and review input in your chosen client"
+    exit 0
+    ;;
+esac
 
-if [ "${1:-}" = "--health-check" ]; then
-  [ "${AI_ROUTER_ENABLE_JUNIE_PROVIDER:-0}" = "1" ] && command -v junie >/dev/null 2>&1 && junie --version >/dev/null 2>&1
-  exit
-fi
-
-if ! command -v junie >/dev/null 2>&1; then
-  printf '%s\n' "junie CLI not found" >&2
-  exit 69
-fi
-
-if [ "${AI_ROUTER_ENABLE_JUNIE_PROVIDER:-0}" != "1" ]; then
-  printf '%s\n' "junie text provider is disabled by default; use the Coding Agent menu, or set AI_ROUTER_ENABLE_JUNIE_PROVIDER=1." >&2
-  exit 69
-fi
-
-prompt="$(/bin/cat)"
-junie --task "$prompt"
-
+printf '%s\n' "junie: text isolation/recipient contract is unverified; no request sent" >&2
+exit 78

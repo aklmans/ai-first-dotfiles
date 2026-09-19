@@ -16,8 +16,8 @@ set -euo pipefail
 #   3. doctor names every provider, tells you how to install the missing ones,
 #      and exits non-zero only when nothing is usable.
 #   4. show prints the prompt file byte for byte - that is the trust story.
-#   5. Dropping providers/<name>.sh in is all it takes to add a provider, and
-#      providers/_template.sh is a working example of one.
+#   5. Adapters are discoverable by filename, but a copied template cannot run
+#      until its text-only contract has been reviewed and implemented.
 #   6. The terminal used for agents comes from config.json, not from a
 #      hard-coded "Warp".
 #   7. Runtime data never lands in the config directory.
@@ -140,6 +140,7 @@ write_echo_provider() {
   cat >"$path" <<'PROVIDER'
 #!/bin/sh
 case "${1:-}" in
+  --text-contract) printf 'text-v1\n'; exit 0 ;;
   --health-check) exit 0 ;;
   --install-hint) printf 'install: nothing to install\n'; exit 0 ;;
 esac
@@ -149,9 +150,8 @@ PROVIDER
   chmod +x "$path"
 }
 
-# A prompt with no provider pinned, so routing comes from config.json alone.
-# The shipped prompts pin claude/codex, which would send these cases to a real
-# model over the network.
+# Unpinned prompt for explicit-recipient tests. Config/frontmatter provider
+# preferences never authorize execution; every run names its fixture adapter.
 write_unpinned_prompt() {
   local home="$1"
   cat >"$home/prompts/smoke-echo.md" <<'PROMPT'
@@ -227,7 +227,7 @@ case_stdin_reaches_a_provider() {
 
   last_status=0
   last_output="$(printf 'hello from a pipe' |
-    AI_ROUTER_HOME="$home" "$system_bash" "$home/ai-router.sh" run smoke-echo 2>&1)" || last_status=$?
+    AI_ROUTER_HOME="$home" "$system_bash" "$home/ai-router.sh" run smoke-echo --provider stub 2>&1)" || last_status=$?
 
   assert_equal 0 "$last_status" 'a piped run must succeed'
   assert_contains "$last_output" 'HELLO FROM A PIPE' 'the piped text must reach the provider'
@@ -287,6 +287,7 @@ case_doctor_without_any_provider() {
   cat >"$home/providers/nothing.sh" <<'PROVIDER'
 #!/bin/sh
 case "${1:-}" in
+  --text-contract) printf 'text-v1\n'; exit 0 ;;
   --health-check) exit 1 ;;
   --install-hint) printf 'install: brew install nothing\n'; exit 0 ;;
 esac
@@ -363,11 +364,11 @@ STUB
   last_status=0
   last_output="$(printf 'anything' |
     PATH="$stub_bin:$PATH" AI_ROUTER_HOME="$home" \
-      "$system_bash" "$home/ai-router.sh" run smoke-echo 2>&1)" || last_status=$?
+      "$system_bash" "$home/ai-router.sh" run smoke-echo --provider mytest 2>&1)" || last_status=$?
 
-  assert_equal 0 "$last_status" 'a copy of the template must be executable as a provider'
-  assert_contains "$last_output" 'template provider answered' \
-    'the template contract must actually route a prompt'
+  assert_equal 78 "$last_status" 'an unreviewed template must refuse execution'
+  assert_not_contains "$last_output" 'template provider answered' \
+    'copying a template alone must not authorize a text client'
 }
 
 # --- 5. the terminal is configuration, not a constant -----------------------

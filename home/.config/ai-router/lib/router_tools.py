@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import datetime
 import json
+import math
 import os
 import pathlib
 import re
+import selectors
+import signal
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 
@@ -660,44 +664,168 @@ def sanitize_text(args):
 
 
 def run_provider(args):
-    if len(args) != 2:
-        print("Usage: router_tools.py run-provider <script> <timeout-seconds>", file=sys.stderr)
+    if len(args) not in (2, 3) or (len(args) == 3 and args[2] not in ("--health-check", "--install-hint")):
+        print("Usage: router_tools.py run-provider <script> <timeout-seconds> [--health-check|--install-hint]", file=sys.stderr)
         return 64
 
-    script = pathlib.Path(args[0])
+    script = pathlib.Path(args[0]).resolve()
     try:
         timeout = float(args[1])
+        if not math.isfinite(timeout) or not 0 < timeout <= 3600:
+            raise ValueError
     except ValueError:
-        print(f"invalid provider timeout: {args[1]}", file=sys.stderr)
+        print("invalid provider timeout (expected 0 < seconds <= 3600)", file=sys.stderr)
         return 64
 
-    prompt = sys.stdin.read()
-    try:
-        completed = subprocess.run(
-            [str(script)],
-            input=prompt,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            timeout=timeout,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as error:
-        output = error.output or ""
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        if output:
-            print(output, end="")
-            if not output.endswith("\n"):
-                print()
-        print(f"provider timed out after {timeout:g}s", file=sys.stderr)
-        return 71
-    except OSError as error:
-        print(str(error), file=sys.stderr)
-        return 69
+    # These adapters are trusted local code, NOT sandboxed plugins. The contract
+    # is an author assertion requiring review; it cannot constrain malicious code.
+    # No prompt is supplied to the capability probe or health check.
+    mode = args[2] if len(args) == 3 else ""
+    limit = 4 * MAX_FILE_SIZE
+    prompt = b"" if mode else sys.stdin.buffer.read(limit + 1)
+    if len(prompt) > limit:
+        print("provider input limit exceeded", file=sys.stderr)
+        return 65
+    cancelled = 0
 
-    print(completed.stdout or "", end="")
-    return completed.returncode
+    def cancel(signum, _frame):
+        nonlocal cancelled
+        cancelled = 128 + signum
+
+    previous = {sig: signal.signal(sig, cancel)
+                for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
+    env = {key: value for key, value in os.environ.items()
+           if key not in {"AI_ROUTER_INPUT", "AI_ROUTER_SELECTION",
+                          "AI_ROUTER_SELECTION_TEXT", "AI_ROUTER_CLIPBOARD_TEXT",
+                          "AI_ROUTER_FRONTMOST_APP", "AI_ROUTER_WINDOW_TITLE"}}
+    deadline = time.monotonic() + timeout
+
+    def group_exists(pid):
+        try:
+            os.killpg(pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            # Do not treat EPERM as "gone". On macOS an orphan/zombie group
+            # can remain visible briefly. Inspect states, never command lines;
+            # only an empty group or exclusively exited zombies is finished.
+            try:
+                snapshot = subprocess.run(["/bin/ps", "-axo", "pgid=,stat="],
+                                          capture_output=True, text=True, timeout=1)
+                if snapshot.returncode != 0:
+                    return True
+                states = [line.split()[1] for line in snapshot.stdout.splitlines()
+                          if len(line.split()) == 2 and line.split()[0] == str(pid)]
+                return any(not state.startswith("Z") for state in states)
+            except (OSError, subprocess.TimeoutExpired):
+                return True
+
+    def stop_group(proc):
+        # Never signal the caller's group or search/kill by process name.
+        # Even a successful adapter must not leave ordinary children behind.
+        for sig, grace in ((signal.SIGTERM, 0.3), (signal.SIGKILL, 1.0)):
+            try:
+                os.killpg(proc.pid, sig)
+            except ProcessLookupError:
+                pass
+            except PermissionError:
+                pass  # the state check below still has to prove completion
+            until = time.monotonic() + grace
+            while time.monotonic() < until:
+                proc.poll()  # reap the direct child before checking the group
+                if not group_exists(proc.pid):
+                    return True
+                time.sleep(0.02)
+        return not group_exists(proc.pid)
+
+    def execute(argv, payload, cwd):
+        if cancelled:
+            return cancelled, b""
+        if time.monotonic() >= deadline:
+            return 71, b""
+        try:
+            proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL, cwd=cwd, env=env,
+                                    start_new_session=True)
+        except OSError:
+            return 69, b""
+        output = bytearray()
+        status = 70
+        try:
+            with selectors.DefaultSelector() as selector:
+                os.set_blocking(proc.stdout.fileno(), False)
+                selector.register(proc.stdout, selectors.EVENT_READ)
+                if payload:
+                    os.set_blocking(proc.stdin.fileno(), False)
+                    selector.register(proc.stdin, selectors.EVENT_WRITE)
+                else:
+                    proc.stdin.close()
+                offset = 0
+                while True:
+                    if cancelled:
+                        status = cancelled
+                        break
+                    if time.monotonic() >= deadline:
+                        status = 71
+                        break
+                    if proc.poll() is not None and not selector.get_map():
+                        status = proc.returncode if proc.returncode >= 0 else 128 - proc.returncode
+                        break
+                    for key, _events in selector.select(0.05):
+                        if key.fileobj is proc.stdin:
+                            try:
+                                offset += os.write(proc.stdin.fileno(), payload[offset:offset + 65536])
+                            except BrokenPipeError:
+                                offset = len(payload)
+                            if offset == len(payload):
+                                selector.unregister(proc.stdin)
+                                proc.stdin.close()
+                        else:
+                            data = os.read(proc.stdout.fileno(), 65536)
+                            if not data:
+                                selector.unregister(proc.stdout)
+                                proc.stdout.close()
+                            else:
+                                output.extend(data)
+                    if len(output) > limit:
+                        status = 65
+                        break
+        finally:
+            cleaned = stop_group(proc)
+            proc.stdin.close()
+            proc.stdout.close()
+        # Fail closed if we cannot establish that this process group has gone.
+        if not cleaned:
+            return 75, b""
+        return status, bytes(output) if status == 0 else b""
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="ai-router-request-") as cwd:
+            env["PWD"] = cwd
+            env.pop("OLDPWD", None)
+            if mode == "--install-hint":
+                status, output = execute([str(script), mode], b"", cwd)
+            else:
+                status, contract = execute([str(script), "--text-contract"], b"", cwd)
+                if status == 0 and contract.strip() != b"text-v1":
+                    status = 78
+                if status == 0:
+                    status, output = execute([str(script)] + ([mode] if mode else []), prompt, cwd)
+                else:
+                    output = b""
+            if cancelled and status != 75:
+                return cancelled
+            if status == 0:
+                sys.stdout.buffer.write(output)
+            else:
+                # Raw stderr and partial stdout may contain the entire prompt.
+                # Never retain either, even if the old debug flag is present.
+                print(f"provider failed (status {status}); raw output discarded", file=sys.stderr)
+            return status
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
 
 
 def load_config(path: pathlib.Path):
@@ -777,10 +905,8 @@ def config_value(args):
     return 0
 
 
-# Shipped fallback chain. Both CLIs are installable today and both are covered
-# by an adapter in providers/. Changing this list is a product decision, so it
-# lives in exactly one place.
-DEFAULT_PROVIDER_CHAIN = ["claude", "codex"]
+# Legacy preferences are displayed for migration only, never authorization.
+DEFAULT_PROVIDER_CHAIN = []
 
 
 def provider_chain(config: dict):
@@ -828,7 +954,6 @@ def config_runtime(args):
     print(f"terminal_app={str(terminal).strip() if terminal else 'Warp'}")
     print(f"provider_chain={','.join(provider_chain(config))}")
     print(f"log_events={config_bool(config, 'privacy.log_events', True)}")
-    print(f"debug_full_error_log={config_bool(config, 'privacy.debug_full_error_log', False)}")
     return 0
 
 

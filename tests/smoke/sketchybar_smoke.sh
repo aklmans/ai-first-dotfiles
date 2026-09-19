@@ -386,12 +386,11 @@ assert_not_contains "$(cat "$fixture/sketchybar.log")" "--add item space_creator
 
 # --- case: no Hammerspoon ----------------------------------------------------
 
-# The precise display mapping needs `hs`. Without it the resolver has to fall
-# back to AeroSpace's monitor order and say so: an empty answer looks exactly
-# like "that monitor is not connected", and the bar then binds its items to the
-# wrong screen while appearing to work.
+# The precise mapping needs `hs`. Missing/failed queries must explain the
+# refusal, never substitute AeroSpace's incompatible monitor order.
 resolver_probe() {
   local hs_bin="$1"
+  local bar_bin="${2:-$stub_dir/sketchybar}"
 
   env \
     -u XDG_STATE_HOME \
@@ -401,7 +400,7 @@ resolver_probe() {
     "HS_STUB_SCREENS=$fixture/screens" \
     "AEROSPACE_BIN=$stub_dir/aerospace" \
     "AEROSPACE_STUB_DIR=$fixture" \
-    "SKETCHYBAR_BIN=$stub_dir/sketchybar" \
+    "SKETCHYBAR_BIN=$bar_bin" \
     "SKETCHYBAR_STUB_DISPLAYS=$fixture/displays.json" \
     "$system_bash" -c '
       set -euo pipefail
@@ -413,6 +412,14 @@ resolver_probe() {
 with_hs="$(resolver_probe "$stub_dir/hs")"
 assert_contains "$with_hs" "id=2" "With Hammerspoon the monitor resolves by screen identity"
 assert_not_contains "$with_hs" "not found" "With Hammerspoon there is nothing to warn about"
+
+failed_hs="$(resolver_probe /usr/bin/false)"
+assert_contains "$failed_hs" 'Hammerspoon screen query failed' 'A failed live query must explain the refusal'
+assert_not_contains "$failed_hs" 'id=2' 'A failed query must not select a display'
+
+failed_bar="$(resolver_probe "$stub_dir/hs" /usr/bin/false)"
+assert_contains "$failed_bar" 'SketchyBar display query failed' 'A failed bar query must explain the refusal'
+assert_not_contains "$failed_bar" 'id=2' 'A failed bar query must not select a display'
 
 without_hs="$(resolver_probe "/nonexistent/hs")"
 assert_contains "$without_hs" "Hammerspoon CLI (hs) not found" \

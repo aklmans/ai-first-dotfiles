@@ -1,14 +1,13 @@
 {
   "version": 3,
   "providers": {
-    "default": ["claude", "codex"]
+    "default": []
   },
   "terminal": {
     "app": "Warp"
   },
   "privacy": {
-    "log_events": true,
-    "debug_full_error_log": false
+    "log_events": true
   },
   "hotkeys": {
     "hyper": "ctrl+alt+cmd+shift"

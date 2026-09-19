@@ -34,7 +34,7 @@ if [ "${AI_FIRST_TEST_ISOLATED:-0}" != 1 ]; then
   denied_root="$(cd "$denied_root" && pwd -P)"
   printf 'unchanged\n' >"$denied_root/canary"
   mkdir -p "$sandbox_root/home" "$sandbox_root/bin" "$sandbox_root/tmp"
-  for name in aerospace hs sketchybar borders brew open defaults osascript launchctl sudo security curl wget npm npx bun docker; do
+  for name in aerospace hs sketchybar borders brew open defaults osascript pbcopy pbpaste launchctl sudo security curl wget npm npx bun docker; do
     cp "$repo_root/tests/deny-command.sh" "$sandbox_root/bin/$name" || exit 1
     chmod +x "$sandbox_root/bin/$name"
   done

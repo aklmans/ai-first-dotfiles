@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="2.4.0"
+VERSION="2.5.0"
+umask 077
 
 # Configuration
 home_dir="${HOME}"
@@ -75,9 +76,7 @@ selection_strict="${AI_ROUTER_SELECTION_STRICT:-0}"
 selection_backend="${AI_ROUTER_SELECTION_BACKEND:-applescript}"
 log_retention_days="${AI_ROUTER_LOG_RETENTION_DAYS:-30}"
 max_log_size="${AI_ROUTER_MAX_LOG_SIZE:-10485760}"
-provider_health_cache_ttl="${AI_ROUTER_PROVIDER_HEALTH_CACHE_TTL:-60}"
 provider_timeout_seconds="${AI_ROUTER_PROVIDER_TIMEOUT_SECONDS:-60}"
-debug_full_log="${AI_ROUTER_DEBUG_FULL_LOG:-0}"
 
 # Absolute by default so a hostile PATH cannot shadow it. The override exists
 # so tests can observe what would have been sent to AppleScript.
@@ -87,6 +86,9 @@ osascript_bin="${AI_ROUTER_OSASCRIPT:-/usr/bin/osascript}"
 # the GUI selection), or a forced source. GUI callers pass --from selection so
 # they never block on a stdin pipe they did not write to.
 input_pref="${AI_ROUTER_INPUT_SOURCE:-auto}"
+request_provider=""
+request_fallbacks=""
+text_request=0
 
 # Desktop-gesture invocation (hotkey, chooser, agent launcher) until proven
 # otherwise. Piped or scripted input flips it off: that is a CLI run, where
@@ -208,10 +210,6 @@ load_runtime_config() {
       terminal_app) [ -n "$value" ] && cfg_terminal_app="$value" ;;
       provider_chain) cfg_provider_chain="$value" ;;
       log_events) cfg_log_events="$value" ;;
-      debug_full_error_log)
-        # AI_ROUTER_DEBUG_FULL_LOG stays the override; config is the default.
-        [ -z "${AI_ROUTER_DEBUG_FULL_LOG:-}" ] && debug_full_log="$value"
-        ;;
     esac
   done < <(python3 "$router_tools" config-runtime "$config_json" 2>/dev/null || true)
 
@@ -249,7 +247,7 @@ usage() {
   printf '%s\n' "AI Router v$VERSION"
   printf '%s\n' ""
   printf '%s\n' "Usage:"
-  printf '%s\n' "  ai-router.sh run <action> [--from auto|stdin|selection|clipboard]"
+  printf '%s\n' "  ai-router.sh run <action> --provider <name> [--fallback <name,...>] [--from stdin|selection|clipboard]"
   printf '%s\n' "  ai-router.sh render <action> [--from auto|stdin|selection|clipboard]"
   printf '%s\n' "  ai-router.sh show <name>"
   printf '%s\n' "  ai-router.sh doctor"
@@ -268,7 +266,7 @@ usage() {
   printf '%s\n' "  ai-router.sh version"
   printf '%s\n' ""
   printf '%s\n' "Input: piped stdin, else \$AI_ROUTER_INPUT, else the macOS selection."
-  printf '%s\n' "  git diff --staged | ai-router.sh run commit-message"
+  printf '%s\n' "  git diff --staged | ai-router.sh render commit-message"
   printf '%s\n' ""
   printf '%s\n' "doctor exits 1 when no provider is ready, 0 otherwise."
 }
@@ -572,6 +570,13 @@ read_input() {
     fi
   fi
 
+  # Text execution must never substitute an unrelated clipboard for a failed
+  # selection. Render-only keeps the legacy convenience behavior.
+  if [ "$text_request" = "1" ] && [ "$input_pref" != "clipboard" ]; then
+    input_source="empty"
+    return 0
+  fi
+
   # Selection came back empty (or was skipped): fall back to the clipboard,
   # which is also what makes the router usable from apps that refuse Cmd+C.
   if [ "$macos_gui_ready" = "1" ]; then
@@ -712,9 +717,7 @@ write_error_log() {
   local action="$2"
   local provider="$3"
   local error="$4"
-  local raw_error="${5:-}"
   local path="$errors_dir/$request_id.log"
-  local raw_path="$errors_dir/$request_id.raw.log"
 
   ensure_dirs
   {
@@ -723,17 +726,6 @@ write_error_log() {
     printf 'provider: %s\n\n' "$provider"
     printf '%s\n' "$error"
   } > "$path"
-
-  if [ "$debug_full_log" = "1" ] && [ -n "$raw_error" ] && [ "$raw_error" != "$error" ]; then
-    {
-      printf 'request_id: %s\n' "$request_id"
-      printf 'action: %s\n' "$action"
-      printf 'provider: %s\n' "$provider"
-      printf 'debug: raw provider error\n\n'
-      printf '%s\n' "$raw_error"
-    } > "$raw_path"
-    chmod 600 "$raw_path" 2>/dev/null || true
-  fi
 
   cp "$path" "$last_error" 2>/dev/null || true
   printf '%s' "$path"
@@ -763,52 +755,13 @@ provider_names() {
 
 # A provider is whatever has an executable adapter in providers/. Whether the
 # underlying CLI exists is the adapter's own business, reported via
-# --health-check (see provider_healthy). Do not reintroduce a name whitelist
+# --health-check and --text-contract. Do not reintroduce a name whitelist
 # here: it would make dropping in a new provider script impossible.
 provider_available() {
   local provider="$1"
   [ -n "$provider" ] && [ -x "$providers_dir/$provider.sh" ]
 }
 
-provider_healthy() {
-  local provider="$1"
-  local cache_file="$cache_dir/provider-health-$provider"
-  local now
-  now="$(date +%s)"
-
-  if [ -f "$cache_file" ]; then
-    local cached_time cached_status
-    read -r cached_time cached_status < "$cache_file" 2>/dev/null || true
-    if [ -n "$cached_time" ] && [ -n "$cached_status" ] && [ $((now - cached_time)) -lt "$provider_health_cache_ttl" ]; then
-      [ "$cached_status" = "ok" ]
-      return
-    fi
-  fi
-
-  local status="failed"
-  if "$providers_dir/$provider.sh" --health-check >/dev/null 2>&1; then
-    status="ok"
-  fi
-
-  printf '%s %s\n' "$now" "$status" > "$cache_file"
-  [ "$status" = "ok" ]
-}
-
-choose_provider() {
-  local primary="$1"
-  shift
-  local candidates=("$primary" "$@")
-
-  for provider in "${candidates[@]}"; do
-    [ -z "$provider" ] && continue
-    if provider_available "$provider" && provider_healthy "$provider"; then
-      printf '%s\n' "$provider"
-      return 0
-    fi
-  done
-
-  return 1
-}
 
 append_provider_candidate() {
   local candidate="$1"
@@ -837,7 +790,38 @@ append_provider_candidates_csv() {
 run_provider_with_timeout() {
   local provider="$1"
   local rendered="$2"
-  printf '%s' "$rendered" | python3 "$router_tools" run-provider "$providers_dir/$provider.sh" "$provider_timeout_seconds"
+  local request_output runner_pid result=0
+  request_output="$(mktemp "$cache_dir/request-output.XXXXXX")" || return 73
+  # Run in the main shell, not $(...). hs.task:terminate() sends SIGTERM to
+  # this shell; a trap must forward it to the supervisor and reap it before exit.
+  trap 'cancel_provider_request 130' INT
+  trap 'cancel_provider_request 143' TERM
+  trap 'cancel_provider_request 129' HUP
+  printf '%s' "$rendered" | python3 "$router_tools" run-provider "$providers_dir/$provider.sh" "$provider_timeout_seconds" >"$request_output" 2>/dev/null &
+  runner_pid=$!
+  wait "$runner_pid" || result=$?
+  trap - INT TERM HUP
+  output=""
+  [ "$result" -ne 0 ] || output="$(cat "$request_output")"
+  rm -f "$request_output"
+  return "$result"
+}
+
+cancel_provider_request() {
+  local status="$1"
+  local runner_status=0
+  # runner_pid/request_output are dynamically scoped locals of the active run.
+  trap '' INT TERM HUP
+  if [ -n "${runner_pid:-}" ]; then
+    kill -TERM "$runner_pid" 2>/dev/null || true
+    wait "$runner_pid" 2>/dev/null || runner_status=$?
+  fi
+  [ -z "${request_output:-}" ] || rm -f "$request_output"
+  if [ "$runner_status" -eq 75 ]; then
+    printf 'AI Router: child cleanup could not be confirmed; inspect the request before retrying.\n' >&2
+  fi
+  printf 'AI Router: request cancelled; no fallback attempted.\n' >&2
+  exit "$status"
 }
 
 write_last_output() {
@@ -857,7 +841,7 @@ resolve_prompt_input() {
   app_name=""
   title=""
 
-  if [ "$gui_mode" = "1" ]; then
+  if [ "$gui_mode" = "1" ] && [ "$text_request" != "1" ]; then
     clipboard_text="$(clipboard_paste 2>/dev/null || true)"
     app_name="$(frontmost_app)"
     title="$(window_title)"
@@ -895,8 +879,18 @@ run_action() {
     return 66
   fi
 
+  # Neither a prompt file, saved login nor a global default is consent to send
+  # today's input to a recipient. This check precedes even GUI input capture.
+  if [ "${AI_ROUTER_DRY_RUN:-0}" != "1" ]; then
+    if [ -z "$request_provider" ]; then
+      printf 'AI Router: choose this request recipient with --provider <name>; use render for local preview. No input sent.\n' >&2
+      return 64
+    fi
+    text_request=1
+  fi
+
   local start_ms end_ms duration_ms clipboard_text app_name title input_text input_source input_note rendered
-  local primary fallback fallback_providers provider output_mode output status output_chars input_chars error
+  local provider output_mode output status output_chars input_chars error
   local prompt_title
   local request_id error_path error_summary sanitized_error
   local provider_status provider_errors provider_attempts provider_exit
@@ -906,7 +900,7 @@ run_action() {
 
   resolve_prompt_input
 
-  if input_is_strict_failure; then
+  if input_is_strict_failure || { [ "$text_request" = "1" ] && [ -z "$input_text" ]; }; then
     end_ms="$(now_ms)"
     duration_ms=$((end_ms - start_ms))
     write_last_output "No input for action: $action"
@@ -917,23 +911,17 @@ run_action() {
   fi
 
   rendered="$(render_template "$path" "$action" "$input_text" "$clipboard_text" "$app_name" "$title")"
-  primary="$(parse_frontmatter_field "$path" default_provider)"
-  fallback="$(parse_frontmatter_field "$path" fallback_provider)"
-  fallback_providers="$(parse_frontmatter_field "$path" fallback_providers)"
   output_mode="$(parse_frontmatter_field "$path" output)"
   prompt_title="$(parse_frontmatter_field "$path" title)"
   [ -n "$output_mode" ] || output_mode="clipboard"
   [ -n "$prompt_title" ] || prompt_title="$action"
 
-  # A prompt may pin its preferred providers; providers.default from
-  # config.json is always appended, so a machine that only has one CLI
-  # installed still routes somewhere instead of failing on a pinned name.
+  # Legacy frontmatter/global chains remain metadata, never execution authority.
+  # Only the current request's explicit recipients may receive this input.
   load_runtime_config
   provider_candidates=()
-  append_provider_candidate "$primary"
-  append_provider_candidates_csv "$fallback_providers"
-  append_provider_candidate "$fallback"
-  append_provider_candidates_csv "$cfg_provider_chain"
+  append_provider_candidate "$request_provider"
+  append_provider_candidates_csv "$request_fallbacks"
 
   input_chars="${#input_text}"
 
@@ -970,23 +958,22 @@ run_action() {
       continue
     fi
 
-    if ! provider_healthy "$provider"; then
-      provider_errors="${provider_errors}${provider}: health check failed"$'\n'
-      provider_exit=69
-      continue
-    fi
-
-    if output="$(run_provider_with_timeout "$provider" "$rendered" 2>&1)"; then
+    if run_provider_with_timeout "$provider" "$rendered"; then
       provider_status="ok"
       break
     else
       provider_exit=$?
     fi
 
-    if [ "$provider_exit" -eq 71 ]; then
+    if [ "$provider_exit" -ge 128 ] || [ "$provider_exit" -eq 75 ]; then
+      provider_errors="${provider_errors}${provider}: cancelled or cleanup unconfirmed; fallback stopped"$'\n'
+      break
+    elif [ "$provider_exit" -eq 71 ]; then
       provider_errors="${provider_errors}${provider}: timeout after ${provider_timeout_seconds}s"$'\n'
+    elif [ "$provider_exit" -eq 78 ]; then
+      provider_errors="${provider_errors}${provider}: text isolation contract unavailable; use render or the agent menu"$'\n'
     else
-      provider_errors="${provider_errors}${provider}: ${output}"$'\n'
+      provider_errors="${provider_errors}${provider}: failed (status ${provider_exit}); raw output discarded"$'\n'
     fi
   done
 
@@ -995,8 +982,7 @@ run_action() {
     error="All providers failed for action '$action'. Tried: ${provider_attempts:-none}"$'\n\n'"$provider_errors"
     sanitized_error="$(sanitize_error_text "$error")"
     write_last_output "$sanitized_error"
-    copy_text_to_clipboard "$sanitized_error" || true
-    error_path="$(write_error_log "$request_id" "$action" "${provider_attempts:-none}" "$sanitized_error" "$error")"
+    error_path="$(write_error_log "$request_id" "$action" "${provider_attempts:-none}" "$sanitized_error")"
     error_summary="$(short_error "$sanitized_error")"
     end_ms="$(now_ms)"
     duration_ms=$((end_ms - start_ms))
@@ -1499,10 +1485,10 @@ provider_status_text() {
   while IFS= read -r provider; do
     [ -n "$provider" ] || continue
     found=1
-    if "$providers_dir/$provider.sh" --health-check >/dev/null 2>&1; then
+    if python3 "$router_tools" run-provider "$providers_dir/$provider.sh" 5 --health-check </dev/null >/dev/null 2>&1; then
       status="ready"
     else
-      status="unavailable (CLI missing or health check failed)"
+      status="unavailable (text contract or health check failed)"
     fi
     printf -- '- %s: %s\n' "$provider" "$status"
   done < <(provider_names)
@@ -1515,7 +1501,7 @@ provider_status_text() {
 # Optional part of the provider contract: a one-line "how do I get this?".
 provider_install_hint() {
   local provider="$1"
-  "$providers_dir/$provider.sh" --install-hint 2>/dev/null | head -n 1 || true
+  python3 "$router_tools" run-provider "$providers_dir/$provider.sh" 5 --install-hint </dev/null 2>/dev/null | head -n 1 || true
 }
 
 count_files() {
@@ -1569,11 +1555,11 @@ doctor() {
   printf '  snippets    %s\n' "$(count_files "$snippets_dir")"
   printf '\n'
 
-  printf 'Providers (default chain: %s)\n' "${cfg_provider_chain//,/ -> }"
+  printf 'Text providers (explicit --provider required; legacy defaults are not used)\n'
   while IFS= read -r provider; do
     [ -n "$provider" ] || continue
     total=$((total + 1))
-    if "$providers_dir/$provider.sh" --health-check >/dev/null 2>&1; then
+    if python3 "$router_tools" run-provider "$providers_dir/$provider.sh" 5 --health-check </dev/null >/dev/null 2>&1; then
       ready=$((ready + 1))
       printf '  [ready]     %s\n' "$provider"
     else
@@ -1595,17 +1581,17 @@ doctor() {
   done < <(provider_names)
 
   if [ "$total" -eq 0 ]; then
-    printf '  no executable adapters in %s\n' "$providers_dir"
+    printf '  no verified text adapters in %s\n' "$providers_dir"
   fi
   printf '\n'
 
   if [ "$ready" -eq 0 ]; then
-    printf 'No provider is ready. Install one of the CLIs above, then run:\n'
+    printf 'No provider is ready. Rendering and coding-agent launch still work. Review a text adapter, then run:\n'
     printf '  %s doctor\n\n' "$0"
   fi
 
   printf 'Try it now:\n'
-  printf "  printf 'hello world' | %s run %s\n" "$0" "$example_prompt"
+  printf "  printf 'hello world' | %s render %s\n" "$0" "$example_prompt"
   printf '  %s show %s\n' "$0" "$example_prompt"
 
   [ "$ready" -gt 0 ]
@@ -1743,6 +1729,23 @@ parse_input_flags() {
       --quiet|-q)
         AI_ROUTER_NOTIFY=0
         ;;
+      --provider|--fallback)
+        local flag="$1"
+        shift
+        [ -n "${1:-}" ] || { printf 'missing value for %s\n' "$flag" >&2; exit 64; }
+        if [ "$command" != "run" ] && [ "$command" != "prompt" ]; then
+          printf '%s is only valid for run/prompt\n' "$flag" >&2
+          exit 64
+        fi
+        if [ "$flag" = "--provider" ]; then
+          [ -z "$request_provider" ] || { printf 'duplicate --provider\n' >&2; exit 64; }
+          validate_id "$1" provider || exit 64
+          request_provider="$1"
+        else
+          [[ "$1" =~ ^[a-z0-9][a-z0-9_-]*(,[a-z0-9][a-z0-9_-]*)*$ ]] || { printf 'invalid fallback list\n' >&2; exit 64; }
+          request_fallbacks="${request_fallbacks:+$request_fallbacks,}$1"
+        fi
+        ;;
       --from)
         shift
         case "${1:-}" in
@@ -1762,6 +1765,10 @@ parse_input_flags() {
             exit 64
             ;;
         esac
+        ;;
+      *)
+        printf 'unknown option: %s\n' "$1" >&2
+        exit 64
         ;;
     esac
     shift || true

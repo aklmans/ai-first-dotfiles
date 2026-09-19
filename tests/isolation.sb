@@ -18,6 +18,8 @@
   (literal "/usr/bin/defaults")
   (literal "/usr/bin/open")
   (literal "/usr/bin/osascript")
+  (literal "/usr/bin/pbcopy")
+  (literal "/usr/bin/pbpaste")
   (literal "/usr/bin/sudo")
   (literal "/usr/bin/security")
   (literal "/usr/sbin/screencapture")

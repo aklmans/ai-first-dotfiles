@@ -1,26 +1,15 @@
 #!/usr/bin/env bash
+# Quarantined text adapter. An installed/authenticated CLI is not a verified
+# no-tools/no-project-discovery interface. Keep render and manual agent use.
+# Re-enable only with version-scoped isolation and recipient tests.
 set -euo pipefail
 
-if [ "${1:-}" = "--install-hint" ]; then
-  printf '%s\n' "install: npm install -g @anthropic-ai/claude-code  (then run: claude)"
-  exit 0
-fi
+case "${1:-}" in
+  --install-hint)
+    printf '%s\n' "text execution quarantined: claude; use render and review input in your chosen client"
+    exit 0
+    ;;
+esac
 
-if [ "${1:-}" = "--health-check" ]; then
-  command -v claude >/dev/null 2>&1 && claude --version >/dev/null 2>&1
-  exit
-fi
-
-if ! command -v claude >/dev/null 2>&1; then
-  printf '%s\n' "claude CLI not found" >&2
-  exit 69
-fi
-
-prompt="$(/bin/cat)"
-if [ -z "$prompt" ]; then
-  printf '%s\n' "empty prompt" >&2
-  exit 64
-fi
-
-claude --print "$prompt"
-
+printf '%s\n' "claude: text isolation/recipient contract is unverified; no request sent" >&2
+exit 78

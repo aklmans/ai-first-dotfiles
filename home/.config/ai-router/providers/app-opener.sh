@@ -3,6 +3,10 @@
 # so its health check always fails and the router never routes prompts here.
 set -euo pipefail
 
+if [ "${1:-}" = "--text-contract" ]; then
+  exit 78
+fi
+
 if [ "${1:-}" = "--install-hint" ]; then
   printf '%s\n' "helper for the agent menu, not a text provider"
   exit 0
