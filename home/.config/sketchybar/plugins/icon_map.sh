@@ -3,6 +3,39 @@
 ### START-OF-ICON-MAP
 function __icon_map() {
     case "$1" in
+   "万兴图示" | "亿图图示" | "EdrawMax" | "Edraw Max" | "Wondershare EdrawMax" | "com.edrawsoft.edrawmax")
+        icon_result=":edrawmax:"
+        ;;
+   "万兴脑图" | "亿图脑图" | "MindMaster" | "EdrawMind" | "Edraw Mind" | "Wondershare EdrawMind" | "com.edrawsoft.mindmaster")
+        icon_result=":edrawmind:"
+        ;;
+   "ZCode" | "ZCode Preview" | "zcode" | "dev.zcode.app" | "dev.zcode.app.preview")
+        icon_result=":zcode:"
+        ;;
+   "Kimi Code" | "Kimi Code Preview" | "com.kimi.code.desktop")
+        icon_result=":kimi_code:"
+        ;;
+   "Surge" | "Surge Mac" | "com.nssurge.surge-mac")
+        icon_result=":surge:"
+        ;;
+   "Loopback" | "com.rogueamoeba.Loopback")
+        icon_result=":loopback:"
+        ;;
+   "Qoder" | "Qoder IDE" | "Qoder CN" | "Qoder CN IDE" | "QoderWork" | "Qoder Work" | "com.aliyun.lingma.ide")
+        icon_result=":qoder:"
+        ;;
+   "WorkBuddy" | "Workbuddy" | "Work Buddy" | "com.tencent.workbuddy.mac")
+        icon_result=":workbuddy:"
+        ;;
+   "Trae" | "TRAE" | "Trae CN" | "TRAE CN" | "TRAE SOLO" | "TRAE SOLO CN" | "Trae Work" | "TRAE Work" | "TRAE WORK" | "TraeWork" | "cn.trae.app" | "cn.trae.solo.app")
+        icon_result=":trae:"
+        ;;
+   "DoubaoWork" | "Doubao Work" | "豆包办公" | "豆包工作" | "com.work.pc.doubao")
+        icon_result=":doubao_work:"
+        ;;
+   "Doubao" | "豆包" | "com.larus.nova")
+        icon_result=":doubao:"
+        ;;
    "Live")
         icon_result=":ableton:"
         ;;
@@ -34,7 +67,8 @@ function __icon_map() {
         icon_result=":airmail:"
         ;;
    "Air" | "JetBrains Air")
-        icon_result=":junie:"
+        # No verified Air glyph yet; the old :junie: token was blank.
+        icon_result=":default:"
         ;;
    "AirPort Utility")
         icon_result=":airport_utility:"
@@ -134,6 +168,9 @@ function __icon_map() {
         ;;
    "Capacities")
         icon_result=":capacities:"
+        ;;
+   "Camtasia" | "Camtasia 2024" | "Camtasia 2025" | "Camtasia 2026" | "com.techsmith.camtasia")
+        icon_result=":camtasia:"
         ;;
    "Caprine")
         icon_result=":caprine:"
@@ -363,8 +400,8 @@ function __icon_map() {
    "kitty")
         icon_result=":kitty:"
         ;;
-   "Kimi")
-        icon_result=":Kimi:"
+   "Kimi" | "KimiCU" | "com.moonshot.kimichat" | "ai.kimi.cu")
+        icon_result=":kimi:"
         ;;
    "Kodi")
         icon_result=":kodi:"
@@ -543,8 +580,8 @@ function __icon_map() {
    "Codex" | "OpenAI Codex")
         icon_result=":codex:"
         ;;
-   "Cola")
-        icon_result=":spark:"
+   "Cola" | "ai.colaos.desktop")
+        icon_result=":cola:"
         ;;
    "OpenAI Translator")
         icon_result=":openai_translator:"
@@ -577,7 +614,7 @@ function __icon_map() {
         icon_result=":passwords:"
         ;;
    "Preview" | "预览" | "Skim" | "zathura" | "Aperçu" | "プレビュー" | "Vorschau")
-        icon_result=":pdf:"
+        icon_result=":preview:"
         ;;
    "PDF Expert")
         icon_result=":pdf_expert:"
@@ -739,7 +776,7 @@ function __icon_map() {
          icon_result=":summoners_war:"
          ;;
     "superProductivity")
-         icon_result=":superproductivity:"
+         icon_result=":super_productivity:"
          ;;
     "Surfshark")
          icon_result=":surfshark:"
@@ -864,8 +901,8 @@ function __icon_map() {
     "Xcode")
          icon_result=":xcode:"
          ;;
-    "Yandex Browser" | "Yandex Browser" | "Yandex")
-         icon_result=":yandex_bower:"
+    "Yandex Browser" | "Yandex")
+         icon_result=":yandex_browser:"
          ;;
     "Яндекс Музыка" | "Yandex Music")
          icon_result=":yandex_music:"
@@ -907,5 +944,10 @@ function __icon_map() {
  }
  ### END-OF-ICON-MAP
 
- __icon_map "$1"
- echo "$icon_result"
+# Sourcing exposes only the function; direct calls support one or more names.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    for app_name in "$@"; do
+        __icon_map "$app_name"
+        printf '%s\n' "$icon_result"
+    done
+fi

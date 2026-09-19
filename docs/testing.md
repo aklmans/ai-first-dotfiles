@@ -62,6 +62,15 @@ The quiet-profile harness tests real JetBrains title classification and refuses
 implicit CLI or login-setting changes. These are simulated checks, not real
 keyboard delivery, hot-plug, sleep/wake, or captured-video acceptance.
 
+## App icon regression
+
+`app_icons_smoke.sh` verifies the bundled font and source hashes, actual cmap /
+GSUB ligatures and nonempty glyph outlines, app aliases, old/custom theme
+compatibility, encoded font URLs, and font-load failures before bar setup. It
+needs no font-building packages and performs no font installation or live IPC.
+Native CoreText shaping and 16px visual inspection are separate maintainer
+checks; [sources and rebuilding](../assets/app-icons/README.md) are documented.
+
 ## Optional AI execution regression
 
 The router suite uses fake local adapters only. It covers explicit recipient and

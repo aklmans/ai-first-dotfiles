@@ -165,7 +165,13 @@ sketchybar_theme_load() {
   [ -z "$env_workspaces" ] || SKETCHYBAR_WORKSPACES="$env_workspaces"
 
   THEME_FONT="${SKETCHYBAR_FONT_FAMILY:-SF Pro}"
-  THEME_FONT_APP="${SKETCHYBAR_FONT_APP:-sketchybar-app-font}"
+  THEME_FONT_APP="${SKETCHYBAR_FONT_APP:-AI First App Icons}"
+  # Existing private themes often retain the previous stock family. Upgrade
+  # that stock name together with its mapping; leave genuinely custom families
+  # alone. No theme file or system font is rewritten here.
+  if [ "$THEME_FONT_APP" = "sketchybar-app-font" ] && [ -r "$config_dir/fonts/ai-first-app-icons.ttf" ]; then
+    THEME_FONT_APP="AI First App Icons"
+  fi
 
   THEME_FONT_SIZE_ICON="${SKETCHYBAR_FONT_SIZE_ICON:-14.0}"
   THEME_FONT_SIZE_LABEL="${SKETCHYBAR_FONT_SIZE_LABEL:-13.0}"

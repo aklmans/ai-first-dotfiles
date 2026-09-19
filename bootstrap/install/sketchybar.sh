@@ -13,7 +13,6 @@ SBARLUA_CACHE_DIR="${SBARLUA_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/Library/Caches}/
 SBARLUA_INSTALL_DIR="${SBARLUA_INSTALL_DIR:-$HOME/.local/share/sketchybar_lua}"
 
 ensure_parent_dir "$HOME/.config/sketchybar"
-mkdir -p "$HOME/Library/Fonts"
 mkdir -p "$HOME/Library/Caches/sketchybar"
 
 echo "Installing Sketchybar"
@@ -25,47 +24,8 @@ brew_install lua switchaudio-osx nowplaying-cli jq gh sketchybar
 # Install font dependencies required by the bar.
 brew_install_cask sf-symbols font-sf-mono font-sf-pro
 
-# Downloads are written to a temporary file and only moved into place once they
-# look like a font. Without --fail a proxy or captive portal answering with an
-# HTML error page used to be saved as sketchybar-app-font.ttf, cached forever
-# because the file now exists, and reported as a successful install.
-install_sketchybar_app_font() {
-  local target="$HOME/Library/Fonts/sketchybar-app-font.ttf"
-  local url='https://github.com/aklmans/sketchybar-app-font/releases/download/v2.0.69/sketchybar-app-font.ttf'
-  local temp magic
-
-  if [[ -f "$target" ]]; then
-    printf 'SketchyBar app font already installed: %s\n' "$target"
-    return 0
-  fi
-
-  temp="$(mktemp "${TMPDIR:-/tmp}/sketchybar-app-font.XXXXXX")" || return 0
-
-  # Intentional external asset fetch: this downloads the bar font from upstream.
-  if ! curl --fail --location --silent --show-error --output "$temp" "$url"; then
-    rm -f "$temp"
-    printf 'Could not download the SketchyBar app font. App icons in the bar will be missing.\n' >&2
-    printf 'Retry later, or fetch it yourself into %s:\n  %s\n' "$target" "$url" >&2
-    return 0
-  fi
-
-  # A 200 response is not proof of a font: check the sfnt/ttcf signature before
-  # this lands in ~/Library/Fonts, where a broken file would stay for good.
-  magic="$(od -A n -t x1 -N 4 "$temp" 2>/dev/null | tr -d ' \n')"
-  case "$magic" in
-    00010000|74727565|4f54544f|74746366)
-      ;;
-    *)
-      rm -f "$temp"
-      printf 'The SketchyBar app font download was not a font (signature %s); discarded it.\n' "${magic:-empty}" >&2
-      printf 'Nothing was installed. Fetch it yourself into %s:\n  %s\n' "$target" "$url" >&2
-      return 0
-      ;;
-  esac
-
-  mv "$temp" "$target"
-  printf 'Installed SketchyBar app font: %s\n' "$target"
-}
+# The app font now travels with .config/sketchybar/fonts and is registered only
+# in SketchyBar's process. Existing system/user fonts are intentionally kept.
 
 install_sbarlua() {
   local ref_file="$SBARLUA_INSTALL_DIR/.sbarlua-ref"
@@ -86,7 +46,6 @@ install_sbarlua() {
 }
 
 if should_install; then
-  install_sketchybar_app_font
   install_sbarlua
 fi
 

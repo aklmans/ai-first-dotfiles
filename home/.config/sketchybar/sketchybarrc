@@ -6,6 +6,44 @@
 source "$CONFIG_DIR/lib/theme.sh"
 source "$CONFIG_DIR/icons.sh" # Loads all defined icons
 
+# The matching font is a copy-deployed asset, not a forever-cached download in
+# ~/Library/Fonts. Its distinct family avoids collisions with the old font.
+if [ "$THEME_FONT_APP" = "AI First App Icons" ]; then
+  app_font="$CONFIG_DIR/fonts/ai-first-app-icons.ttf"
+  if [ ! -r "$app_font" ]; then
+    printf 'Bundled app icon font is missing: %s\n' "$app_font" >&2
+    exit 1
+  fi
+  # SketchyBar 2.24 passes this string to CFURLCreateWithString, not a filesystem
+  # URL constructor. Encode spaces/non-ASCII in HOME without shell evaluation.
+  # The CLI does not propagate CoreText registration errors. Reject incomplete
+  # or corrupt copies ourselves before asking it to register the font.
+  app_font_url="$(/usr/bin/python3 - "$app_font" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+try:
+    path = Path(sys.argv[1]).absolute()
+    manifest_path = path.parent / "manifest.json"
+    if path.stat().st_size > 2 * 1024 * 1024 or manifest_path.stat().st_size > 128 * 1024:
+        raise ValueError("unexpected asset size")
+    manifest = json.loads(manifest_path.read_text())
+    if manifest["family"] != "AI First App Icons" or hashlib.sha256(path.read_bytes()).hexdigest() != manifest["font_sha256"]:
+        raise ValueError("font/manifest mismatch")
+    print(path.as_uri())
+except (OSError, ValueError, TypeError, KeyError) as error:
+    print("Bundled app font verification failed: " + str(error), file=sys.stderr)
+    sys.exit(1)
+PY
+)" || exit 1
+  if ! sketchybar --load-font "$app_font_url"; then
+    printf 'Could not load the bundled app icon font. Re-deploy SketchyBar fonts/ with its matching icon_map.sh.\n' >&2
+    exit 1
+  fi
+fi
+
 AI_FIRST_PROFILE_LIB="${AI_FIRST_PROFILE_LIB:-$HOME/.config/ai-first/lib/profile.sh}"
 if [ -r "$AI_FIRST_PROFILE_LIB" ]; then
   # shellcheck source=/dev/null

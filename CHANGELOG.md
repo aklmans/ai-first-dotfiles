@@ -7,6 +7,11 @@ Notable changes to this project. Format loosely follows
 
 ### Added
 
+- A bundled, reproducible monochrome app font with ZCode, Kimi Code, Kimi,
+  Surge, Loopback, Qoder, WorkBuddy, TRAE, DoubaoWork, Doubao, Cola, Camtasia,
+  EdrawMax and EdrawMind/MindMaster glyphs; exact app
+  aliases, binary ligature checks and source/license records travel with it.
+  Copy deployment no longer depends on a stale font in the user's Fonts folder.
 - Explicit `select` and selected-only `update` commands, with preview-first
   maintenance and separate desktop activation. Minimal updates do not adopt
   shell, Warp or media configuration.
