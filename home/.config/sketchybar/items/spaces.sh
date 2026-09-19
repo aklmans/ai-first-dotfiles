@@ -65,8 +65,8 @@ monitor_name_for_role() {
 
 main_display=""
 
-# Arrangement id 1 always exists, so an unresolvable role puts its workspaces on
-# a real display instead of on display 2 or 3 of a laptop that has neither.
+# Unknown identity shows chips on all displays, visibly unassigned. It must not
+# imply that arrangement 1 belongs to a particular AeroSpace role.
 #
 # Assigns into a named variable rather than printing: a command substitution is
 # a subshell, and the resolver's "warn once" guard cannot survive one, so three
@@ -82,11 +82,7 @@ resolve_display_id() {
     display_id="$SKETCHYBAR_DISPLAY_ID"
   fi
 
-  if [ -z "$display_id" ] && [ "$role" != "main" ]; then
-    display_id="$main_display"
-  fi
-
-  eval "$target=\"\${display_id:-1}\""
+  eval "$target=\"\${display_id:-all}\""
 }
 
 resolve_display_id main main_display

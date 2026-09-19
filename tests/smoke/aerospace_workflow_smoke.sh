@@ -514,7 +514,7 @@ write_displays_conf "$three_home" "PHL 279C9" "24V5C2" "Built-in Retina Display"
 # pinned to specific monitors: fill in displays.conf, render once.
 run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/render-layout.sh"
 assert_status 0 "$last_status" "render-layout.sh must accept named displays" "$last_output"
-assert_file_contains "$three_home/.aerospace.toml" "'1' = ['PHL 279C9', 'main']" \
+assert_file_contains "$three_home/.aerospace.toml" "'1' = ['^PHL 279C9$', 'main']" \
   "Named main display is pinned in the AeroSpace config"
 # The other roles by name before AeroSpace's keywords. `secondary` there means
 # "the display macOS did not put the menu bar on", which on a desk whose menu
@@ -522,9 +522,9 @@ assert_file_contains "$three_home/.aerospace.toml" "'1' = ['PHL 279C9', 'main']"
 # to sit among 1-6 instead of after 12. The names say which display is meant;
 # the keywords stay as the last resort for a config that names none.
 assert_file_contains "$three_home/.aerospace.toml" \
-  "'13' = ['Built-in Retina Display', 'built-in', '24V5C2', 'PHL 279C9', 'secondary', 'main']" \
+  "'13' = ['^Built-in Retina Display$', 'built-in', '^24V5C2$', '^PHL 279C9$', 'secondary', 'main']" \
   "A stage display falls back onto the side display before the main one"
-assert_file_contains "$three_home/.aerospace.toml" "'7' = ['24V5C2', 'PHL 279C9', 'secondary', 'main']" \
+assert_file_contains "$three_home/.aerospace.toml" "'7' = ['^24V5C2$', '^PHL 279C9$', 'secondary', 'main']" \
   "A side display falls back onto the main display by name"
 
 run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/check-display-layout.sh"
@@ -540,7 +540,7 @@ assert_status 0 "$last_status" "hide-main must succeed on three displays" "$last
 assert_file_contains "$three_fixture/sketchybar.log" "--bar hidden=off display=1,3" \
   "hide-main hides only the arrangement id of the configured main display"
 
-main_compact_gaps="$(grep -c 'monitor."PHL 279C9" = 8' "$three_home/.aerospace.toml" | tr -d ' ')"
+main_compact_gaps="$(grep -c 'monitor."^PHL 279C9$" = 8' "$three_home/.aerospace.toml" | tr -d ' ')"
 assert_equal "4" "$main_compact_gaps" "hide-main compacts all four outer gaps of the main display"
 
 # The gap rewrite used to consume every comment between [gaps] and the next
@@ -631,7 +631,7 @@ assert_equal "$gap_shipped" "$(gap_top_in "$three_home")" \
 run_in_home "$three_home" "$three_fixture" \
   "$three_home/.config/aerospace/toggle-sketchybar-space.sh" show-main
 assert_status 0 "$last_status" "show-main must succeed on three displays" "$last_output"
-assert_file_lacks "$three_home/.aerospace.toml" 'monitor."PHL 279C9"' \
+assert_file_lacks "$three_home/.aerospace.toml" 'monitor."^PHL 279C9$"' \
   "Restoring gaps removes the per-monitor overrides again"
 
 # A display that is configured but unplugged must not strand its workspaces.
@@ -910,7 +910,7 @@ assert_file_contains "$deploy_home/.config/aerospace/displays.conf" "Studio Disp
   "A user's edited display config must survive redeploying"
 
 # And the edit has to reach AeroSpace, not just sit in a file nobody read.
-assert_file_contains "$deploy_home/.aerospace.toml" "'1' = ['Studio Display', 'main']" \
+assert_file_contains "$deploy_home/.aerospace.toml" "'1' = ['^Studio Display$', 'main']" \
   "Redeploy re-renders the AeroSpace config from the user's display config"
 
 # --- case: Ctrl+Up / Ctrl+Down without BetterTouchTool ----------------------

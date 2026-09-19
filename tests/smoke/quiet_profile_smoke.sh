@@ -90,7 +90,7 @@ assert_contains "$routes" 'org.example.ContextTool=current|follow|floating|' 'co
 cp "$repo_root/home/.aerospace.toml" "$test_dir/preview.toml"
 run_test /bin/bash "$test_home/.config/aerospace/render-layout.sh" "$test_dir/preview.toml" >/dev/null
 assert_file_contains "$test_dir/preview.toml" "ctrl-2 = 'workspace 2'" 'recording shortcut retains its actual workspace number'
-assert_file_contains "$test_dir/preview.toml" "'2' = ['Primary Display', 'main']" 'recording pins to the selected display with a single-screen fallback'
+assert_file_contains "$test_dir/preview.toml" "'2' = ['^Primary Display$', 'main']" 'recording pins to the selected display with a single-screen fallback'
 assert_file_lacks "$test_dir/preview.toml" "workspace 13" 'no old workspace shortcut or app target survives'
 render_hash="$(cksum <"$test_dir/preview.toml")"
 run_test /bin/bash "$test_home/.config/aerospace/render-layout.sh" "$test_dir/preview.toml" >/dev/null

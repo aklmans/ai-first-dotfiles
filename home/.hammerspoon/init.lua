@@ -83,17 +83,15 @@ local function aiFirstListContains(list, needle)
   return false
 end
 
-if hs.ipc then
-  hs.ipc.cliInstall()
-end
-
 local aerospace = "/opt/homebrew/bin/aerospace"
 local aerospaceCommandTimeoutSeconds = 2.5
 local sketchybar = "/opt/homebrew/bin/sketchybar"
 local sketchybarUpdater = os.getenv("HOME") .. "/.config/sketchybar/plugins/aerospace_spaces_refresh.sh"
 local sketchybarNotifications = os.getenv("HOME") .. "/.config/sketchybar/plugins/ai_app_notifications.sh"
-local logPath = "/tmp/hammerspoon-workspace-inherit.log"
-local maxLogBytes = 256 * 1024
+-- Session-only opt-in; diagnostics are deliberately not a portable preference.
+-- From the Console: wowDiagnosticsUntil = os.time() + 900 (15 minutes).
+-- The writer accepts only fixed event codes, never titles or raw tool output.
+local diagnosticWriter = os.getenv("HOME") .. "/.hammerspoon/diagnostics.py"
 local inheritWindowSeconds = 10
 local jetbrainsDefaultWorkspace = "2"
 local jetbrainsInheritWindowSeconds = 120
@@ -195,8 +193,25 @@ local function isLikelyJetBrainsSecondaryTitle(title)
     return true
   end
 
-  return title:match("^(Welcome to|Settings|Preferences|Project Structure|Run/Debug Configurations|Edit Configuration|Plugins|Tip of the Day|New Project|Open File or Project|Attach Directory|About|Licenses|Choose|Select|Import|Export|Find|Replace|Search Everywhere|Local History|Commit|Push|Pull|Merge|Rebase|Checkout|Branch|Clone Repository|Delete|Rename|Remove|Move|Copy|Add File to Git|Edit Commit Message|Confirm|Discard|Overwrite|File Already Exists|Resolve Conflicts)")
-    ~= nil
+  -- Lua patterns do not support regex alternation. Require a word boundary so
+  -- a project called SettingsService or CommitTool is not mistaken for a dialog.
+  for _, prefix in ipairs({
+    "Welcome to", "Settings", "Preferences", "Project Structure",
+    "Run/Debug Configurations", "Edit Configuration", "Plugins", "Tip of the Day",
+    "New Project", "Open File or Project", "Attach Directory", "About", "Licenses",
+    "Choose", "Select", "Import", "Export", "Find", "Replace", "Search Everywhere",
+    "Local History", "Commit", "Push", "Pull", "Merge", "Rebase", "Checkout",
+    "Branch", "Clone Repository", "Delete", "Rename", "Remove", "Move", "Copy",
+    "Add File to Git", "Edit Commit Message", "Confirm", "Discard", "Overwrite",
+    "File Already Exists", "Resolve Conflicts",
+  }) do
+    if title:sub(1, #prefix) == prefix then
+      local nextChar = title:sub(#prefix + 1, #prefix + 1)
+      local suffix = title:sub(#prefix + 1)
+      if nextChar == "" or nextChar:match("[%s:%-%(]") or suffix:match("^—") or suffix:match("^–") then return true end
+    end
+  end
+  return false
 end
 
 local function appendWorkspaceCandidate(result, seen, workspace)
@@ -206,18 +221,11 @@ local function appendWorkspaceCandidate(result, seen, workspace)
   end
 end
 
-local function log(message)
-  local attrs = hs.fs.attributes(logPath)
-  if attrs and attrs.size and attrs.size > maxLogBytes then
-    os.remove(logPath .. ".1")
-    os.rename(logPath, logPath .. ".1")
-  end
-
-  local file = io.open(logPath, "a")
-  if file then
-    file:write(os.date("%Y-%m-%d %H:%M:%S "), message, "\n")
-    file:close()
-  end
+local function log(event, exitCode)
+  if type(_G.wowDiagnosticsUntil) ~= "number" or os.time() >= _G.wowDiagnosticsUntil then return end
+  local task = hs.task.new("/usr/bin/python3", nil,
+    { diagnosticWriter, event, tostring(tonumber(exitCode) or 0) })
+  if task then task:start() end
 end
 
 local function parseFirstWindowLine(line)
@@ -255,7 +263,7 @@ local function runAerospace(args, callback)
     end
 
     if exitCode ~= 0 then
-      log("aerospace failed exit=" .. tostring(exitCode) .. " args=" .. table.concat(args, " ") .. " stderr=" .. (stderr or ""))
+      log("aerospace-failed", exitCode)
       callback(nil, exitCode, stderr)
       return
     end
@@ -272,7 +280,7 @@ local function runAerospace(args, callback)
     if task and task:isRunning() then
       task:terminate()
     end
-    log("aerospace timed out args=" .. table.concat(args, " "))
+    log("aerospace-timeout", 124)
     callback(nil, 124, "timeout")
   end)
 
@@ -465,7 +473,7 @@ local function runAerospaceSequence(commands, callback)
 
     runAerospace(command, function(_, exitCode)
       if exitCode ~= 0 then
-        log("aerospace sequence failed at " .. table.concat(command, " "))
+        log("aerospace-sequence-failed")
         if callback then
           callback(false)
         end
@@ -594,7 +602,7 @@ local function refreshAINotifications()
       _G.wowAINotificationRefreshTask:terminate()
     end
 
-    log("ai notification refresh timed out; restarting")
+    log("notification-timeout")
     aiNotificationRefreshRunning = false
     _G.wowAINotificationRefreshTask = nil
   end
@@ -605,7 +613,7 @@ local function refreshAINotifications()
     aiNotificationRefreshRunning = false
     _G.wowAINotificationRefreshTask = nil
     if exitCode ~= 0 then
-      log("ai notification refresh failed exit=" .. tostring(exitCode) .. " stderr=" .. (stderr or ""))
+      log("notification-refresh-failed", exitCode)
     end
   end, { "paint" })
   _G.wowAINotificationRefreshTask:start()
@@ -630,7 +638,7 @@ local function requestClearAINotification(app)
   aiNotificationLastClearAt[app] = now
   hs.task.new(sketchybarNotifications, function(exitCode, stdout, stderr)
     if exitCode ~= 0 then
-      log("ai notification clear request failed app=" .. tostring(app) .. " exit=" .. tostring(exitCode) .. " stderr=" .. (stderr or ""))
+      log("notification-clear-failed", exitCode)
       return
     end
 
@@ -709,7 +717,7 @@ local function terminalTilingWindowsForWorkspace(windows, workspace)
   for _, item in ipairs(windows or {}) do
     if item.workspace == workspace and item.layout ~= "floating" then
       if not isTerminalMasterStackBundle(item.bundleID) then
-        log("skip terminal master-stack workspace=" .. workspace .. " because of non-terminal window bundle=" .. tostring(item.bundleID))
+        log("terminal-stack-skipped")
         return nil
       end
       tilingWindows[#tilingWindows + 1] = item
@@ -771,7 +779,7 @@ local function prepareTerminalSplitForNewWindow(callback)
         splitDirection = "vertical"
       end
 
-      log("terminal new-window split workspace=" .. focused.workspace .. " windows=" .. tostring(#tilingWindows) .. " target=" .. tostring(target.id) .. " direction=" .. splitDirection)
+      log("terminal-window-split")
       runAerospaceSequence({
         { "focus", "--window-id", target.id },
         { "split", splitDirection },
@@ -855,7 +863,7 @@ local function moveCreatedWindow(win, bundleID, title, workspaceCandidates, key)
         targetWorkspace = chooseTargetWorkspace(item, effectiveWorkspaceCandidates)
       end
       pendingTargetsByWindow[key] = targetWorkspace
-      log("target " .. bundleID .. " window=" .. item.id .. " target=" .. targetWorkspace .. " candidates=" .. table.concat(effectiveWorkspaceCandidates, ",") .. " current=" .. item.workspace .. " title=" .. title)
+      log("inherit-target")
     end
 
     if item.workspace == targetWorkspace then
@@ -864,14 +872,14 @@ local function moveCreatedWindow(win, bundleID, title, workspaceCandidates, key)
     end
 
     movingWindows[key] = true
-    log("inherit " .. bundleID .. " window=" .. item.id .. " " .. item.workspace .. " -> " .. targetWorkspace .. " title=" .. title)
+    log("inherit-move")
     hs.task.new(aerospace, function(exitCode)
       movingWindows[key] = nil
       if exitCode == 0 then
         movedWindows[key] = true
         hs.timer.doAfter(0.15, refreshSketchyBar)
       else
-        log("inherit failed " .. bundleID .. " window=" .. item.id .. " exit=" .. tostring(exitCode) .. " title=" .. title)
+        log("inherit-failed", exitCode)
       end
     end, {
       "move-node-to-workspace",
@@ -907,7 +915,7 @@ local function inheritWorkspaceForCreatedWindow(win)
   end
 
   if fixedWorkspaceAppByBundle[bundleID] then
-    log("skip inherit fixed workspace " .. bundleID .. " target=" .. fixedWorkspaceAppByBundle[bundleID])
+    log("inherit-fixed-skipped")
     return
   end
 
@@ -924,7 +932,7 @@ local function inheritWorkspaceForCreatedWindow(win)
     retryDelays = jetbrainsInheritRetryDelays
   end
 
-  log("created " .. bundleID .. " candidates=" .. table.concat(workspaceCandidates, ",") .. " title=" .. title)
+  log("window-created")
   for _, delay in ipairs(retryDelays) do
     hs.timer.doAfter(delay, function()
       moveCreatedWindow(win, bundleID, title, workspaceCandidates, key)
@@ -966,12 +974,12 @@ local function repairExistingJetBrainsSecondaryWindows()
         local candidates = mergeJetBrainsOpenWindowCandidates(item.bundleID, item, recentWorkspaceCandidates(item.bundleID), windows)
         local targetWorkspace = chooseJetBrainsTargetWorkspace(item, candidates)
         if targetWorkspace and item.workspace ~= targetWorkspace then
-          log("repair existing " .. item.bundleID .. " window=" .. item.id .. " " .. item.workspace .. " -> " .. targetWorkspace .. " title=" .. item.title)
+          log("dialog-repair")
           hs.task.new(aerospace, function(exitCode)
             if exitCode == 0 then
               hs.timer.doAfter(0.15, refreshSketchyBar)
             else
-              log("repair existing failed " .. item.bundleID .. " window=" .. item.id .. " exit=" .. tostring(exitCode) .. " title=" .. item.title)
+              log("dialog-repair-failed", exitCode)
             end
           end, {
             "move-node-to-workspace",
@@ -1084,5 +1092,5 @@ else
     _G.wowAIApplicationWatcher = nil
   end
 end
-log("workspace inherit watcher started")
-hs.autoLaunch(true)
+log("watcher-started")
+return { isLikelyJetBrainsSecondaryTitle = isLikelyJetBrainsSecondaryTitle }

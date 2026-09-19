@@ -417,8 +417,8 @@ assert_not_contains "$with_hs" "not found" "With Hammerspoon there is nothing to
 without_hs="$(resolver_probe "/nonexistent/hs")"
 assert_contains "$without_hs" "Hammerspoon CLI (hs) not found" \
   "A missing Hammerspoon is reported, not swallowed"
-assert_contains "$without_hs" "id=1" \
-  "Without Hammerspoon the resolver falls back to the aerospace monitor order"
+assert_not_contains "$without_hs" "id=1" \
+  "Without Hammerspoon the resolver must not substitute AeroSpace numbering"
 
 # SketchyBar answers `--query displays` with an empty list often enough - after
 # a monitor is unplugged, notably - that what happens next is a normal path.
@@ -444,10 +444,10 @@ empty_displays="$(env -u XDG_STATE_HOME "HOME=$home_dir" "PATH=/usr/bin:/bin" \
     . "$HOME/.config/sketchybar/lib/display-resolver.sh"
     printf "id=%s\n" "$(sketchybar_display_id_for_monitor "PHL 279C9" || printf "")"
   ' 2>&1)"
-assert_contains "$empty_displays" "id=2" \
-  "An empty display list must fall back to macOS's arrangement, not AeroSpace's order"
-assert_contains "$empty_displays" "using macOS's display arrangement" \
-  "Taking that route must say which order produced the answer"
+assert_not_contains "$empty_displays" "id=2" \
+  "An empty display list cannot prove an arrangement ID"
+assert_contains "$empty_displays" "refusing to guess" \
+  "Unknown identity is explicit"
 
 # Neither program: no answer, and the caller can tell.
 without_either="$(env -u XDG_STATE_HOME "HOME=$home_dir" "PATH=/usr/bin:/bin" \
@@ -469,9 +469,9 @@ run_bar_script "$home_dir" "$fixture" \
   "HS_BIN=/nonexistent/hs" "AEROSPACE_BIN=/nonexistent/aerospace" "SKETCHYBAR_BIN=$stub_dir/sketchybar" \
   "$home_dir/.config/sketchybar/items/spaces.sh"
 assert_status 0 "$last_status" "Workspace items must be created with neither hs nor aerospace" "$last_output"
-displays="$(grep -o -- '--set space\.[0-9]* display=[0-9]*' "$fixture/sketchybar.log" |
+displays="$(grep -o -- '--set space\.[0-9]* display=[a-z0-9]*' "$fixture/sketchybar.log" |
   sed 's/.*display=//' | LC_ALL=C sort -u | tr '\n' ' ')"
-assert_equal "1 " "$displays" "Unresolvable displays collapse onto the one that always exists"
+assert_equal "all " "$displays" "Unresolvable displays show unassigned chips on all screens"
 
 # --- case: a monitor comes or goes -------------------------------------------
 # A chip carries a real display id, because workspaces 7-12 belong on the side
@@ -571,10 +571,8 @@ last_output="$(env -u XDG_STATE_HOME "HOME=$bare_home" "PATH=/usr/bin:/bin" \
     printf "visible=%s\n" "$(sketchybar_visible_display_list_excluding 1)"
   ' 2>&1)" || last_status=$?
 assert_status 0 "$last_status" "The display resolver must load without SketchyBar installed" "$last_output"
-assert_contains "$last_output" "visible=all" \
-  "Without SketchyBar the display list degrades to every display instead of failing"
-assert_contains "$last_output" "cannot enumerate displays" \
-  "Degrading to every display is announced rather than silent"
+assert_not_contains "$last_output" "visible=all" \
+  "Without SketchyBar the display list cannot promise a main-only hide"
 
 # --- case: theme reaches the arguments SketchyBar is given --------------------
 
@@ -653,7 +651,8 @@ STUB
 chmod +x "$solo_root/bin/aerospace"
 
 solo_status=0
-solo_output="$(env -i "HOME=$solo_root/home" PATH=/usr/bin:/bin \
+solo_output="$(env -i "HOME=$solo_root/home" "TMPDIR=$TMPDIR" PATH=/usr/bin:/bin \
+  "SKETCHYBAR_BIN=/nonexistent/sketchybar" \
   "AEROSPACE_BIN=$solo_root/bin/aerospace" "AEROSPACE=$solo_root/bin/aerospace" \
   /bin/bash "$solo_root/home/.config/aerospace/toggle-sketchybar-space.sh" apply 2>&1)" || solo_status=$?
 

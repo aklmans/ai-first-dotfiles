@@ -1,7 +1,9 @@
 """Read-only configuration health; never mistakes a file for a live service."""
 import json
 from pathlib import Path
+import plistlib
 import shutil
+import sys
 
 from maintenance import Refused, guard, run_child
 
@@ -10,6 +12,29 @@ FEATURES = {"notifications": "AI_FIRST_FEATURE_NOTIFICATIONS", "recording": "AI_
 COMMANDS = {"workspace": ["aerospace"], "bar": ["sketchybar"], "borders": ["borders"],
             "terminal": ["kaku"], "shell": ["starship", "yazi"], "media": ["mpv"]}
 APPS = {"capslock": "Karabiner-Elements", "automation": "Hammerspoon", "gestures": "BetterTouchTool", "warp": "Warp"}
+
+
+def workspace_shortcut_conflicts(home, repo):
+    """Read saved preferences only; never change OS shortcuts or assume runtime."""
+    path = home / "Library/Preferences/com.apple.symbolichotkeys.plist"
+    if not path.is_file():
+        return []
+    guard(path, home)
+    sys.path.insert(0, str(repo / "home/.config/aerospace/lib/vendor"))
+    import tomli
+    bindings = tomli.loads((home / ".aerospace.toml").read_text()).get("mode", {}).get("main", {}).get("binding", {})
+    hotkeys = plistlib.loads(path.read_bytes()).get("AppleSymbolicHotKeys", {})
+    # Physical number-row keys used by the shipped QWERTY bindings.
+    keys = {18: "1", 19: "2", 20: "3", 21: "4", 23: "5", 22: "6", 26: "7", 28: "8", 25: "9", 29: "0"}
+    result = []
+    for identifier, entry in hotkeys.items():
+        parameters = entry.get("value", {}).get("parameters", [])
+        if not entry.get("enabled") or len(parameters) != 3 or parameters[2] != 262144:
+            continue
+        chord = "ctrl-" + keys.get(parameters[1], "?")
+        if chord in bindings:
+            result.append("%s conflicts with enabled macOS symbolic hotkey %s (saved preference)" % (chord, identifier))
+    return sorted(result)
 
 
 def doctor(service, choices):
@@ -29,6 +54,13 @@ def doctor(service, choices):
         print("No confirmed selection; unselected modules are not reported missing.")
         service.select([])
         return valid
+    if "workspace" in modules:
+        try:
+            for warning in workspace_shortcut_conflicts(service.home, service.repo):
+                print("  WARNING " + warning)
+                print("  MANUAL  System Settings → Keyboard → Keyboard Shortcuts → Mission Control; disable only the conflicting Desktop shortcut.")
+        except (OSError, ValueError, TypeError, AttributeError, Refused) as error:
+            print("  WARNING saved macOS shortcut check unavailable: " + type(error).__name__)
     flags = {}
     try:
         keys = sorted(set(FEATURES.values()))

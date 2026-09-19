@@ -32,7 +32,7 @@ if [ -r "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh" ]; then
   source "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh"
 else
   sketchybar_display_id_for_monitor() { return 1; }
-  sketchybar_visible_display_list_excluding() { printf 'all\n'; }
+  sketchybar_visible_display_list_excluding() { return 1; }
 fi
 
 # How much room AeroSpace leaves above the windows has to be however tall the
@@ -72,10 +72,15 @@ bar_hidden() {
 
 rewrite_outer_gaps() {
   local profile="$1"
+  local expected candidate status
   ai_first_write_path_check "$AEROSPACE_CONFIG"
+  expected="$(ai_first_file_state "$AEROSPACE_CONFIG")"
+  candidate="$(mktemp "${TMPDIR:-/tmp}/ai-first-gaps.XXXXXX")"
+  status=0
   /usr/bin/python3 - "$AEROSPACE_CONFIG" "$profile" "$MAIN_MONITOR_NAME" \
-    "$GAP_TOP_NORMAL" "$GAP_TOP_COMPACT" <<'PY'
+    "$GAP_TOP_NORMAL" "$GAP_TOP_COMPACT" >"$candidate" <<'PY' || status=$?
 import pathlib
+import re
 import sys
 
 # Rewrites only the [gaps] table, between its markers.
@@ -115,7 +120,8 @@ def gap_lines(key, fallback):
     if profile != "main-compact" or not main_monitor_name:
         return [f"    {key} = {fallback}\n"]
 
-    escaped = main_monitor_name.replace("\\", "\\\\").replace('"', '\\"')
+    pattern = "^" + re.sub(r'([\\.^$|?*+()\[\]{}])', r'\\\1', main_monitor_name) + "$"
+    escaped = pattern.replace("\\", "\\\\").replace('"', '\\"')
     return [
         f"    {key} = [\n",
         f'        {{ monitor."{escaped}" = 8 }},\n',
@@ -181,9 +187,16 @@ else:
         + lines[end:]
     )
 
-if new_lines != lines:
-    path.write_text("".join(new_lines), encoding="utf-8")
+sys.stdout.write("".join(new_lines))
 PY
+  if [ "$status" -eq 0 ]; then
+    /usr/bin/python3 "$SCRIPT_DIR/lib/validate-toml.py" "$candidate" || status=$?
+  fi
+  if [ "$status" -eq 0 ] && ! cmp -s "$candidate" "$AEROSPACE_CONFIG"; then
+    ai_first_replace_file "$candidate" "$AEROSPACE_CONFIG" gaps "$expected" || status=$?
+  fi
+  rm -f "$candidate"
+  return "$status"
 }
 
 reload_aerospace() {
@@ -206,12 +219,17 @@ reload_aerospace() {
   done
 
   "$AEROSPACE_BIN" reload-config >/dev/null
-  "$AEROSPACE_BIN" balance-sizes >/dev/null 2>&1 || true
+  # Hiding the bar must not rebalance a user's manually sized window tree.
 }
 
 set_bar_hidden() {
   local value="$1"
   local attempt
+
+  if [ ! -x "$SKETCHYBAR_BIN" ]; then
+    printf 'SketchyBar is not installed; skipping bar visibility (gaps only).\n' >&2
+    return 0
+  fi
 
   for attempt in $(/usr/bin/seq 1 20); do
     if "$SKETCHYBAR_BIN" --bar hidden="$value" display=all >/dev/null 2>&1; then
@@ -220,12 +238,18 @@ set_bar_hidden() {
     /bin/sleep 0.1
   done
 
-  return 0
+  printf 'SketchyBar did not accept the visibility change.\n' >&2
+  return 1
 }
 
 set_bar_main_hidden() {
   local value="$1"
   local main_display_id visible_displays
+
+  if [ ! -x "$SKETCHYBAR_BIN" ]; then
+    set_bar_hidden "$value"
+    return "$?"
+  fi
 
   # With one display, "the main display" and "the bar" are the same thing. The
   # per-display path below would ask SketchyBar to keep the bar visible on
@@ -233,18 +257,14 @@ set_bar_main_hidden() {
   # bar would stay put and the shortcut would appear to do nothing.
   if [ "${AEROSPACE_MONITOR_COUNT:-0}" -le 1 ]; then
     set_bar_hidden "$value"
-    return 0
+    return "$?"
   fi
 
   main_display_id="${SKETCHYBAR_HIDE_DISPLAY_ID:-$(sketchybar_display_id_for_monitor "$MAIN_MONITOR_NAME" || true)}"
   if [ -z "$main_display_id" ]; then
-    # Hammerspoon or SketchyBar could not map the monitor to an arrangement id.
-    # Hiding the whole bar is the honest reading of "hide the bar on my main
-    # screen" when the screens cannot be told apart, and beats refusing.
-    printf 'Unable to resolve SketchyBar display id for monitor "%s"; hiding the whole bar instead.\n' \
+    printf 'Unable to resolve SketchyBar display identity for monitor "%s"; leaving all bars unchanged.\n' \
       "$MAIN_MONITOR_NAME" >&2
-    set_bar_hidden "$value"
-    return 0
+    return 1
   fi
 
   if [ "$value" = "on" ]; then
@@ -304,6 +324,14 @@ ai_first_write_path_check "$AEROSPACE_CONFIG"
 ai_first_write_path_check "$STATE_FILE"
 ai_first_write_lock_acquire
 trap 'ai_first_write_lock_release' EXIT
+
+# Identity preflight before touching gaps or bars. Never expand a main-only
+# request into a whole-desktop change when the screen cannot be identified.
+if [ "$mode" = "hide-main" ] && [ "${AEROSPACE_MONITOR_COUNT:-0}" -gt 1 ] && [ -x "$SKETCHYBAR_BIN" ]; then
+  SKETCHYBAR_HIDE_DISPLAY_ID="${SKETCHYBAR_HIDE_DISPLAY_ID:-$(sketchybar_display_id_for_monitor "$MAIN_MONITOR_NAME")}" || exit 1
+  [ -n "$SKETCHYBAR_HIDE_DISPLAY_ID" ] || exit 1
+  sketchybar_visible_display_list_excluding "$SKETCHYBAR_HIDE_DISPLAY_ID" >/dev/null || exit 1
+fi
 
 if [ "$mode" = "hide" ]; then
   rewrite_outer_gaps compact

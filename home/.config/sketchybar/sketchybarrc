@@ -18,8 +18,8 @@ PLUGIN_DIR="$CONFIG_DIR/plugins" # Directory where all the plugin scripts are st
 FONT="$THEME_FONT" # Needs Regular, Bold, Semibold, Heavy and Black variants
 PADDINGS="$THEME_ITEM_PADDING" # All paddings use this value (icon, label, background)
 
-# Unload the macOS on screen indicator overlay for volume change
-launchctl unload -F /System/Library/LaunchAgents/com.apple.OSDUIHelper.plist > /dev/null 2>&1 &
+# System volume/brightness overlays belong to macOS. Loading a bar must not
+# change their service state, including attempting to undo old installations.
 
 # Setting up the general bar appearance of the bar
 bar=(

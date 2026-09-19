@@ -1,7 +1,7 @@
 local aerospace = "/opt/homebrew/bin/aerospace"
 local sketchybar = "/opt/homebrew/bin/sketchybar"
 local sketchybarNotifications = os.getenv("HOME") .. "/.config/sketchybar/plugins/ai_app_notifications.sh"
-local logPath = "/tmp/hammerspoon-app-reveal.log"
+local diagnosticWriter = os.getenv("HOME") .. "/.hammerspoon/diagnostics.py"
 local revealDelaySeconds = 0.12
 local revealCooldownSeconds = 0.8
 local clearAttentionCooldownSeconds = 1.5
@@ -15,23 +15,22 @@ local revealAppByBundle = {
   ["com.jetbrains.goland"] = "goland",
 }
 
-local function log(message)
-  local file = io.open(logPath, "a")
-  if file then
-    file:write(os.date("%Y-%m-%d %H:%M:%S "), message, "\n")
-    file:close()
-  end
+local function log(event, exitCode)
+  if type(_G.wowDiagnosticsUntil) ~= "number" or os.time() >= _G.wowDiagnosticsUntil then return end
+  local task = hs.task.new("/usr/bin/python3", nil,
+    { diagnosticWriter, event, tostring(tonumber(exitCode) or 0) })
+  if task then task:start() end
 end
 
 local function runAerospace(args, callback)
   if hs.fs.attributes(aerospace, "mode") ~= "file" then
-    log("missing aerospace binary: " .. aerospace)
+    log("aerospace-missing")
     return
   end
 
   hs.task.new(aerospace, function(exitCode, stdout, stderr)
     if exitCode ~= 0 then
-      log("aerospace failed exit=" .. tostring(exitCode) .. " args=" .. table.concat(args, " ") .. " stderr=" .. (stderr or ""))
+      log("aerospace-failed", exitCode)
       if callback then
         callback(nil, exitCode, stderr)
       end
@@ -97,11 +96,11 @@ local function revealBundle(bundleID)
   }, function(output)
     local target = chooseWindow(parseWindowList(output))
     if not target then
-      log("no window for " .. bundleID)
+      log("reveal-no-window")
       return
     end
 
-    log("reveal " .. bundleID .. " window=" .. target.id .. " workspace=" .. target.workspace .. " title=" .. target.title)
+    log("reveal-window")
     runAerospace({ "workspace", target.workspace }, function()
       runAerospace({ "focus", "--window-id", target.id }, function()
         if hs.fs.attributes(sketchybarNotifications, "mode") == "file" then
@@ -132,7 +131,7 @@ local function clearAttention(bundleID)
     return
   end
 
-  log("clear attention " .. bundleID)
+  log("attention-clear")
   hs.task.new(sketchybarNotifications, function()
     if hs.fs.attributes(sketchybar, "mode") == "file" then
       hs.task.new(sketchybar, nil, { "--trigger", "ai_notification_sync" }):start()
@@ -160,4 +159,4 @@ _G.wowAppRevealWatcher = hs.application.watcher.new(function(appName, eventType,
 end)
 
 _G.wowAppRevealWatcher:start()
-log("app attention clear watcher started")
+log("attention-watcher-started")

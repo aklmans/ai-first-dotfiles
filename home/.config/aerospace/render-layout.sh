@@ -109,6 +109,21 @@ toml_string() {
     esac
 }
 
+# Configured display names are literals, not AeroSpace regex substrings.
+# Escape regex metacharacters before adding anchors; TOML escaping is separate.
+monitor_pattern() {
+    local value="$1" char result="" index=0
+    while [ "$index" -lt "${#value}" ]; do
+        char="${value:$index:1}"
+        case "$char" in
+            '.'|'\'|'['|']'|'('|')'|'{'|'}'|'*'|'+'|'?'|'^'|'$'|'|') result="${result}\\${char}" ;;
+            *) result="${result}${char}" ;;
+        esac
+        index=$((index + 1))
+    done
+    toml_string "^${result}\$"
+}
+
 # Where a role's workspaces go, in order of preference: its own display, then
 # the displays the other roles are on, then the keywords AeroSpace understands
 # on a Mac whose config names nothing.
@@ -133,26 +148,26 @@ role_monitor_patterns() {
     # where an absent display sends its workspaces.
     case "$role" in
         main)
-            [ -z "$main_name" ] || printf '%s\n' "$(toml_string "$main_name")"
+            [ -z "$main_name" ] || printf '%s\n' "$(monitor_pattern "$main_name")"
             printf "'main'\n"
             ;;
         side)
-            [ -z "$side_name" ] || printf '%s\n' "$(toml_string "$side_name")"
+            [ -z "$side_name" ] || printf '%s\n' "$(monitor_pattern "$side_name")"
             if [ -n "$main_name" ] && [ "$main_name" != "$side_name" ]; then
-                printf '%s\n' "$(toml_string "$main_name")"
+                printf '%s\n' "$(monitor_pattern "$main_name")"
             fi
             printf "'secondary'\n"
             printf "'main'\n"
             ;;
         stage)
-            [ -z "$stage_name" ] || printf '%s\n' "$(toml_string "$stage_name")"
+            [ -z "$stage_name" ] || printf '%s\n' "$(monitor_pattern "$stage_name")"
             printf "'built-in'\n"
             if [ -n "$side_name" ] && [ "$side_name" != "$stage_name" ]; then
-                printf '%s\n' "$(toml_string "$side_name")"
+                printf '%s\n' "$(monitor_pattern "$side_name")"
             fi
             if [ -n "$main_name" ] && [ "$main_name" != "$stage_name" ] &&
                 [ "$main_name" != "$side_name" ]; then
-                printf '%s\n' "$(toml_string "$main_name")"
+                printf '%s\n' "$(monitor_pattern "$main_name")"
             fi
             printf "'secondary'\n"
             printf "'main'\n"

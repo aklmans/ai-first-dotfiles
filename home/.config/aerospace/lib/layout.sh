@@ -567,6 +567,15 @@ EOF
     count=${#monitor_ids[@]}
     AEROSPACE_MONITOR_COUNT="$count"
 
+    # AeroSpace's regex names are case-insensitive. A name cannot select one of
+    # two identically named displays, and taking the first would hide ambiguity.
+    if ! printf '%s\n' "$lines" | /usr/bin/awk -F '\t' '
+        NF >= 2 { if (++seen[tolower($2)] > 1) ambiguous=1 }
+        END { exit ambiguous ? 1 : 0 }'; then
+        printf 'aerospace: ambiguous duplicate monitor names; refusing name-based resolution. Use explicit per-tool display assignment after inspection.\n' >&2
+        return 65
+    fi
+
     if [ "$count" -eq 0 ]; then
         # Nothing to resolve against: report the configured names so callers can
         # still print something meaningful, with no ids.
@@ -582,7 +591,8 @@ EOF
 
         index=0
         while [ "$index" -lt "$count" ]; do
-            if [ "${monitor_claimed[$index]}" -eq 0 ] && [ "${monitor_names[$index]}" = "$configured" ]; then
+            if [ "${monitor_claimed[$index]}" -eq 0 ] &&
+                [ "$(printf '%s' "${monitor_names[$index]}" | /usr/bin/tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$configured" | /usr/bin/tr '[:upper:]' '[:lower:]')" ]; then
                 monitor_claimed[$index]=1
                 aerospace_layout_set_resolved "$role" "${monitor_names[$index]}" "${monitor_ids[$index]}"
                 break

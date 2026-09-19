@@ -27,4 +27,8 @@ Hammerspoon automation notes:
 - Allow Accessibility and Automation permissions when macOS prompts.
 - Hammerspoon clears SketchyBar AI attention state by writing clear requests; it does not need Full Disk Access for notification databases.
 - If Hammerspoon is already running, reload its config from the menu bar icon.
+- Optional, explicit one-time choices in Hammerspoon Console:
+  require("hs.ipc").cliInstall()  -- install the hs CLI if you want shell integration
+  hs.autoLaunch(true)            -- enable launch at login if you want it
+- Loading this configuration does not install the CLI or change login settings.
 EOF

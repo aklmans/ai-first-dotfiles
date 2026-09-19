@@ -2,6 +2,7 @@ local aerospace = "/opt/homebrew/bin/aerospace"
 
 local module = {}
 local pendingWindow = nil
+local preparing = false
 local home = os.getenv("HOME") or ""
 local sketchybarSpaceScript = home .. "/.config/aerospace/toggle-sketchybar-space.sh"
 local recordingTargetScript = home .. "/.config/aerospace/recording-target.sh"
@@ -43,27 +44,31 @@ local presets = {
   },
 }
 
-local function runAerospace(args, callback)
-  if hs.fs.attributes(aerospace, "mode") ~= "file" then
-    if callback then
-      callback(false)
-    end
-    return
+local function runShell(command, args, callback)
+  local finished, timer, task = false, nil, nil
+  local function done(ok)
+    if finished then return end
+    finished = true
+    if timer then timer:stop() end
+    if callback then callback(ok) end
   end
-
-  hs.task.new(aerospace, function(exitCode)
-    if callback then
-      callback(exitCode == 0)
-    end
-  end, args):start()
+  task = hs.task.new(command, function(exitCode) done(exitCode == 0) end, args)
+  if not task or not task:start() then done(false); return end
+  if not finished then
+    timer = hs.timer.doAfter(15, function()
+      if finished then return end
+      if task:isRunning() then task:terminate() end
+      done(false)
+    end)
+  end
 end
 
-local function runShell(command, args, callback)
-  hs.task.new(command, function(exitCode)
-    if callback then
-      callback(exitCode == 0)
-    end
-  end, args):start()
+local function runAerospace(args, callback)
+  if hs.fs.attributes(aerospace, "mode") ~= "file" then
+    if callback then callback(false) end
+    return
+  end
+  runShell(aerospace, args, callback)
 end
 
 local function setSketchybarSpaceMode(mode, callback)
@@ -88,7 +93,11 @@ local function openRecorder()
 end
 
 local function standardVisibleWindow(win)
-  return win and win:isStandard() and win:isVisible() and not win:isMinimized()
+  if not win then return false end
+  local ok, visible = pcall(function()
+    return win:id() ~= nil and win:isStandard() and win:isVisible() and not win:isMinimized()
+  end)
+  return ok and visible
 end
 
 local function frontmostAppWindow()
@@ -118,8 +127,10 @@ local function frontmostAppWindow()
 end
 
 local function targetWindow(winOverride)
-  if standardVisibleWindow(winOverride) then
-    return winOverride
+  if winOverride then
+    -- An explicitly selected window disappearing is not permission to resize
+    -- whatever unrelated window happened to gain focus in the meantime.
+    return standardVisibleWindow(winOverride) and winOverride or nil
   end
 
   local focused = hs.window.focusedWindow()
@@ -142,6 +153,8 @@ end
 local function moveWindowToWorkspace(win, workspace, callback)
   local args = { "move-node-to-workspace", "--focus-follows-window" }
   local windowID = win and win:id()
+
+  if not windowID then callback(false); return end
 
   if windowID then
     table.insert(args, "--window-id")
@@ -217,10 +230,19 @@ local function applyFrameAfterFloating(win, rect, label, callback)
     return
   end
 
-  win:focus()
-  runAerospace(layoutArgsForWindow(win, "floating"), function()
+  if not pcall(function() win:focus() end) then
+    hs.alert.show("Recording window is no longer available")
+    if callback then callback(false) end
+    return
+  end
+  runAerospace(layoutArgsForWindow(win, "floating"), function(ok)
+    if not ok then
+      hs.alert.show("Could not float recording window; preparation stopped")
+      if callback then callback(false) end
+      return
+    end
     hs.timer.doAfter(0.08, function()
-      if not win:isStandard() then
+      if not standardVisibleWindow(win) then
         hs.alert.show("Focused window cannot be resized")
         if callback then
           callback(false)
@@ -228,12 +250,22 @@ local function applyFrameAfterFloating(win, rect, label, callback)
         return
       end
 
-      win:setFrame(rect, 0)
-      win:focus()
-      hs.alert.show(string.format("%s: %dx%d", label, rect.w, rect.h), 0.8)
-      if callback then
-        callback(true)
-      end
+      local resized = pcall(function() win:setFrame(rect, 0) end)
+      hs.timer.doAfter(0.15, function()
+        local readOK, actual = pcall(function() return win:frame() end)
+        local matches = resized and readOK and actual ~= nil
+        for _, key in ipairs({ "x", "y", "w", "h" }) do
+          matches = matches and type(actual[key]) == "number" and math.abs(actual[key] - rect[key]) <= 3
+        end
+        if not matches then
+          hs.alert.show("Recording window refused the requested size; preparation stopped")
+          if callback then callback(false) end
+          return
+        end
+        win:focus()
+        hs.alert.show(string.format("%s: %dx%d points", label, rect.w, rect.h), 0.8)
+        if callback then callback(true) end
+      end)
     end)
   end)
 end
@@ -280,6 +312,7 @@ function module.restoreTiling()
 end
 
 function module.enterRecordingMode(name, winOverride)
+  if preparing then hs.alert.show("Recording preparation is already running"); return end
   local workspace = recordingWorkspace()
   if not workspace then
     hs.alert.show("Recording workspace is invalid; run AeroSpace plan.sh --check")
@@ -292,22 +325,30 @@ function module.enterRecordingMode(name, winOverride)
   end
 
   local presetName = name or "16x9"
+  preparing = true
+  local function stop(message)
+    preparing = false
+    if message then hs.alert.show(message .. "; earlier steps may remain applied") end
+  end
 
   moveWindowToWorkspace(win, workspace, function(ok)
     if not ok then
-      hs.alert.show("Could not move window to recording workspace")
+      stop("Could not move window to recording workspace")
       return
     end
 
     hs.timer.doAfter(0.25, function()
-      setSketchybarSpaceMode("hide", function()
+      if not standardVisibleWindow(win) then stop("Recording window disappeared"); return end
+      setSketchybarSpaceMode("hide", function(hidden)
+        if not hidden then stop("Could not hide the bar / compact gaps"); return end
         hs.timer.doAfter(0.25, function()
           applyPreset(presetName, win, {
             topInset = recordingTopInset,
             label = "Recording Mode",
           }, function(ok)
+            stop()
             if ok and not openRecorder() then
-              hs.alert.show("Recording mode ready")
+              hs.alert.show("Window prepared; no supported recorder could be opened")
             end
           end)
         end)
@@ -317,8 +358,9 @@ function module.enterRecordingMode(name, winOverride)
 end
 
 function module.exitRecordingMode()
-  setSketchybarSpaceMode("show", function()
-    hs.alert.show("Recording Mode off", 0.8)
+  if preparing then hs.alert.show("Wait for recording preparation to finish"); return end
+  setSketchybarSpaceMode("show", function(ok)
+    hs.alert.show(ok and "Bar / gaps restored (window remains floating)" or "Could not restore bar / gaps", 1.5)
   end)
 end
 

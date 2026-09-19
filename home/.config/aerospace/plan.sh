@@ -89,7 +89,9 @@ esac
 
 printf '\nDisplay roles:\n'
 printf '  %-6s %-30s %s\n' 'ROLE' 'WORKSPACES' 'DISPLAY'
-aerospace_layout_resolve
+if ! aerospace_layout_resolve; then
+  report_issue 'Display identity is ambiguous; no name-based role resolution is safe.'
+fi
 for physical_role in $(aerospace_layout_roles); do
   workspaces="$(aerospace_layout_workspaces_for_role "$physical_role")"
   [ -n "$workspaces" ] || continue

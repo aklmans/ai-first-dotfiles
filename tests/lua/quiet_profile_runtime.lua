@@ -27,11 +27,18 @@ hs = {
     doEvery = function() timers = timers + 1; error("unexpected polling") end,
   },
   task = { new = function() tasks = tasks + 1; error("unexpected external task") end },
-  autoLaunch = function() end,
+  autoLaunch = function() error("reload must not change login settings") end,
+  ipc = { cliInstall = function() error("reload must not install CLI") end },
 }
 local stoppedOldWatcher = false
 _G.wowAppRevealWatcher = { stop = function() stoppedOldWatcher = true end }
-dofile(repo .. "/home/.hammerspoon/init.lua")
+local runtime = dofile(repo .. "/home/.hammerspoon/init.lua")
+for _, title in ipairs({ "", "Settings", "Preferences", "Project Structure", "Run/Debug Configurations", "Settings: synthetic", "Welcome to IntelliJ IDEA" }) do
+  assert(runtime.isLikelyJetBrainsSecondaryTitle(title), "dialog not recognized: " .. title)
+end
+for _, title in ipairs({ "SettingsService", "CommitTool", "synthetic-project – Main.java", "My Settings" }) do
+  assert(not runtime.isLikelyJetBrainsSecondaryTitle(title), "project misclassified: " .. title)
+end
 assert(stoppedOldWatcher and _G.wowAppRevealWatcher == nil, "notification opt-out must stop the activation watcher")
 for _, event in ipairs({ "focus", "create", "title", "destroy" }) do
   assert(subscriptions[event], "missing event double")
@@ -58,7 +65,7 @@ hs.alert = { show = function(message) alert = message end }
 hs.task.new = function(_, _, args)
   assert(args[1] == "move-node-to-workspace", "unexpected operation")
   destination = args[#args]
-  return { start = function() end }
+  return { start = function() return false end }
 end
 local recording = dofile(repo .. "/home/.hammerspoon/screencast.lua")
 recording.enterRecordingMode("16x9", win)

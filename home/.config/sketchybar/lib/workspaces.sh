@@ -159,8 +159,7 @@ sketchybar_workspace_list() {
 sketchybar_workspace_display_bindings() {
   local sid role name main_display="" side_display="" stage_display=""
 
-  # Arrangement id 1 always exists, so an unresolvable role puts its workspaces
-  # on a real display instead of on display 2 or 3 of a laptop that has neither.
+  # Unknown identity is visibly unassigned, not silently pinned to display 1.
   _binding_display_for_role() {
     local want="$1" target="$2" resolved=""
 
@@ -175,11 +174,7 @@ sketchybar_workspace_display_bindings() {
       resolved="${SKETCHYBAR_DISPLAY_ID:-}"
     fi
 
-    if [ -z "$resolved" ] && [ "$want" != "main" ]; then
-      resolved="$main_display"
-    fi
-
-    printf -v "$target" '%s' "${resolved:-1}"
+    printf -v "$target" '%s' "${resolved:-all}"
   }
 
   _binding_display_for_role main main_display

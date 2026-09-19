@@ -61,6 +61,7 @@ home/.config/ai-router/logs/
 **/cache/
 **/logs/
 **/state/
+home/.hammerspoon/diagnostics/
 home/.config/zsh/private.zsh
 home/.config/zsh/private.zprofile
 # Your own aliases. aliases.zsh ships only what makes sense on any Mac; the
