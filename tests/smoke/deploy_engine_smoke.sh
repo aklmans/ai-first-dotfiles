@@ -286,7 +286,7 @@ case_local_change_is_kept() {
 
 # --- case: an upstream change wins, after a backup --------------------------
 
-case_upstream_change_overwrites_after_backup() {
+case_both_changed_preserves_conflict() {
   local home fixture source_rel target ledger
   home="$(new_home)"
   fixture="$sandbox_root/upstream fixture"
@@ -306,19 +306,17 @@ case_upstream_change_overwrites_after_backup() {
     'an unchanged repo file must not overwrite a local edit'
   assert_equal 0 "$(backup_count "$home")" 'an unchanged repo file must not cause a backup'
 
-  # Now the repo really does ship a new version: it wins, and the local edit is
-  # backed up rather than dropped.
+  # Both changed: preserve user intent, report a conflict, retain the baseline.
   printf 'v2\n' >"$fixture/$source_rel/settings.conf"
   run_home "$home" "$deploy_helper" "$common_sh" "$fixture" "$source_rel" "$target" stamp3
-  assert_equal 'v2' "$(cat "$target/settings.conf" 2>/dev/null || true)" \
-    'a changed repo file must be deployed over a local edit'
-  assert_equal 1 "$(backup_count "$home")" 'the overwritten local edit must be backed up exactly once'
-  assert_equal 'my own edit' "$(cat "$target/settings.conf.backup_stamp3" 2>/dev/null || true)" \
-    'the backup must hold the local edit'
-  assert_file_contains "$ledger" 'settings.conf.backup_stamp3' 'the backup must be recorded in the ledger'
+  assert_equal 3 "$last_status" 'both changed must return incomplete deployment'
+  assert_equal 'my own edit' "$(cat "$target/settings.conf" 2>/dev/null || true)" \
+    'a changed repo file must not overwrite a local edit'
+  assert_equal 0 "$(backup_count "$home")" 'a conflict must leave the original in place'
 
   run_home "$home" "$deploy_helper" "$common_sh" "$fixture" "$source_rel" "$target" stamp4
-  assert_equal 1 "$(backup_count "$home")" 'a settled deploy must not back up again'
+  assert_equal 3 "$last_status" 'the conflict remains visible on retry'
+  assert_equal 0 "$(backup_count "$home")" 'retrying a conflict creates no backup'
 }
 
 # --- case: --force overwrites a local change --------------------------------
@@ -737,9 +735,9 @@ case_state_dir_failure_is_survivable() {
   printf 'in the way\n' >"$home/.local/state"
 
   run_home "$home" "$repo_root/bootstrap/install/ideavim.sh" --deploy-only
-  assert_equal 0 "$last_status" 'a ledger that cannot be written must not fail the deploy'
-  assert_exists "$home/.ideavimrc" 'the deploy must still happen'
-  assert_output_matches "$last_output" 'cannot write' 'the user must be told the ledger was skipped'
+  assert_equal 1 "$last_status" 'a ledger that cannot be written refuses deployment'
+  assert_missing "$home/.ideavimrc" 'no target is written without recovery state'
+  assert_output_matches "$last_output" 'cannot write' 'the user must be told why deployment was refused'
 }
 
 # A skipped symlink must not stop the modules that come after it. The people who
@@ -754,7 +752,7 @@ case_skipped_symlink_does_not_abort_setup() {
   RUN_ENV=("DOTFILES_SKIP_PREFLIGHT=1")
   run_home "$home" "$repo_root/bootstrap/setup.sh" deploy
 
-  assert_equal 0 "$last_status" 'a skipped symlink must not fail the whole run'
+  assert_equal 3 "$last_status" 'partial setup must return incomplete deployment'
   assert_exists "$home/.config/ai-router" 'modules after the skip must still deploy'
   assert_exists "$home/.hammerspoon" 'modules after the skip must still deploy'
   assert_output_matches "$last_output" 'left some paths untouched' \
@@ -793,8 +791,8 @@ case_unbackupable_file_is_not_replaced() {
   assert_equal 'USER PRECIOUS DATA' "$content" \
     'a file that could not be backed up must still hold what the user put there'
 
-  assert_output_matches "$last_output" '[Cc]ould not move' \
-    'the run must say the file could not be moved aside'
+  assert_output_matches "$last_output" '[Cc]ould not (move|stage)' \
+    'the run must explain why the original was left alone'
   assert_output_lacks "$last_output" "Backed up $guarded/app-routes.conf" \
     'a failed backup must never be reported as a backup'
 
@@ -816,7 +814,7 @@ case_unbackupable_file_is_not_replaced() {
 case_user_files_survive
 case_redeploy_is_idempotent
 case_local_change_is_kept
-case_upstream_change_overwrites_after_backup
+case_both_changed_preserves_conflict
 case_force_overwrites_local_change
 case_symlinked_file_is_refused
 case_symlinked_directory_is_refused

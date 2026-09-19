@@ -631,7 +631,7 @@ assert_equal "103" "$(read_theme "$deploy_home/.config/sketchybar" THEME_TOP_INS
 # an unguarded source of the SketchyBar resolver fails every login for anyone
 # who wants tiling without a status bar.
 
-solo_root="$(mktemp -d)"
+solo_root="$(mktemp -d "${TMPDIR:-/tmp}/sketchybar-solo.XXXXXX")"
 mkdir -p "$solo_root/home/.config/aerospace"
 cp "$repo_root"/home/.config/aerospace/*.sh "$solo_root/home/.config/aerospace/" 2>/dev/null || true
 cp "$repo_root"/home/.config/aerospace/*.conf "$solo_root/home/.config/aerospace/" 2>/dev/null || true

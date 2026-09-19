@@ -25,6 +25,7 @@ SKETCHYBAR_CONFIG_DIR="${SKETCHYBAR_CONFIG_DIR:-$HOME_DIR/.config/sketchybar}"
 
 # shellcheck source=lib/layout.sh
 source "$SCRIPT_DIR/lib/layout.sh"
+source "$SCRIPT_DIR/lib/write-guard.sh"
 # SketchyBar is optional: this runs from .aerospace.toml's after-startup-command,
 # so a missing resolver must degrade rather than fail the whole login.
 if [ -r "$SKETCHYBAR_CONFIG_DIR/lib/display-resolver.sh" ]; then
@@ -71,6 +72,7 @@ bar_hidden() {
 
 rewrite_outer_gaps() {
   local profile="$1"
+  ai_first_write_path_check "$AEROSPACE_CONFIG"
   /usr/bin/python3 - "$AEROSPACE_CONFIG" "$profile" "$MAIN_MONITOR_NAME" \
     "$GAP_TOP_NORMAL" "$GAP_TOP_COMPACT" <<'PY'
 import pathlib
@@ -254,6 +256,7 @@ set_bar_main_hidden() {
 }
 
 save_mode() {
+  ai_first_write_path_check "$STATE_FILE"
   /bin/mkdir -p "$STATE_DIR"
   /usr/bin/printf '%s\n' "$1" >"$STATE_FILE"
 }
@@ -296,6 +299,11 @@ case "$mode" in
     mode="show-main"
     ;;
 esac
+
+ai_first_write_path_check "$AEROSPACE_CONFIG"
+ai_first_write_path_check "$STATE_FILE"
+ai_first_write_lock_acquire
+trap 'ai_first_write_lock_release' EXIT
 
 if [ "$mode" = "hide" ]; then
   rewrite_outer_gaps compact

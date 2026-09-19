@@ -105,6 +105,7 @@ new_aerospace_dir() {
 # called as `$(layout_load ...)` runs in a subshell and every global it assigns
 # - the captured stderr in particular - is discarded on the way out. An
 # assertion against a variable that can only ever be empty passes forever.
+layout_status=0
 layout_out=""
 layout_stderr=""
 layout_load() {
@@ -114,6 +115,7 @@ layout_load() {
 
   : >"$out_file"
   : >"$err_file"
+  layout_status=0
   env -u AEROSPACE_MAIN_MONITOR_NAME -u AEROSPACE_SIDE_MONITOR_NAME \
     -u AEROSPACE_STAGE_MONITOR_NAME -u AEROSPACE_MAIN_WORKSPACES \
     -u AEROSPACE_SIDE_WORKSPACES -u AEROSPACE_STAGE_WORKSPACES \
@@ -131,7 +133,7 @@ layout_load() {
       printf "sidews=%s\n" "$AEROSPACE_SIDE_WORKSPACES"
       printf "stagews=%s\n" "$AEROSPACE_STAGE_WORKSPACES"
       printf "roles=%s\n" "$AEROSPACE_WORKSPACE_ROLE_MAP"
-    ' >"$out_file" 2>"$err_file" || true
+    ' >"$out_file" 2>"$err_file" || layout_status=$?
   layout_out="$(cat "$out_file")"
   layout_stderr="$(cat "$err_file")"
 }
@@ -143,6 +145,7 @@ field() {
 
 # Same shape, same reason: theme_value and theme_stderr are read after the
 # call, never through a command substitution around it.
+theme_status=0
 theme_value=""
 theme_stderr=""
 read_theme() {
@@ -152,8 +155,9 @@ read_theme() {
 
   : >"$out_file"
   : >"$err_file"
+  theme_status=0
   env -u SKETCHYBAR_WORKSPACES "SKETCHYBAR_THEME_CONFIG_DIR=$config_dir" \
-    "$system_bash" "$config_dir/lib/theme.sh" get "$name" >"$out_file" 2>"$err_file" || true
+    "$system_bash" "$config_dir/lib/theme.sh" get "$name" >"$out_file" 2>"$err_file" || theme_status=$?
   theme_value="$(cat "$out_file")"
   theme_stderr="$(cat "$err_file")"
 }
@@ -238,18 +242,18 @@ AEROSPACE_STAGE_WORKSPACES=""
 LEGACY
 
 layout_load "$legacy_dir"
-assert_contains "$layout_stderr" "executed rather than read as data" \
-  "A config file the parser cannot represent falls back to being sourced"
+assert_contains "$layout_stderr" "shell is not executed" \
+  "A config file the parser cannot represent must be rejected"
 assert_contains "$layout_stderr" "$legacy_dir/workspaces.conf" \
   "The warning names the file, so the user knows which one to fix"
-assert_equal "1 2 3" "$(field "$layout_out" mainws)" "The fallback still produces the values it always did"
-assert_equal "7 8" "$(field "$layout_out" sidews)" "An exported value survives the fallback"
+assert_equal "65" "$layout_status" "Legacy shell fails closed with a configuration error"
+assert_equal "" "$layout_out" "No partially resolved layout is printed"
 assert_output_matches "$layout_stderr" '^aerospace: ' "The warning is prefixed and goes to stderr"
 
 # One warning, not one per reader: layout.sh is sourced by several scripts in a
 # single login.
-warning_count="$(printf '%s\n' "$layout_stderr" | /usr/bin/grep -c 'executed rather than read as data' || true)"
-assert_equal "1" "$warning_count" "The fallback warns once per file"
+warning_count="$(printf '%s\n' "$layout_stderr" | /usr/bin/grep -c 'shell is not executed' || true)"
+assert_equal "1" "$warning_count" "The rejected file is diagnosed once"
 
 # --- theme.conf: a role name is looked up, not run ---------------------------
 
@@ -304,9 +308,10 @@ assert_equal "\$(touch $probe)Evil" "$theme_value" \
 cp -R "$repo_root/home/.config/sketchybar/." "$theme_dir/"
 printf 'for _i in 1; do SKETCHYBAR_BAR_HEIGHT="99"; done\n' >>"$theme_dir/theme.conf"
 read_theme "$theme_dir" THEME_BAR_HEIGHT
-assert_equal "99" "$theme_value" "a theme.conf that is genuinely shell still applies"
-assert_output_matches "$theme_stderr" 'holds shell beyond' \
-  "and says once that it is being executed rather than read"
+assert_equal "65" "$theme_status" "a theme.conf that is shell must be rejected"
+assert_equal "" "$theme_value" "invalid theme does not print a partial result"
+assert_output_matches "$theme_stderr" 'shell is not executed' \
+  "and explains that shell is not executed"
 
 cp -R "$repo_root/home/.config/sketchybar/." "$theme_dir/"
 

@@ -7,6 +7,8 @@ repo_root_dir() {
   printf '%s\n' "$script_dir"
 }
 
+source "$(repo_root_dir)/home/.config/aerospace/lib/write-guard.sh"
+
 # Apple Silicon, including a shell running under Rosetta. `uname -m` alone reports
 # x86_64 there, which would reject a supported machine for the sake of how one
 # terminal happens to be launched, so the hardware flag is asked first.
@@ -192,7 +194,7 @@ brew_trust_lists_contain() {
   trusted="$(brew trust --json v1 2>/dev/null)" || return 0
   [[ -n "$trusted" ]] || return 0
 
-  printf '%s' "$trusted" | python3 -c '
+  printf '%s' "$trusted" | python3 -B -c '
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -459,8 +461,7 @@ ensure_parent_dir() {
 # ---------------------------------------------------------------------------
 # Config deployment
 #
-# deploy_repo_path is the only code in this repository that writes into the
-# user's $HOME, and all install scripts funnel through it. Four rules it must
+# Installer asset copies funnel through deploy_repo_path. Four rules it must
 # never break:
 #
 #   1. A directory is deployed file by file. Files the repo does not ship are
@@ -475,8 +476,8 @@ ensure_parent_dir() {
 #      tool (GNU Stow, chezmoi, a hand-rolled setup) owns that path; deploying
 #      over it would silently cut the link.
 #
-# --force opts out of 2 and 4 - "make this machine match the repo" - and even
-# then everything it replaces is backed up rather than deleted.
+# --force opts out of local-content protection and allows replacing a leaf
+# link after backup. It never permits following a linked ancestor.
 # ---------------------------------------------------------------------------
 
 # Set by backup_target so its caller can hand the chosen path to the ledger.
@@ -502,29 +503,23 @@ dotfiles_ledger_path() {
   printf '%s\n' "$(dotfiles_state_dir)/backups.tsv"
 }
 
-# The ledger is bookkeeping, not the deploy itself: a machine where the state
-# directory cannot be written must still deploy, with one warning.
+# Recovery state must be writable before deployment can change a target.
 dotfiles_state_ready() {
-  local state_dir
-
-  case "$DOTFILES_STATE_READY" in
-    1)
-      return 0
-      ;;
-    2)
-      return 1
-      ;;
-  esac
-
+  local state_dir ledger
+  [ "$DOTFILES_STATE_READY" != 2 ] || return 1
   state_dir="$(dotfiles_state_dir)"
-  if mkdir -p "$state_dir" 2>/dev/null; then
+  ledger="$(dotfiles_ledger_path)"
+  if ai_first_write_path_check "$ledger" &&
+     ai_first_write_path_check "$state_dir/manifests" &&
+     ai_first_write_path_check "$state_dir/pending" &&
+     mkdir -p "$state_dir/manifests" "$state_dir/pending" 2>/dev/null &&
+     { [ ! -e "$ledger" ] || [ -f "$ledger" ]; } &&
+     (umask 077; : >>"$ledger") 2>/dev/null; then
     DOTFILES_STATE_READY=1
     return 0
   fi
-
   DOTFILES_STATE_READY=2
-  printf 'Warning: cannot write %s. Backups are still made but not recorded, so uninstall.sh will not see them.\n' \
-    "$state_dir" >&2
+  printf 'Cannot write recovery state at %s; deployment is refused.\n' "$state_dir" >&2
   return 1
 }
 
@@ -553,58 +548,54 @@ ledger_decode() {
 # target did not exist beforehand, which is what lets uninstall.sh tell "put the
 # old file back" apart from "remove the file we added".
 ledger_record() {
-  local source_rel="$1"
-  local target="$2"
-  local backup_path="${3:-}"
-  local ledger_file
-
-  dotfiles_state_ready || return 0
+  local source_rel="$1" target="$2" backup_path="${3:-}" ledger_file
   ledger_file="$(dotfiles_ledger_path)"
-
-  if [[ ! -f "$ledger_file" ]]; then
-    {
-      printf '# ai-first-dotfiles backup ledger\n'
-      printf '# fields: timestamp\tsource_rel\ttarget\tbackup_path\n'
-      printf '# backup_path "-" means the target did not exist and this repo created it\n'
-      printf '# %%, tab and newline inside a field are percent-encoded as %%25, %%09, %%0A\n'
-    } >"$ledger_file" 2>/dev/null || true
+  if ! dotfiles_state_ready ||
+     ! printf '%s\t%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+         "$(ledger_encode "$source_rel")" "$(ledger_encode "$target")" \
+         "$(ledger_encode "${backup_path:--}")" >>"$ledger_file"; then
+    deploy_skip "$target" "recovery ledger write failed; inspect ${DOTFILES_PENDING_PATH:-the adjacent backup} before retrying"
+    DOTFILES_STATE_READY=2
+    return 1
   fi
+  if [ -n "${DOTFILES_PENDING_PATH:-}" ]; then
+    rm -f "$DOTFILES_PENDING_PATH"
+    DOTFILES_PENDING_PATH=""
+  fi
+}
 
-  printf '%s\t%s\t%s\t%s\n' \
-    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
-    "$(ledger_encode "$source_rel")" \
-    "$(ledger_encode "$target")" \
-    "$(ledger_encode "${backup_path:--}")" \
-    >>"$ledger_file" 2>/dev/null || true
+# Write-ahead recovery information. This is not a full transaction manager:
+# interrupted records are retained for inspection, never silently replayed.
+deploy_prepare_recovery() {
+  local source_rel="$1" target="$2" backup="${3:--}"
+  dotfiles_state_ready || return 1
+  DOTFILES_PENDING_PATH="$(mktemp "$(dotfiles_state_dir)/pending/write.XXXXXX")" || return 1
+  if ! printf '%s\t%s\t%s\n' "$(ledger_encode "$source_rel")" \
+      "$(ledger_encode "$target")" "$(ledger_encode "$backup")" >"$DOTFILES_PENDING_PATH"; then
+    rm -f "$DOTFILES_PENDING_PATH"
+    DOTFILES_PENDING_PATH=""
+    return 1
+  fi
 }
 
 backup_target() {
-  local target="$1"
-  local stamp="$2"
-  local backup_path suffix
-
+  local target="$1" stamp="$2" backup_path suffix
   DOTFILES_BACKUP_PATH=""
-  [[ -e "$target" || -L "$target" ]] || return 0
-
+  ai_first_write_path_check "$target" 1 || return 1
+  if [[ ! -e "$target" && ! -L "$target" ]]; then
+    deploy_prepare_recovery "${3:-unknown}" "$target" '-'
+    return "$?"
+  fi
   backup_path="${target}.backup_${stamp}"
   suffix=1
   while [[ -e "$backup_path" || -L "$backup_path" ]]; do
     backup_path="${target}.backup_${stamp}_${suffix}"
     suffix=$((suffix + 1))
   done
-
-  # Returns non-zero when the file could not be moved aside, and every caller
-  # must then leave the target alone.
-  #
-  # This used to run `mv` bare and announce success regardless. `set -e` did not
-  # save it: a deploy reached from `deploy_repo_path ... || status=$?` runs with
-  # errexit suspended for the whole call tree, so a failed mv carried straight
-  # on to the `cp` below it. The result was the exact thing this engine exists to
-  # prevent - the user's file overwritten, no backup on disk, "Backed up ..."
-  # printed, exit status 0, and a ledger row pointing at a path that was never
-  # created, so uninstall could not put it back either.
+  deploy_prepare_recovery "${3:-unknown}" "$target" "$backup_path" || return 1
   if ! mv "$target" "$backup_path" 2>/dev/null; then
-    DOTFILES_BACKUP_PATH=""
+    rm -f "$DOTFILES_PENDING_PATH"
+    DOTFILES_PENDING_PATH=""
     printf 'Could not move %s aside (check permissions on its directory).\n' "$target" >&2
     return 1
   fi
@@ -663,16 +654,17 @@ deploy_skip() {
 deploy_report_skips() {
   local status="${1:-0}"
 
+  ai_first_write_lock_release
+
   if [[ "$DOTFILES_SKIPPED_COUNT" -eq 0 ]]; then
     exit "$status"
   fi
 
   printf '\n%s path(s) were left untouched:\n\n' "$DOTFILES_SKIPPED_COUNT" >&2
   printf '%s' "$DOTFILES_SKIPPED_REPORT" >&2
-  printf '\nNothing there was overwritten, moved or deleted. A symlink usually means\n' >&2
-  printf 'another dotfiles manager owns that path. To hand it to this repo, either\n' >&2
-  printf 'move it aside yourself, or re-run with --force (DOTFILES_FORCE=1), which\n' >&2
-  printf 'backs the link up before replacing it.\n' >&2
+  printf '\nDeployment is incomplete; inspect the reasons and pending recovery records.\n' >&2
+  printf 'Resolve conflicts explicitly. --force may replace a target link after backup,\n' >&2
+  printf 'but never permits writing through a linked parent directory.\n' >&2
 
   if [[ "$status" -eq 0 ]]; then
     exit 3
@@ -691,7 +683,7 @@ sync_file_mode() {
 
   mode="$(stat -f '%OLp' "$source_file" 2>/dev/null || true)"
   [[ -n "$mode" ]] || return 0
-  chmod "$mode" "$target_file" 2>/dev/null || true
+  chmod "$mode" "$target_file"
 }
 
 # True only for paths strictly below $HOME. Everything at or above $HOME (a
@@ -710,8 +702,8 @@ deploy_path_is_managed() {
 }
 
 # Creates $1 and any missing ancestor, recording each directory it had to create
-# so uninstall.sh can rmdir them again. Only the deepest existing ancestor can be
-# a symlink this would write through, so that is the one that gets checked.
+# so uninstall.sh can rmdir them again. Every ancestor is checked, including
+# existing directories below a linked parent. Force never bypasses this check.
 ensure_deploy_dir() {
   local dir="$1"
   local source_rel="$2"
@@ -719,6 +711,10 @@ ensure_deploy_dir() {
   local -a missing
 
   missing=()
+  if ! ai_first_write_path_check "$dir"; then
+    deploy_skip "$dir" 'parent directory is a symlink; refusing to write through it'
+    return 1
+  fi
   current="$dir"
   while [[ -n "$current" && "$current" != "/" && "$current" != "." && ! -d "$current" ]]; do
     missing+=("$current")
@@ -738,12 +734,12 @@ ensure_deploy_dir() {
       deploy_skip "$candidate" 'expected a directory here, found something else'
       return 1
     fi
-    if ! mkdir "$candidate" 2>/dev/null; then
+    if ! deploy_prepare_recovery "$source_rel" "$candidate" '-' || ! mkdir "$candidate" 2>/dev/null; then
       deploy_skip "$candidate" 'could not create this directory'
       return 1
     fi
 
-    ledger_record "$source_rel" "$candidate" ""
+    ledger_record "$source_rel" "$candidate" "" || return 1
     index=$((index - 1))
   done
 
@@ -789,11 +785,16 @@ deploy_load_manifest() {
   DEPLOY_PREV_MANIFEST=""
   DEPLOY_NEW_MANIFEST=""
 
-  dotfiles_state_ready || return 0
+  dotfiles_state_ready || return 1
   manifest="$(deploy_manifest_path "$target")"
+  ai_first_write_path_check "$manifest" || return 1
+  if [[ -e "$manifest" && ! -f "$manifest" ]]; then
+    printf 'Cannot read deployment baseline: %s is not a regular file.\n' "$manifest" >&2
+    return 1
+  fi
   [[ -f "$manifest" ]] || return 0
 
-  content="$(cat "$manifest" 2>/dev/null || true)"
+  content="$(cat "$manifest")" || return 1
   [[ -n "$content" ]] || return 0
   # Framed in newlines so a lookup can anchor on whole lines without forking.
   DEPLOY_PREV_MANIFEST=$'\n'"$content"$'\n'
@@ -831,13 +832,17 @@ deploy_save_manifest() {
   local target="$1"
   local manifest manifest_new rel stale_list="" total=0
 
-  dotfiles_state_ready || return 0
+  dotfiles_state_ready || return 1
 
   manifest="$(deploy_manifest_path "$target")"
-  mkdir -p "$(dirname "$manifest")" 2>/dev/null || return 0
-  manifest_new="${manifest}.new"
+  ai_first_write_path_check "$manifest" || return 1
+  mkdir -p "$(dirname "$manifest")" 2>/dev/null || return 1
+  manifest_new="$(mktemp "$(dirname "$manifest")/.new.XXXXXX")" || return 1
 
-  printf '%s' "$DEPLOY_NEW_MANIFEST" | LC_ALL=C sort >"$manifest_new" 2>/dev/null || return 0
+  if ! printf '%s' "$DEPLOY_NEW_MANIFEST" | LC_ALL=C sort >"$manifest_new" 2>/dev/null; then
+    rm -f "$manifest_new"
+    return 1
+  fi
 
   if [[ -f "$manifest" ]]; then
     while IFS= read -r rel; do
@@ -852,7 +857,11 @@ deploy_save_manifest() {
     done < <(LC_ALL=C comm -23 <(cut -f1 "$manifest") <(cut -f1 "$manifest_new") 2>/dev/null || true)
   fi
 
-  mv "$manifest_new" "$manifest" 2>/dev/null || rm -f "$manifest_new" 2>/dev/null || true
+  if ! mv "$manifest_new" "$manifest" 2>/dev/null; then
+    rm -f "$manifest_new"
+    deploy_skip "$manifest" 'could not save the successful deployment baseline'
+    return 1
+  fi
 
   [[ "$total" -gt 0 ]] || return 0
 
@@ -866,63 +875,89 @@ deploy_save_manifest() {
 }
 
 deploy_single_file() {
-  local source_file="$1"
-  local target_file="$2"
-  local source_rel="$3"
-  local stamp="$4"
-  local rel="${5:-.}"
-  local fingerprint previous
-
+  local source_file="$1" target_file="$2" source_rel="$3" stamp="$4" rel="${5:-.}"
+  local fingerprint previous staged original current
   DOTFILES_LAST_ACTION="unchanged"
   fingerprint="$(file_fingerprint "$source_file")"
+  previous="$(deploy_prev_fingerprint "$rel" || true)"
 
-  if [[ -L "$target_file" ]] && ! deploy_force_enabled; then
-    deploy_skip "$target_file" 'target is a symlink; another tool manages this path'
-    # The repo still ships this file, so the manifest needs the entry for the
-    # stale-file check. The "-" fingerprint keeps the rule below from ever
-    # treating a file we refused to touch as one we deployed.
-    deploy_record_manifest_entry "$rel" '-'
+  if ! ai_first_write_path_check "$target_file" "$DOTFILES_FORCE"; then
+    deploy_skip "$target_file" 'target or ancestor is a symlink; refusing write'
+    deploy_record_manifest_entry "$rel" "${previous:--}"
     DOTFILES_LAST_ACTION="skipped"
     return 0
   fi
-
-  deploy_record_manifest_entry "$rel" "$fingerprint"
-
+  original="$(ai_first_file_state "$target_file")" || return 1
   if files_match "$source_file" "$target_file"; then
+    deploy_record_manifest_entry "$rel" "$fingerprint"
     return 0
   fi
-
-  # The target differs, but if the repo copy is the same one the last deploy
-  # wrote, the difference came from this machine - a hand edit, or a tool like
-  # the AI router rewriting its own exports. Overwriting it would throw that
-  # away and hand it straight back on the next run, one backup at a time. The
-  # repo has nothing new to offer here, so the local version stays.
   if [[ -e "$target_file" ]] && ! deploy_force_enabled; then
-    previous="$(deploy_prev_fingerprint "$rel" || true)"
     if [[ -n "$previous" && "$previous" == "$fingerprint" ]]; then
-      printf 'Kept local change: %s (this repo has not changed it since deploying it; --force overwrites)\n' \
-        "$target_file"
+      printf 'Kept local change: %s (this repo has not changed it since deploying it; --force overwrites)\n' "$target_file"
+      deploy_record_manifest_entry "$rel" "$previous"
       DOTFILES_LAST_ACTION="kept"
+      return 0
+    fi
+    if [[ -n "$previous" && "$previous" != '-' ]] &&
+       [[ ! -f "$target_file" || "$(file_fingerprint "$target_file")" != "$previous" ]]; then
+      deploy_skip "$target_file" 'conflict: both local and upstream changed; review the diff (--force explicitly replaces)'
+      deploy_record_manifest_entry "$rel" "$previous"
+      DOTFILES_LAST_ACTION="skipped"
       return 0
     fi
   fi
 
-  if ! backup_target "$target_file" "$stamp"; then
+  # Copy to a sibling before moving the original. Never expose partial content.
+  staged="$(mktemp "${target_file}.deploy.XXXXXX")" || {
+    deploy_skip "$target_file" 'could not stage replacement; original was left alone'
+    deploy_record_manifest_entry "$rel" "${previous:--}"
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  }
+  if ! cp "$source_file" "$staged"; then
+    rm -f "$staged"
+    deploy_skip "$target_file" 'could not stage replacement; original was left alone'
+    deploy_record_manifest_entry "$rel" "${previous:--}"
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  fi
+  if ! sync_file_mode "$source_file" "$staged"; then
+    rm -f "$staged"
+    deploy_skip "$target_file" 'could not preserve source permissions on staged file'
+    deploy_record_manifest_entry "$rel" "${previous:--}"
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  fi
+  current="$(ai_first_file_state "$target_file")" || { rm -f "$staged"; return 1; }
+  if [ "$current" != "$original" ]; then
+    rm -f "$staged"
+    deploy_skip "$target_file" 'conflict: target changed during staging; retry after reviewing it'
+    deploy_record_manifest_entry "$rel" "${previous:--}"
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  fi
+  if ! backup_target "$target_file" "$stamp" "$source_rel"; then
+    rm -f "$staged"
     deploy_skip "$target_file" 'could not be moved aside, so it was not replaced'
+    deploy_record_manifest_entry "$rel" "${previous:--}"
     DOTFILES_LAST_ACTION="skipped"
     return 0
   fi
-  if ! cp "$source_file" "$target_file"; then
-    # The original is already at DOTFILES_BACKUP_PATH. Record it so uninstall
-    # can put it back, and say so rather than leaving a hole with no history.
-    ledger_record "$source_rel" "$target_file" "$DOTFILES_BACKUP_PATH"
-    deploy_skip "$target_file" "could not be written; the previous file is at ${DOTFILES_BACKUP_PATH:-none}"
+  if ! ai_first_write_path_check "$target_file" || ! mv "$staged" "$target_file"; then
+    rm -f "$staged"
+    ledger_record "$source_rel" "$target_file" "$DOTFILES_BACKUP_PATH" || true
+    deploy_skip "$target_file" "could not be written; previous file is at ${DOTFILES_BACKUP_PATH:-none}"
+    deploy_record_manifest_entry "$rel" "${previous:--}"
     DOTFILES_LAST_ACTION="skipped"
     return 0
   fi
-  sync_file_mode "$source_file" "$target_file"
-  ledger_record "$source_rel" "$target_file" "$DOTFILES_BACKUP_PATH"
-
+  if ! ledger_record "$source_rel" "$target_file" "$DOTFILES_BACKUP_PATH"; then
+    deploy_record_manifest_entry "$rel" "${previous:--}"
+    DOTFILES_LAST_ACTION="skipped"
+    return 0
+  fi
+  deploy_record_manifest_entry "$rel" "$fingerprint"
   if [[ -n "$DOTFILES_BACKUP_PATH" ]]; then
     DOTFILES_LAST_ACTION="updated"
   else
@@ -940,20 +975,20 @@ deploy_directory() {
   local -a pruned
 
   pruned=()
-  deploy_load_manifest "$target_dir"
+  deploy_load_manifest "$target_dir" || return "$?"
 
   if [[ -L "$target_dir" ]]; then
     if ! deploy_force_enabled; then
       deploy_skip "$target_dir" 'target is a symlink; another tool manages this path'
       return 0
     fi
-    if ! backup_target "$target_dir" "$stamp"; then
+    if ! backup_target "$target_dir" "$stamp" "$source_rel"; then
       deploy_skip "$target_dir" 'could not be moved aside, so it was not replaced'
       return 0
     fi
     dir_backup="$DOTFILES_BACKUP_PATH"
   elif [[ -e "$target_dir" && ! -d "$target_dir" ]]; then
-    if ! backup_target "$target_dir" "$stamp"; then
+    if ! backup_target "$target_dir" "$stamp" "$source_rel"; then
       deploy_skip "$target_dir" 'could not be moved aside, so it was not replaced'
       return 0
     fi
@@ -961,11 +996,14 @@ deploy_directory() {
   fi
 
   if [[ ! -d "$target_dir" ]]; then
+    if [ -z "${DOTFILES_PENDING_PATH:-}" ]; then
+      deploy_prepare_recovery "$source_rel" "$target_dir" '-' || return 1
+    fi
     if ! mkdir "$target_dir" 2>/dev/null; then
       deploy_skip "$target_dir" 'could not create this directory'
       return 0
     fi
-    ledger_record "$source_rel" "$target_dir" "$dir_backup"
+    ledger_record "$source_rel" "$target_dir" "$dir_backup" || return 1
   fi
 
   while IFS= read -r entry; do
@@ -1001,33 +1039,39 @@ deploy_directory() {
           skipped=$((skipped + 1))
           continue
         fi
-        if ! backup_target "$target_entry" "$stamp"; then
+        if ! backup_target "$target_entry" "$stamp" "$source_rel/$rel"; then
           deploy_skip "$target_entry" 'could not be moved aside, so it was not replaced'
           pruned+=("$rel/")
           skipped=$((skipped + 1))
           continue
         fi
-        ledger_record "$source_rel/$rel" "$target_entry" "$DOTFILES_BACKUP_PATH"
+        ledger_record "$source_rel/$rel" "$target_entry" "$DOTFILES_BACKUP_PATH" || return 1
         entry_recorded=1
       elif [[ -e "$target_entry" && ! -d "$target_entry" ]]; then
-        if ! backup_target "$target_entry" "$stamp"; then
+        if ! backup_target "$target_entry" "$stamp" "$source_rel/$rel"; then
           deploy_skip "$target_entry" 'could not be moved aside, so it was not replaced'
           pruned+=("$rel/")
           skipped=$((skipped + 1))
           continue
         fi
-        ledger_record "$source_rel/$rel" "$target_entry" "$DOTFILES_BACKUP_PATH"
+        ledger_record "$source_rel/$rel" "$target_entry" "$DOTFILES_BACKUP_PATH" || return 1
         entry_recorded=1
       fi
 
       if [[ ! -d "$target_entry" ]]; then
+        ai_first_write_path_check "$target_entry" || return 1
+        if [ "$entry_recorded" -ne 1 ]; then
+          deploy_prepare_recovery "$source_rel/$rel" "$target_entry" '-' || return 1
+        fi
         if ! mkdir "$target_entry" 2>/dev/null; then
           deploy_skip "$target_entry" 'could not create this directory'
           pruned+=("$rel/")
           skipped=$((skipped + 1))
           continue
         fi
-        [[ "$entry_recorded" -eq 1 ]] || ledger_record "$source_rel/$rel" "$target_entry" ""
+        if [ "$entry_recorded" -ne 1 ]; then
+          ledger_record "$source_rel/$rel" "$target_entry" "" || return 1
+        fi
       fi
 
       continue
@@ -1090,16 +1134,28 @@ deploy_repo_path() {
 
   require_repo_path "$source_path"
 
+  if [[ -L "$source_path" ]]; then
+    deploy_skip "$source_path" 'source is a symlink; this repo only deploys plain files'
+    return 0
+  fi
+
+  if ! dotfiles_state_ready || ! ai_first_write_lock_acquire; then
+    deploy_skip "$target" 'recovery state or single-writer lock is unavailable'
+    return 1
+  fi
+  trap 'deploy_report_skips "$?"' EXIT
+  DOTFILES_SKIP_TRAP_INSTALLED=1
+
   if ! ensure_deploy_dir "$(dirname "$target")" "$source_rel"; then
     return 0
   fi
 
   if [[ -d "$source_path" && ! -L "$source_path" ]]; then
     deploy_directory "$source_path" "$target" "$source_rel" "$stamp"
-    return 0
+    return "$?"
   fi
 
-  deploy_load_manifest "$target"
+  deploy_load_manifest "$target" || return "$?"
   deploy_single_file "$source_path" "$target" "$source_rel" "$stamp" '.'
   case "$DOTFILES_LAST_ACTION" in
     unchanged)

@@ -10,8 +10,8 @@ if ! command -v rg >/dev/null 2>&1; then
   exit 1
 fi
 
-python_cache_dir="$(mktemp -d)"
-tmp_scan_root="$(mktemp -d)"
+python_cache_dir="$(mktemp -d "${TMPDIR:-/tmp}/privacy-python.XXXXXX")"
+tmp_scan_root="$(mktemp -d "${TMPDIR:-/tmp}/privacy-scan.XXXXXX")"
 abs_path_matches_file="$tmp_scan_root/absolute-path-matches.txt"
 sensitive_file_names_file="$tmp_scan_root/sensitive-file-names.txt"
 runtime_dir_matches_file="$tmp_scan_root/runtime-dirs.txt"

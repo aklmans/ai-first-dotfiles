@@ -98,9 +98,10 @@ Environment:
                              backing up whatever is replaced.
 
 Exit status:
-  0  every step ran, or some paths were left untouched (reported at the end)
+  0  every requested step completed
   1  at least one step failed. The rest of the run still happened and the
      failures are listed at the end.
+  3  some paths/modules were skipped; deployment is incomplete, not success
 EOF
 }
 
@@ -116,9 +117,9 @@ EOF
 # So every step's exit code is captured here and the run always continues to the
 # end. Two kinds of non-zero are kept apart, because they mean opposite things:
 #
-#   3      The deploy engine refused to touch paths another tool manages
-#          (see deploy_report_skips in lib/common.sh). Nothing was overwritten
-#          and nothing is broken, so the run still exits 0.
+#   3      Some paths were refused (ownership conflict, local/upstream conflict,
+#          or a refused replacement). Other paths may have changed. Report the
+#          incomplete deployment and retain exit 3 unless another step failed.
 #   other  A real failure. It is collected, named at the end, and makes the run
 #          exit non-zero so nothing automated mistakes a partial install for a
 #          complete one.
@@ -894,4 +895,8 @@ report_skipped_modules
 
 if ! report_failed_steps; then
   exit 1
+fi
+
+if [ "$skipped_modules" -gt 0 ]; then
+  exit 3
 fi

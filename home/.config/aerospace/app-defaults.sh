@@ -18,7 +18,7 @@ if [ -r "$_app_defaults_dir/lib/layout.sh" ]; then
     # Load the workspace profile before the general profile reader below. This
     # preserves explicit empty side/stage lists instead of restoring the
     # thirteen-workspace shipped defaults while app rules are rendered.
-    aerospace_layout_load_config
+    aerospace_layout_load_config || { return 65 2>/dev/null || exit 65; }
 fi
 
 _ai_first_profile_lib="${AI_FIRST_PROFILE_LIB:-$HOME/.config/ai-first/lib/profile.sh}"

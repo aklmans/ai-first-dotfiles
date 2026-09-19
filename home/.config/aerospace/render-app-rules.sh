@@ -7,14 +7,26 @@ set -euo pipefail
 # Usage: render-app-rules.sh [path-to-aerospace.toml]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/write-guard.sh"
+stdout_only=0
+if [ "${1:-}" = --stdout ]; then stdout_only=1; shift; fi
 CONFIG_PATH="${1:-$HOME/.aerospace.toml}"
-RULES_FILE="$(mktemp)"
-OUTPUT_FILE="$(mktemp)"
+RULES_FILE=""
+OUTPUT_FILE=""
 
 cleanup() {
     rm -f "$RULES_FILE" "$OUTPUT_FILE"
+    ai_first_write_lock_release
 }
 trap cleanup EXIT
+RULES_FILE="$(mktemp "${TMPDIR:-/tmp}/ai-first-render-rules.XXXXXX")"
+OUTPUT_FILE="$(mktemp "${TMPDIR:-/tmp}/ai-first-render-output.XXXXXX")"
+
+if [ "$stdout_only" -eq 0 ]; then
+    ai_first_write_path_check "$CONFIG_PATH"
+    ai_first_write_lock_acquire
+    original="$(ai_first_file_state "$CONFIG_PATH")"
+fi
 
 "$SCRIPT_DIR/app-defaults.sh" --toml > "$RULES_FILE"
 
@@ -43,51 +55,15 @@ if command -v python3 >/dev/null 2>&1 && python3 -c 'import tomllib' >/dev/null 
     python3 -c 'import pathlib, sys, tomllib; tomllib.loads(pathlib.Path(sys.argv[1]).read_text())' "$OUTPUT_FILE"
 fi
 
+if [ "$stdout_only" -eq 1 ]; then
+    cat "$OUTPUT_FILE"
+    exit 0
+fi
+
 if cmp -s "$OUTPUT_FILE" "$CONFIG_PATH"; then
     printf 'Unchanged: %s already matches app-defaults.sh\n' "$CONFIG_PATH"
     exit 0
 fi
 
-# render-layout.sh calls this at the end of its own pass and has already kept a
-# copy of the file as it was before either renderer touched it. A second backup
-# one second later is of content the first renderer just generated, which is not
-# what anyone would want to recover.
-backup_path="${AEROSPACE_RENDER_BACKUP:-}"
-if [ -z "$backup_path" ] || [ ! -e "$backup_path" ]; then
-    stamp="$(date +%Y%m%d-%H%M%S)"
-    backup_path="$CONFIG_PATH.bak-$stamp-render-app-rules"
-    cp "$CONFIG_PATH" "$backup_path"
-fi
-cp "$OUTPUT_FILE" "$CONFIG_PATH"
-printf 'Rendered app rules into %s (previous file kept at %s)\n' \
-    "$CONFIG_PATH" "$backup_path"
-
-# Rendering a file nothing has read yet is not applying it, and this is the
-# command README names for "I edited app-routes.conf, now make it real". Both
-# tools have to be told, in this order:
-#
-#   AeroSpace   reads the rendered TOML
-#   Hammerspoon reads app-routes.conf itself, once, at init
-#
-# Leaving Hammerspoon out is worse than leaving it stale. It falls back to
-# inheriting the focused workspace for any app it has no route for, so a route
-# added by hand takes effect in AeroSpace and is then overridden by Hammerspoon
-# a moment later - the window lands on whichever workspace happened to be in
-# front. `app-route.sh` has always reloaded both; editing the file by hand, the
-# path README documents, did not.
-#
-# Neither reload is a rendering failure: the file is already written, and a
-# machine where AeroSpace is not running is a machine that will read it at
-# launch.
-if [ "$CONFIG_PATH" = "$HOME/.aerospace.toml" ] && command -v aerospace >/dev/null 2>&1; then
-    if aerospace reload-config --dry-run --no-gui; then
-        aerospace reload-config >/dev/null 2>&1 || true
-    else
-        printf 'AeroSpace did not accept the rendered config, or is not running.\n' >&2
-    fi
-fi
-if [ "$CONFIG_PATH" = "$HOME/.aerospace.toml" ] &&
-    [ -f "$HOME/.hammerspoon/init.lua" ] && command -v hs >/dev/null 2>&1; then
-    hs -c 'hs.reload()' >/dev/null 2>&1 ||
-        printf 'Hammerspoon did not reload; its route policies are still the ones it started with.\n' >&2
-fi
+ai_first_replace_file "$OUTPUT_FILE" "$CONFIG_PATH" render-app-rules "$original"
+printf 'To reload the current desktop explicitly: %s/activate.sh --apply\n' "$SCRIPT_DIR"

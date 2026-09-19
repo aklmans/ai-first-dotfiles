@@ -55,16 +55,16 @@ aerospace_layout_conf_warn() {
         *" $file "*) return 0 ;;
     esac
     AEROSPACE_LAYOUT_CONF_WARNED="${AEROSPACE_LAYOUT_CONF_WARNED:+$AEROSPACE_LAYOUT_CONF_WARNED }$file"
-    printf 'aerospace: %s holds shell beyond KEY="value", so it is being executed rather than read as data; see the comments at the top of the shipped file for the format\n' \
-        "$file" >&2
+    printf 'aerospace: %s:%s: expected data assignment KEY="value"; shell is not executed. Convert legacy shell to literal values before retrying.\n' \
+        "$file" "${2:-?}" >&2
 }
 
 # One value, unwrapped. Sets AEROSPACE_LAYOUT_CONF_VALUE rather than printing
 # it: this runs per line of two files at login and on every workspace repaint,
 # and command substitution would fork for each one.
 #
-# Returns 1 when the text is not a value this parser can represent, which is
-# the caller's signal to fall back.
+# Returns 1 when a value cannot be represented. The caller rejects the file;
+# it must never execute it as a compatibility fallback.
 AEROSPACE_LAYOUT_CONF_VALUE=""
 aerospace_layout_conf_value() {
     local raw="$1"
@@ -102,17 +102,16 @@ aerospace_layout_conf_value() {
 # A `$(...)` inside a quoted value is not a reason to fall back - it is the
 # attack, and it is handled by being taken literally.
 #
-# What does fall back is a file this parser cannot represent at all: `export`,
-# a loop, a conditional, a line continuation. Such a file is sourced exactly as
-# before and one warning names it, so a config someone has been running for a
-# year keeps working and its owner is told why it is the odd one out.
+# Export, loops, conditionals and continuations are configuration errors.
+# Legacy owners must convert them to literal values; even read-only plan/doctor
+# must not execute imported configuration. No automatic migration runs shell.
 #
 # A well-formed line whose key is not one of the seven is parsed and ignored.
 # Falling back on it instead would hand the execution path back to anyone who
 # can add a line, which is the thing this function exists to close.
 aerospace_layout_read_conf() {
     local file="$1"
-    local line key
+    local line key line_number=0
     local main_name='' side_name='' stage_name=''
     local main_ws='' side_ws='' stage_ws='' role_map=''
     local main_name_set='' side_name_set='' stage_name_set=''
@@ -123,21 +122,18 @@ aerospace_layout_read_conf() {
     [ -r "$file" ] || return 0
 
     while IFS= read -r line || [ -n "$line" ]; do
+        line_number=$((line_number + 1))
         if [[ "$line" =~ $blank_re ]]; then
             continue
         fi
         if ! [[ "$line" =~ $assignment_re ]]; then
-            aerospace_layout_conf_warn "$file"
-            # shellcheck source=/dev/null
-            . "$file"
-            return 0
+            aerospace_layout_conf_warn "$file" "$line_number"
+            return 65
         fi
         key="${BASH_REMATCH[1]}"
         if ! aerospace_layout_conf_value "${BASH_REMATCH[2]}"; then
-            aerospace_layout_conf_warn "$file"
-            # shellcheck source=/dev/null
-            . "$file"
-            return 0
+            aerospace_layout_conf_warn "$file" "$line_number"
+            return 65
         fi
         # The whole surface these two files have: seven keys. Every other name
         # in them was already dead weight, because nothing here has ever read
@@ -153,8 +149,7 @@ aerospace_layout_read_conf() {
         esac
     done <"$file"
 
-    # Applied only once the whole file parsed, so a file that falls back does
-    # not get its first few lines applied twice.
+    # Apply only after the whole file parsed; no partial configuration on error.
     [ -z "$main_name_set" ] || AEROSPACE_MAIN_MONITOR_NAME="$main_name"
     [ -z "$side_name_set" ] || AEROSPACE_SIDE_MONITOR_NAME="$side_name"
     [ -z "$stage_name_set" ] || AEROSPACE_STAGE_MONITOR_NAME="$stage_name"
@@ -222,7 +217,7 @@ aerospace_layout_load_config() {
     AEROSPACE_WORKSPACE_ROLE_MAP="$AEROSPACE_LAYOUT_DEFAULT_WORKSPACE_ROLE_MAP"
 
     for config_file in displays workspaces; do
-        aerospace_layout_read_conf "$AEROSPACE_CONFIG_DIR/$config_file.conf"
+        aerospace_layout_read_conf "$AEROSPACE_CONFIG_DIR/$config_file.conf" || return "$?"
     done
 
     # A named installer preset is a machine-owned layer above the shipped
@@ -254,7 +249,7 @@ aerospace_layout_load_config() {
 }
 
 aerospace_layout_monitor_name_for_role() {
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
 
     case "${1:-}" in
         main) printf '%s\n' "$AEROSPACE_MAIN_MONITOR_NAME" ;;
@@ -265,7 +260,7 @@ aerospace_layout_monitor_name_for_role() {
 }
 
 aerospace_layout_workspaces_for_role() {
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
 
     case "${1:-}" in
         main) printf '%s\n' "$AEROSPACE_MAIN_WORKSPACES" ;;
@@ -278,7 +273,7 @@ aerospace_layout_workspaces_for_role() {
 # Every configured workspace, in role order. This is the list AeroSpace,
 # SketchyBar and the arrow-key navigation all iterate.
 aerospace_layout_workspaces() {
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
     aerospace_layout_normalize_list \
         "$AEROSPACE_MAIN_WORKSPACES $AEROSPACE_SIDE_WORKSPACES $AEROSPACE_STAGE_WORKSPACES"
 }
@@ -306,7 +301,7 @@ aerospace_layout_workspace_is_configured() {
 aerospace_layout_semantic_roles() {
     local entry role seen=""
 
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
     for entry in $AEROSPACE_WORKSPACE_ROLE_MAP; do
         case "$entry" in
             *:*) ;;
@@ -324,7 +319,7 @@ aerospace_layout_workspace_for_semantic_role() {
     local needle="${1:-}"
     local entry role workspace
 
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
     case "$needle" in ''|*[!a-z0-9_-]*) return 1 ;; esac
     for entry in $AEROSPACE_WORKSPACE_ROLE_MAP; do
         case "$entry" in *:*) ;; *) continue ;; esac
@@ -542,7 +537,7 @@ aerospace_layout_resolve() {
     local role configured
     local -a monitor_ids monitor_names monitor_claimed
 
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
 
     monitor_ids=()
     monitor_names=()
@@ -693,7 +688,7 @@ aerospace_layout_wait_for_monitors() {
     local attempt=0 stable=0 count last_count=-1
     local role configured names missing
 
-    aerospace_layout_load_config
+    aerospace_layout_load_config || return "$?"
 
     # A config that names displays is a promise that those displays exist, so
     # give them time to wake up: external monitors are routinely several

@@ -47,8 +47,13 @@ run_check() {
     shift
 
     local output output_file timeout_file pid watchdog_pid status
-    output_file="$(mktemp)"
-    timeout_file="$(mktemp)"
+    output_file="$(mktemp "${TMPDIR:-/tmp}/ai-first-doctor-output.XXXXXX")" || {
+        fail "$label (cannot create temporary output)"; return 1;
+    }
+    timeout_file="$(mktemp "${TMPDIR:-/tmp}/ai-first-doctor-timeout.XXXXXX")" || {
+        rm -f "$output_file"
+        fail "$label (cannot create temporary timeout marker)"; return 1;
+    }
     rm -f "$timeout_file"
 
     "$@" >"$output_file" 2>&1 &
@@ -110,13 +115,20 @@ check_file_readable() {
 }
 
 check_app_rules_drift() {
-    local generated current generated_clean current_clean
-    generated="$(mktemp)"
-    current="$(mktemp)"
-    generated_clean="$(mktemp)"
-    current_clean="$(mktemp)"
+    local work_dir generated current generated_clean current_clean
+    work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ai-first-doctor-rules.XXXXXX")" || {
+        fail "app rules check (cannot create temporary directory)"; return 1;
+    }
+    generated="$work_dir/generated"
+    current="$work_dir/current"
+    generated_clean="$work_dir/generated-clean"
+    current_clean="$work_dir/current-clean"
 
-    "$AEROSPACE_DIR/app-defaults.sh" --toml > "$generated"
+    if ! "$AEROSPACE_DIR/app-defaults.sh" --toml > "$generated"; then
+        fail "cannot generate app rules for comparison"
+        rm -rf "$work_dir"
+        return 1
+    fi
     awk '
         /^# Application placement and floating rules\./ { capture = 1 }
         /^\[mode\.main\.binding\]/ { capture = 0 }
@@ -133,7 +145,7 @@ check_app_rules_drift() {
         diff -u "$current_clean" "$generated_clean" | head -n 40 | sed 's/^/      /'
     fi
 
-    rm -f "$generated" "$current" "$generated_clean" "$current_clean"
+    rm -rf "$work_dir"
 }
 
 printf 'AeroSpace desktop environment doctor\n\n'

@@ -5,6 +5,8 @@ set -euo pipefail
 # backed up before replacement, rendered into AeroSpace TOML, then reloaded.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/write-guard.sh"
+trap 'ai_first_write_lock_release' EXIT
 AEROSPACE="${AEROSPACE:-$(command -v aerospace 2>/dev/null || printf '/opt/homebrew/bin/aerospace')}"
 APP_ROUTES_FILE="${APP_ROUTES_FILE:-$SCRIPT_DIR/app-routes.conf}"
 CAPTURED_ROUTES_FILE="${AI_FIRST_CAPTURED_ROUTES_FILE:-$HOME/.config/ai-first/captured-routes.conf}"
@@ -138,6 +140,8 @@ normalize_layout() {
 }
 
 ensure_routes_file() {
+  ai_first_write_path_check "$APP_ROUTES_FILE"
+  ai_first_write_lock_acquire
   if [ ! -e "$APP_ROUTES_FILE" ]; then
     mkdir -p "$(dirname "$APP_ROUTES_FILE")"
     printf '# match|value|workspace|layout\n' > "$APP_ROUTES_FILE"
@@ -267,6 +271,9 @@ capture_role_for_app_workspace() {
 
 apply_captured_route_file() {
   local candidate="$1" description="$2" stamp backup=''
+
+  ai_first_write_path_check "$CAPTURED_ROUTES_FILE"
+  ai_first_write_lock_acquire
 
   if [ -L "$CAPTURED_ROUTES_FILE" ]; then
     printf 'Refusing to replace symlink: %s\n' "$CAPTURED_ROUTES_FILE" >&2

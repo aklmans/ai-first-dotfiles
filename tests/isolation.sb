@@ -1,0 +1,26 @@
+(version 1)
+(allow default)
+; PATH mocks are convenient, not a security boundary. Also deny absolute IPC
+; clients, sockets/network, and writes outside this run's temporary directory.
+(deny network*)
+(deny file-write* (require-not
+  (require-any (subpath (param "TEST_ROOT")) (literal "/dev/null") (literal "/dev/tty")
+    (regex #"^/dev/[pt]typ?[a-z0-9]+$") (literal "/dev/ptmx")
+    ; Apple's Bash 3.2 uses this fixed directory for heredoc scratch files,
+    ; independently of TMPDIR. This narrow exception never includes user data.
+    (literal "/private/tmp") (literal "/private/var/tmp")
+    (regex #"^(/private)?(/var)?/tmp/sh-thd[-.][A-Za-z0-9.]+$"))))
+(deny process-exec
+  (subpath "/Applications/AeroSpace.app")
+  (subpath "/Applications/Hammerspoon.app")
+  (subpath "/Applications/SketchyBar.app")
+  (literal "/bin/launchctl")
+  (literal "/usr/bin/defaults")
+  (literal "/usr/bin/open")
+  (literal "/usr/bin/osascript")
+  (literal "/usr/bin/sudo")
+  (literal "/usr/bin/security")
+  (literal "/usr/sbin/screencapture")
+  (regex #"^/(opt/homebrew|usr/local)/(bin|Cellar|Caskroom)/.*(aerospace|sketchybar|hammerspoon|borders|brew)(/.*)?$")
+  (literal "/opt/homebrew/bin/hs")
+  (literal "/usr/local/bin/hs"))

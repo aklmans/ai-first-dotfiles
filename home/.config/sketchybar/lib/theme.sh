@@ -77,13 +77,13 @@ sketchybar_theme_conf_warn() {
     *" $file "*) return 0 ;;
   esac
   SKETCHYBAR_THEME_CONF_WARNED="${SKETCHYBAR_THEME_CONF_WARNED:+$SKETCHYBAR_THEME_CONF_WARNED }$file"
-  printf 'sketchybar: %s holds shell beyond KEY="value", so it is being executed rather than read as data; see the comments at the top of the shipped file for the format\n' \
-    "$file" >&2
+  printf 'sketchybar: %s:%s: expected data assignment KEY="value"; shell is not executed. Convert legacy shell to literal values before retrying.\n' \
+    "$file" "${2:-?}" >&2
 }
 
 # Reads theme.conf without executing it.
 #
-# It used to be sourced, next to colors.sh, and it is sourced by the bar's
+# It used to be sourced, next to colors.sh, from the bar's
 # config plus six item and plugin scripts - so a `$(...)` written into a theme
 # value ran on every repaint. displays.conf and workspaces.conf were made data
 # for the same reason; this is the third of the three files the README tells
@@ -95,12 +95,13 @@ sketchybar_theme_conf_warn() {
 #
 # Every key here is SKETCHYBAR_-prefixed, so the prefix is the whitelist rather
 # than a list of thirty-five names that would go stale the first time one is
-# added. Values are assigned as they are read: a file that turns out to be
-# unparseable falls back to being sourced, and sourcing re-assigns everything
-# this loop had already set from the same lines, so there is nothing to undo.
+# added. Values are staged until the whole file parses; invalid shell syntax
+# returns a configuration error and never runs as a compatibility fallback.
 sketchybar_theme_read_conf() {
   local file="$1"
-  local line key raw
+  local line key raw line_number=0 index=0
+  local -a keys values
+  keys=(); values=()
   local blank_re='^[[:space:]]*(#.*)?$'
   local assignment_re='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$'
   # Double quotes, single quotes, or a bare token, each with an optional
@@ -113,14 +114,13 @@ sketchybar_theme_read_conf() {
   [ -r "$file" ] || return 0
 
   while IFS= read -r line || [ -n "$line" ]; do
+    line_number=$((line_number + 1))
     if [[ "$line" =~ $blank_re ]]; then
       continue
     fi
     if ! [[ "$line" =~ $assignment_re ]]; then
-      sketchybar_theme_conf_warn "$file"
-      # shellcheck source=/dev/null
-      . "$file"
-      return 0
+      sketchybar_theme_conf_warn "$file" "$line_number"
+      return 65
     fi
     key="${BASH_REMATCH[1]}"
     raw="${BASH_REMATCH[2]}"
@@ -130,16 +130,19 @@ sketchybar_theme_read_conf() {
       # the thing this parser exists to stop, and it is stopped by being
       # assigned literally.
       case "$key" in
-        SKETCHYBAR_*) printf -v "$key" '%s' "${BASH_REMATCH[1]}" ;;
+        SKETCHYBAR_*) keys+=("$key"); values+=("${BASH_REMATCH[1]}") ;;
       esac
       continue
     fi
 
-    sketchybar_theme_conf_warn "$file"
-    # shellcheck source=/dev/null
-    . "$file"
-    return 0
+    sketchybar_theme_conf_warn "$file" "$line_number"
+    return 65
   done <"$file"
+  # No partial application on parse failure.
+  while [ "$index" -lt "${#keys[@]}" ]; do
+    printf -v "${keys[$index]}" '%s' "${values[$index]}"
+    index=$((index + 1))
+  done
 }
 
 sketchybar_theme_load() {
@@ -157,7 +160,7 @@ sketchybar_theme_load() {
     . "$config_dir/colors.sh"
   fi
 
-  sketchybar_theme_read_conf "$config_dir/theme.conf"
+  sketchybar_theme_read_conf "$config_dir/theme.conf" || return "$?"
 
   [ -z "$env_workspaces" ] || SKETCHYBAR_WORKSPACES="$env_workspaces"
 
@@ -244,7 +247,7 @@ sketchybar_theme_load() {
   SKETCHYBAR_THEME_LOADED=1
 }
 
-sketchybar_theme_load
+sketchybar_theme_load || { return 65 2>/dev/null || exit 65; }
 
 # Executed rather than sourced, this prints resolved values. AeroSpace's gap
 # rewrite and anything else outside bash can ask for the top inset here instead

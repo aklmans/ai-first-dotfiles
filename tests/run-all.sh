@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# Runs every suite against both machines this repository has to be true on.
+# Runs every suite against two starting-state fixtures on this machine.
 #
 # `for t in tests/smoke/*.sh; do bash "$t"; done` runs them against whatever
 # $HOME the person typing it happens to have, which on CI means a machine with
@@ -22,6 +22,50 @@ set -uo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root" || exit 1
 
+# Re-exec in a kernel-enforced boundary before ANY suite runs. Failure to enter
+# it is fatal: fake HOME alone cannot isolate desktop IPC. Individual suites
+# remain useful under this runner; don't use their PATH mocks as a sandbox.
+if [ "${AI_FIRST_TEST_ISOLATED:-0}" != 1 ]; then
+  sandbox_root="$(mktemp -d "${TMPDIR:-/tmp}/ai-first-test-boundary.XXXXXX")" || exit 1
+  sandbox_root="$(cd "$sandbox_root" && pwd -P)"
+  denied_root=""
+  trap 'rm -rf "$sandbox_root"; [ -z "$denied_root" ] || rm -rf "$denied_root"' EXIT
+  denied_root="$(mktemp -d "${TMPDIR:-/tmp}/ai-first-test-denied.XXXXXX")" || exit 1
+  denied_root="$(cd "$denied_root" && pwd -P)"
+  printf 'unchanged\n' >"$denied_root/canary"
+  mkdir -p "$sandbox_root/home" "$sandbox_root/bin" "$sandbox_root/tmp"
+  for name in aerospace hs sketchybar borders brew open defaults osascript launchctl sudo security curl wget npm npx bun docker; do
+    cp "$repo_root/tests/deny-command.sh" "$sandbox_root/bin/$name" || exit 1
+    chmod +x "$sandbox_root/bin/$name"
+  done
+  # Only these optional pure interpreters/utilities survive the caller's PATH.
+  for name in rg lua; do
+    tool="$(command -v "$name" || true)"
+    [ -z "$tool" ] || ln -s "$tool" "$sandbox_root/bin/$name"
+  done
+  /usr/bin/sandbox-exec -D "TEST_ROOT=$sandbox_root" -f "$repo_root/tests/isolation.sb" \
+    /usr/bin/env -i HOME="$sandbox_root/home" TMPDIR="$sandbox_root/tmp" \
+    PATH="$sandbox_root/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+    AI_FIRST_TEST_ISOLATED=1 AI_FIRST_TEST_ROOT="$sandbox_root" \
+    AI_FIRST_TEST_DENIED_ROOT="$denied_root" \
+    AEROSPACE_BIN="$sandbox_root/bin/aerospace" HS_BIN="$sandbox_root/bin/hs" \
+    SKETCHYBAR_BIN="$sandbox_root/bin/sketchybar" DOTFILES_LAUNCHCTL="$sandbox_root/bin/launchctl" \
+    /bin/bash "$0" "$@"
+  exit "$?"
+fi
+
+# Verify denial even if someone incorrectly exports AI_FIRST_TEST_ISOLATED.
+if /usr/bin/defaults read -g >/dev/null 2>&1; then
+  printf 'Refusing tests: macOS command boundary is not active.\n' >&2
+  exit 1
+fi
+if [ -z "${AI_FIRST_TEST_DENIED_ROOT:-}" ] ||
+   (printf 'modified\n' >"$AI_FIRST_TEST_DENIED_ROOT/canary") 2>/dev/null ||
+   [ "$(cat "$AI_FIRST_TEST_DENIED_ROOT/canary" 2>/dev/null)" != unchanged ]; then
+  printf 'Refusing tests: filesystem write boundary is not active.\n' >&2
+  exit 1
+fi
+
 sandbox_root="$(mktemp -d "${TMPDIR:-/tmp}/ai-first-run-all.XXXXXX")"
 trap 'rm -rf "$sandbox_root"' EXIT
 
@@ -38,11 +82,18 @@ cp "$repo_root/bootstrap/presets/author-full.conf" \
   "$installed_home/.config/ai-first/profile.conf" || exit 1
 
 suites=(tests/smoke/*.sh home/.config/ai-router/tests/run.sh)
+if [ "$#" -gt 0 ]; then
+  suites=("$@")
+  for suite in "${suites[@]}"; do
+    case "$suite" in
+      tests/smoke/*_smoke.sh|home/.config/ai-router/tests/run.sh) [ -f "$suite" ] || exit 64 ;;
+      *) printf 'Unknown suite: %s\n' "$suite" >&2; exit 64 ;;
+    esac
+  done
+fi
 
-# These two run the real installers, which means real `brew` queries and real
-# service lookups. Their sandboxes do not overlap, but Homebrew's does: two at
-# once contend for machine-wide state that has nothing to do with either test,
-# and the loser reports a failure that says nothing about this repository.
+# Keep the heavyweight installer suites serial to bound process load. Their
+# external commands must use fixture stubs, never the host's Homebrew/services.
 serial_suites=" install_deploy_smoke.sh orchestration_smoke.sh "
 
 # Serially the whole thing runs about five minutes per mode, which is long
@@ -113,7 +164,7 @@ run_mode installed "$installed_home" || failures=$((failures + $?))
 
 printf '\n'
 if [ "$failures" -eq 0 ]; then
-  printf 'All suites pass on a clean machine and on one with author-full installed.\n'
+  printf 'All selected suites pass with clean and author-full fixture HOME (not hardware validation).\n'
   exit 0
 fi
 printf '%s suite run(s) failed.\n' "$failures"

@@ -22,7 +22,7 @@ fi
 rg -n 'ensure_brew_tap nao1215/tap' "$repo_root/bootstrap/brew.sh" >/dev/null
 rg -n 'nao1215/tap/gup' "$repo_root/bootstrap/brew.sh" >/dev/null
 
-tmp_dir="$(mktemp -d)"
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/install-side-effects.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 source "$repo_root/bootstrap/lib/common.sh"
@@ -51,10 +51,12 @@ if [[ "$(cat "$tmp_dir/target/file.txt")" != 'local change' ]]; then
   exit 1
 fi
 
-# A real upstream change does get deployed, and the local version is backed up
+# Resolve the fixture's local edit back to the last deployed baseline. An
+# uncontested upstream change gets deployed, and the previous copy is backed up
 # next to the file that changed. Moving the whole directory aside is what used
 # to throw away everything else the user kept in it, so both halves are
 # asserted: the file backup exists, the directory backup does not.
+printf 'one\n' >"$tmp_dir/target/file.txt"
 printf 'two\n' >"$tmp_dir/repo/source/file.txt"
 deploy_repo_path "$tmp_dir/repo" "source" "$tmp_dir/target" "smoke" >/dev/null
 

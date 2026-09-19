@@ -551,7 +551,8 @@ assert_file_contains "$three_home/.aerospace.toml" "# Application placement and 
 assert_file_contains "$three_home/.aerospace.toml" "# Keep this block aligned with ~/.config/aerospace/app-defaults.sh." \
   "Gap rewrite must not eat the comments after the block it owns"
 
-# README names render-app-rules.sh as the command that makes a hand-edited
+# Rendering writes files only; a separate explicit activation reloads the desk.
+# Previously README named render-app-rules.sh as the command that makes a hand-edited
 # app-routes.conf real, so it has to tell both tools. AeroSpace reads the TOML
 # it just wrote; Hammerspoon reads app-routes.conf itself and only at init, and
 # it inherits the focused workspace for any app it has no route for. Renders
@@ -567,17 +568,21 @@ run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/render
 assert_status 0 "$last_status" "render-app-rules.sh must succeed after a hand edit" "$last_output"
 assert_file_contains "$three_home/.aerospace.toml" "com.apple.TextEdit" \
   "a hand-edited route must reach the rendered TOML"
+assert_equal "" "$(cat "$three_fixture/log")" 'rendering must issue no AeroSpace IPC'
+assert_equal "" "$(cat "$three_fixture/hs.log")" 'rendering must issue no Hammerspoon IPC'
+run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/activate.sh" --apply
+assert_status 0 "$last_status" 'explicit activation reloads the desktop' "$last_output"
 # The whole line, not a substring: `aerospace reload-config --dry-run --no-gui`
 # contains `aerospace reload-config`, so a substring match is satisfied by the
 # courtesy check alone and says nothing about whether anything was applied.
 if grep -Fxq 'aerospace reload-config' "$three_fixture/log"; then
   pass
 else
-  fail "render-app-rules.sh must reload AeroSpace, not only dry-run it" \
+  fail "activate.sh must reload AeroSpace, not only dry-run it" \
     "$(cat "$three_fixture/log" 2>/dev/null)"
 fi
 assert_file_contains "$three_fixture/hs.log" "hs.reload()" \
-  "render-app-rules.sh must reload Hammerspoon, which reads app-routes.conf at init"
+  "activate.sh must reload Hammerspoon, which reads app-routes.conf at init"
 
 run_in_home "$three_home" "$three_fixture" "$three_home/.config/aerospace/doctor.sh"
 assert_status 0 "$last_status" "doctor.sh must be green on the three-display desk" "$last_output"

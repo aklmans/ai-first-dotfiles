@@ -26,17 +26,18 @@ if should_deploy; then
   # old layout-only render. A named ai-first preset owns the routing choice in
   # profile.conf; for those installs render the rule block too, including the
   # intentionally empty block used by the minimal preset.
-  if [ -x "$HOME/.config/aerospace/render-layout.sh" ]; then
+  if [ "$DOTFILES_SKIPPED_COUNT" -eq 0 ]; then
     render_status=0
     if [ -r "$HOME/.config/ai-first/profile.conf" ] && \
       grep -Eq '^AI_FIRST_APP_ROUTING=' "$HOME/.config/ai-first/profile.conf"; then
-      "$HOME/.config/aerospace/render-layout.sh" "$HOME/.aerospace.toml" || render_status=$?
+      AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace" /bin/bash "$repo_root/home/.config/aerospace/render-layout.sh" "$HOME/.aerospace.toml" || render_status=$?
     else
-      "$HOME/.config/aerospace/render-layout.sh" --no-app-rules "$HOME/.aerospace.toml" || render_status=$?
+      AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace" /bin/bash "$repo_root/home/.config/aerospace/render-layout.sh" --no-app-rules "$HOME/.aerospace.toml" || render_status=$?
     fi
     if [ "$render_status" -ne 0 ]; then
       printf 'Could not re-render the workspace layout blocks of %s; the deployed config is unchanged.\n' \
         "$HOME/.aerospace.toml" >&2
+      exit "$render_status"
     fi
   fi
 fi
@@ -54,14 +55,17 @@ if should_install; then
   fi
 fi
 
-# Reloading is not an install step: it only makes the config that was just
-# deployed take effect in an already running AeroSpace. If AeroSpace is not
-# running, or rejects the config, say so rather than failing the whole run - the
-# files are on disk either way and the running window manager is left alone.
-if should_deploy && command -v aerospace >/dev/null 2>&1; then
+# Normal installation retains its launch/reload behavior. A file-only deploy
+# never enters this branch; use activate.sh --apply after reviewing its result.
+if should_install && should_deploy && [ "$DOTFILES_SKIPPED_COUNT" -eq 0 ] && command -v aerospace >/dev/null 2>&1; then
   if aerospace reload-config --dry-run --no-gui; then
-    aerospace reload-config || true
+    aerospace reload-config
   else
     printf 'AeroSpace did not accept the deployed config (or is not running); its current config is unchanged.\n' >&2
+    exit 1
   fi
+fi
+
+if should_deploy && ! should_install; then
+  printf 'Files only; no desktop IPC. Activate explicitly with: %s/.config/aerospace/activate.sh --apply\n' "$HOME"
 fi

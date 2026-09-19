@@ -41,15 +41,17 @@ new_home() { mktemp -d "$sandbox_root/home.XXXXXX"; }
 
 # Deploy only: no packages, no services, no macOS settings.
 run_setup() {
-  local home_dir="$1"
+  local home_dir="$1" output status=0
   shift
-  env -u XDG_STATE_HOME \
+  output="$(env -u XDG_STATE_HOME \
       -u AI_FIRST_PROFILE_PATH \
       -u DOTFILES_FORCE \
       "HOME=$home_dir" \
       "XDG_STATE_HOME=$home_dir/.state" \
       "DOTFILES_SKIP_PREFLIGHT=1" \
-      "$system_bash" "$setup_sh" "$@" >/dev/null 2>&1 || true
+      "$system_bash" "$setup_sh" "$@" 2>&1)" || status=$?
+  assert_equal 0 "$status" "overlay setup completes: $*"
+  if [ "$status" -ne 0 ]; then printf '%s\n' "$output" >&2; fi
 }
 
 # Reads a resolved preference the way the deployed runtime does.

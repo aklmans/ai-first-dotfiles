@@ -32,7 +32,7 @@ exit 70
 PROVIDER
 chmod +x "$AI_ROUTER_HOME/providers/kimi.sh"
 
-if AI_ROUTER_SELECTION='error input' "$router" run error-test >/tmp/ai-router-redaction.out 2>/tmp/ai-router-redaction.err; then
+if AI_ROUTER_SELECTION='error input' "$router" run error-test >"$test_root/redaction.out" 2>"$test_root/redaction.err"; then
   fail "provider failure unexpectedly succeeded"
 fi
 

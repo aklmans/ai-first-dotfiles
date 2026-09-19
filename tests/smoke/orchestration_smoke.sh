@@ -12,8 +12,8 @@ set -euo pipefail
 #
 #   1. A failing module does not stop the modules after it, is named in a report
 #      at the end, and makes the run exit non-zero.
-#   2. Exit code 3 - "paths were left untouched, nothing was overwritten" - is
-#      reported as a skip, not as a failure, and still exits 0.
+#   2. Exit code 3 is reported as a partial deployment, not success. Other
+#      targets may have changed, so its summary must name what was skipped.
 #   3. --deploy-only deploys and nothing else: no app launched, no macOS default
 #      written, no brew service restarted.
 #   4. --dry-run names the paths under $HOME that would be written.
@@ -391,7 +391,7 @@ case_skip_alone_is_not_a_failure() {
 
   run_setup "$home" desktop
 
-  assert_equal 0 "$last_status" 'a skipped path must not fail the run'
+  assert_equal 3 "$last_status" 'a skipped path must report incomplete deployment'
   assert_output_matches "$last_output" 'left some paths untouched' \
     'a skipped path must be reported'
   assert_output_lacks "$last_output" 'step\(s\) failed' \
