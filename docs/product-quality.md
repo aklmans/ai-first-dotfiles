@@ -43,7 +43,21 @@ A dimension is scored from what happened on a machine that was not that one.
 The weighted score is useful for trend reporting, but the release gate is the
 minimum column: a 9.5 in reliability cannot compensate for a 5 in onboarding.
 
-## Current assessment
+## Current safety gate (2026-09-19)
+
+The historical scores below are not a current safety certification. Further
+review found ancestor-link writes, failed-deploy baseline advancement, shell
+fallback execution, and tests that could contact the live desktop. The first
+remediation batch adds isolated regression coverage and deployment/render
+guards; it does not establish complete rollback, safe ownership of legacy
+system changes, provider cancellation, or physical multi-display behavior.
+
+Display/workspace/theme files now reject unsupported shell syntax. Test results
+are fixture results, not additional clean-machine installations. No new numeric
+score is assigned: update/recovery semantics and hardware acceptance remain
+open gates. See [testing](testing.md) and [recovery limits](coexisting.md).
+
+## Historical assessment — 2026-08-01
 
 Scored 2026-08-01, after a review that ran the whole system against adversarial
 inputs and after a first install on a genuinely clean macOS.

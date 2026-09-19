@@ -14,6 +14,7 @@ It provides predictable workspace keys, quick window movement, and deterministic
 - `home/.config/aerospace/lib/layout.sh` - the library every script reads those two through
 - `home/.config/aerospace/render-layout.sh` - renders both into `~/.aerospace.toml`
 - `home/.config/aerospace/render-app-rules.sh` - renders user `app-routes.conf` overrides and shipped defaults into `~/.aerospace.toml`
+- `home/.config/aerospace/activate.sh --apply` - explicitly reloads the current desktop after file review
 - `home/.config/aerospace/doctor.sh` - reports where the desk, the config and the TOML disagree
 - `home/.config/aerospace/plan.sh` - previews resolved displays, semantic roles and routes
 - `bootstrap/advisor.sh` - detects a desk and generates a reviewed local profile
@@ -39,8 +40,16 @@ and changes nothing — usually the fastest answer to "did my edit take?":
 ~/.config/aerospace/render-layout.sh --check
 ```
 
-`render-app-rules.sh` takes an optional path and always writes; it keeps the
-previous file next to the target as `.bak-<timestamp>-render-app-rules`.
+`render-app-rules.sh` takes an optional path and replaces it only when content
+changes, keeping a unique adjacent `.bak-<timestamp>-render-app-rules.*` backup.
+`render-layout.sh` stages layout, shortcuts and app rules as one result; a failed
+render does not leave a partly updated TOML. Both commands reject linked write
+targets and linked ancestors and share a cooperative writer lock.
+
+Neither rendering nor installer `--deploy-only` reloads services. After review,
+run `~/.config/aerospace/activate.sh --apply`. It affects the logged-in user's
+desktop, even if the command was given a temporary HOME. `--stdout` on the app
+renderer emits the complete candidate TOML without replacing or activating it.
 
 Edit the `.conf` files, especially `app-routes.conf`, not generated blocks — the next
 render replaces them.
@@ -81,6 +90,7 @@ enumeration order:
 aerospace list-monitors          # exact names of what is connected
 $EDITOR ~/.config/aerospace/displays.conf
 ~/.config/aerospace/render-layout.sh
+~/.config/aerospace/activate.sh --apply  # after reviewing the rendered config
 ```
 
 A named display that is not connected costs nothing: its role falls back to the
@@ -94,6 +104,7 @@ Edit the three lists in `workspaces.conf` and render once:
 ```bash
 $EDITOR ~/.config/aerospace/workspaces.conf
 ~/.config/aerospace/render-layout.sh
+~/.config/aerospace/activate.sh --apply  # after reviewing the rendered config
 ```
 
 That regenerates, inside the marked blocks of `~/.aerospace.toml`, the

@@ -94,7 +94,10 @@ chmod +x bootstrap/*.sh bootstrap/install/*.sh tests/smoke/*.sh
 
 That is deliberate. Every step's exit code is captured and the failures are
 listed together at the end, so one brew hiccup does not hide the other fifteen
-modules. Fix the cause and re-run the same profile — every step is idempotent.
+modules. Read the summary before retrying the affected module. Exit 3 means an
+incomplete deployment, not success. For content conflicts, inspect the local
+file and upstream diff; do not use `--force` as a generic retry. See
+[deployment and recovery limits](coexisting.md) before reapplying presets.
 
 ## Module-level checks
 

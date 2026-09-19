@@ -298,16 +298,24 @@ have changed one and stops overwriting it, so these survive updates.
 | Prompt text, and adding your own prompts | `~/.config/ai-router/prompts/` | `~/.config/ai-router/ai-router.sh index` |
 | Which agents the chooser offers | `~/.config/ai-router/config.json` | reload Hammerspoon |
 
+Rendering writes a backed-up config file; it no longer reloads the desktop.
+After reviewing the result, run `~/.config/aerospace/activate.sh --apply` to
+reload the current user's AeroSpace and, when available, Hammerspoon. A temporary
+`HOME` does **not** isolate desktop IPC: do not activate a trial deployment.
+Focus-first `app-route.sh` actions remain explicit apply operations.
+
 One display works out of the box: leave `displays.conf` empty and `main`, `side`
 and `stage` all resolve to whatever screen is actually connected.
 
-**Two of those files are data and one is a script.** `profile.conf`,
+**Preferences are data, not shell programs.** `profile.conf`,
 `app-routes.conf`, `displays.conf` and `workspaces.conf` are *parsed*: a value is
 taken literally, so nothing in them can execute, and an unparseable line is
-reported rather than run. `theme.conf` is held to the same `KEY="value"` shape by
-a test, but is still `source`d, and `colors.sh` is deliberately a shell script —
-its palette entries reference each other. Treat those last two the way you would
-treat `.zshrc`: paste into them only what you would run.
+reported rather than run. `theme.conf` is also parsed literally. Unsupported
+shell syntax in display, workspace or theme data fails with a file/line error;
+convert legacy `export`, substitutions or computed assignments to literal
+`KEY="value"` lines before retrying. No automatic shell fallback is provided.
+`colors.sh` is deliberately executable shell — its palette entries reference
+each other. Treat it like `.zshrc`: paste only what you would run.
 
 Run `~/.config/aerospace/doctor.sh` when the desk and the config disagree.
 Run `~/.config/aerospace/plan.sh` to see the resolved displays, roles, routing

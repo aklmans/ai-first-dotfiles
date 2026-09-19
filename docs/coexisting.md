@@ -1,123 +1,131 @@
 # Coexisting with dotfiles you already have
 
-The usual reason not to try someone else's dotfiles is that they arrive as a
-`rm -rf` with better manners. This page is what happens here instead, and how to
-check it before you believe it.
+Installation uses copies, not symlinks. Preview the selected modules before
+writing files, and keep your own backup of any existing setup.
 
-Everything below is enforced by [`deploy_engine_smoke.sh`](../tests/smoke/deploy_engine_smoke.sh),
-which is 103 checks against a throwaway `$HOME`.
+## Deployment rules
 
-## The four rules
+1. Directories are deployed file by file. Files this repo does not ship stay in
+   place. Removed upstream files are reported, not automatically deleted.
+2. Each successfully copied or confirmed-identical file records a source
+   checksum. On later deployments, local-only edits stay. If both local and
+   upstream content differ from that baseline, deployment reports a conflict
+   and keeps the local file. It does not merge the two versions.
+3. Targets and their ancestors are checked for symlinks. By default a linked
+   target is skipped; `--force` permits backing up and replacing the leaf link,
+   never writing through a linked parent. HOME itself and macOS `/tmp` / `/var`
+   aliases remain supported. This is cooperative protection, not immunity to an
+   unrelated process racing a filesystem operation.
+4. Recovery state must be writable before replacing a file. The source is
+   staged first; a pending recovery record is written before moving an original
+   to `<name>.backup_<timestamp>`. A successful operation appends to the ledger
+   and removes its pending record. Failures do not advance the baseline to the
+   planned source version. Inspect a nonempty pending directory after interruption.
 
-**1. A directory is deployed file by file.** Your own prompts, SketchyBar items
-and router state are files this repo does not ship, and it never removes them —
-the target directory is not moved aside and re-created. That was the original
-bug this engine was written to fix.
+The state directory is `${XDG_STATE_HOME:-$HOME/.local/state}/ai-first-dotfiles`.
+It holds `backups.tsv`, `manifests/`, `pending/` and the cooperative `write.lock/`.
+An active or abandoned lock refuses another writer. Inspect its owner PID and
+unfinished operation before removing a stale lock; never bypass a live writer.
 
-**2. A file you changed is not overwritten.** Each deploy records a checksum of
-the repo copy it wrote. Next time, a target that differs is compared against
-that record: if the repo copy has not moved since, the difference came from you
-and it stays.
+These rules have regression coverage in `deploy_engine_smoke.sh` and
+`safety_boundary_smoke.sh`; they are not a general transactional filesystem.
+There is no cross-file atomicity or power-loss durability guarantee. If the final
+replacement fails after the original was moved, it remains at the reported
+backup path. A pending record is recovery evidence, not automatic replay.
 
-```
-Kept local change: ~/.config/aerospace/app-routes.conf (this repo has not
-changed it since deploying it; --force overwrites)
-```
+Important first-install boundary: without a successful baseline, an existing
+regular file can still be backed up and replaced. Do not interpret “keep local
+edits” as a promise that an unknown first-install file is never replaced.
+Likewise, `--force` explicitly opts out of local-content conflict protection.
 
-**3. Symlinks are never followed or replaced.** A symlink means Stow, chezmoi or
-your own script owns that path. Deploying through it would silently cut the
-link, so it is refused, the run continues, and the skipped paths are listed at
-the end. That run exits 3 — “nothing was overwritten, nothing is broken” — not 1.
-
-**4. Whatever is replaced is moved aside first, and recorded.** The backup goes
-next to the original as `<name>.backup_<timestamp>`, and a row goes into
-`~/.local/state/ai-first-dotfiles/backups.tsv`. If a file cannot be moved aside,
-it is not replaced at all — the deploy skips it rather than writing without a
-backup.
-
-## Check it yourself before you install
-
-The preview writes nothing and needs no Homebrew:
+## Preview and trial
 
 ```bash
 ./bootstrap/setup.sh minimal --dry-run
 ```
 
-Every path it would touch is listed, with `(new)`, `(exists; ... backed up
-first)` or `(symlink; would be left untouched)` next to it. If your files are
-symlinks, you will see that here, before anything runs.
+The preview lists intended packages and target paths without installing them.
+It is not a reservation of those paths or a complete three-way conflict report.
 
-To be certain rather than convinced, install into a fake home first:
-
-```bash
-HOME=/tmp/dotfiles-trial ./bootstrap/setup.sh minimal --deploy-only
-find /tmp/dotfiles-trial -type f | head -40
-rm -rf /tmp/dotfiles-trial
-```
-
-`--deploy-only` installs nothing, starts nothing and changes no macOS setting.
-
-## If you use Stow, chezmoi or your own repo
-
-Take the modules whose paths you do not already manage. The catalog is
-independent outcomes, not a bundle:
+For a file-only trial:
 
 ```bash
-./bootstrap/setup.sh workspace          # only ~/.aerospace.toml and ~/.config/aerospace
-./bootstrap/setup.sh capslock           # only the Karabiner rule asset
+trial_home="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-trial.XXXXXX")"
+HOME="$trial_home" XDG_STATE_HOME="$trial_home/.local/state" \
+  ./bootstrap/setup.sh minimal --deploy-only
+find "$trial_home" -type f | head -40
 ```
 
-Paths that collide will be skipped and named. Nothing forces you to resolve them
-— a partial install is a supported state, and `./bootstrap/setup.sh doctor` will
-tell you what is and is not in place.
+`--deploy-only` skips package installation and desktop activation. A changed
+HOME alone does **not** sandbox a process: desktop IPC still addresses the
+logged-in user. Never run activation against a trial as an isolation test.
+Use [the isolated test runner](testing.md) for automated regression checks.
 
-The one module that takes over something structural is `shell`: it repoints
-`~/.zshenv` at this repo's `ZDOTDIR`. It is never part of `minimal` or
-`developer`, and it is the module to leave out if you have a shell setup you
-like.
+Exit 0 means the requested steps completed; 3 means paths/modules were skipped
+and the deployment is incomplete. Other nonzero codes indicate errors. A
+partial deployment may already have changed other files: read the summary and
+inspect backups before retrying. Do not automatically retry with `--force`.
 
-## Upgrading a checkout you installed earlier
-
-Re-running the same preset is the update path, and it keeps your edits by rule 2
-above. Two things to know:
-
-**`~/.aerospace.toml` is generated between markers.** `render-layout.sh` rewrites
-only the blocks between its `>>> generated` / `<<< generated` comments and copies
-everything else through, so your own keybindings and comments survive.
-
-An `~/.aerospace.toml` from before those markers existed has nowhere to write, and
-`render-layout.sh` stops rather than guessing where the generated block belongs.
-Running the module is not how you meet that: `setup.sh workspace` deploys the
-shipped file — backing yours up first — and renders into that, so the upgrade goes
-through without ever reaching the refusal. You only see it by running
-`render-layout.sh` directly against an old file.
-
-Either way your previous file is kept beside it, twice: `.backup_<stamp>` from the
-deploy and `.bak-<stamp>-render-layout` from the renderer. Copy your own sections
-back in from the first one.
-
-**Files this repo used to ship and no longer does are reported, not deleted.**
-A deploy that finds them prints them once, and leaves them where they are. That
-is the deliberate asymmetry: this engine cannot tell an upstream deletion from a
-file you wrote next to ours, and guessing wrong in that direction is exactly the
-data loss it exists to prevent.
-
-## Getting out
+## Pick paths you do not already manage
 
 ```bash
-./bootstrap/uninstall.sh            # prints the plan, changes nothing
-./bootstrap/uninstall.sh --apply
+./bootstrap/setup.sh workspace --dry-run
+./bootstrap/setup.sh capslock --dry-run
 ```
 
-It replays the ledger newest-first. A file byte-identical to the copy this repo
-shipped is removed; anything you changed is moved aside rather than deleted;
-symlinks and non-empty directories are never touched. Homebrew packages are left
-alone on purpose — you may have wanted `jq` anyway.
+Leave out modules whose paths another dotfiles manager owns. In particular,
+`shell` changes `~/.zshenv` to select this repo's ZDOTDIR; it is not part of
+`minimal` or `developer`.
 
-## What this does not protect
+## Updates and rendering
 
-- **macOS permissions.** Accessibility, Input Monitoring and Full Disk Access are
-  granted by you in System Settings and are not restored by anything here.
-- **Homebrew state.** Taps added stay added; packages installed stay installed.
-- **Anything outside `$HOME`.** The deploy engine only writes below your home
-  directory, which is also why a symlinked home directory does not trip it.
+Until a selected-module update workflow is implemented, review the dry-run for
+the exact modules you intend to update. Do not use `all` or reapply a preset as
+a supposedly preference-neutral update, especially with private profiles:
+module overlays and preset selection can still affect effective preferences.
+
+`render-layout.sh` stages generated workspace, key and app-rule blocks together
+before replacing the TOML; `--no-app-rules` preserves the existing app block.
+Content outside these blocks is carried through. Missing layout markers cause
+refusal rather than guessing. A backup is kept beside a changed TOML. Renderer
+backups are separate from the installer's ledger, not a complete undo history.
+
+Rendering and `--deploy-only` no longer reload services. After reviewing the
+actual live config, explicitly activate it:
+
+```bash
+~/.config/aerospace/activate.sh --apply
+```
+
+This checks AeroSpace's config, reloads AeroSpace, and reloads Hammerspoon when
+its config and CLI are available. Errors are nonzero; a later failure does not
+undo an earlier reload. Normal installation still includes its documented
+launch/system-setting steps. Focus-first app routing commands remain explicit
+apply operations, not read-only renderers.
+
+`displays.conf`, `workspaces.conf` and `theme.conf` are now strict literal data.
+Convert old `export`, shell commands, or computed expressions to `KEY="value"`
+lines. An unsupported line reports its file/line and exits instead of executing
+the file. No user config is automatically migrated.
+
+## Recovery limitations — read before uninstalling
+
+```bash
+./bootstrap/uninstall.sh --files-only  # inspect the plan; no changes
+```
+
+The legacy uninstaller considers the newest ledger row for each path. It is
+**not** “restore the pre-install machine” after several updates. It has no
+complete operation history and does not replay pending recovery records or
+renderer backups. Changed files can be moved aside during a restore; a leaf
+symlink may also be moved aside. Do not assume every linked path is untouched.
+
+Uninstall ownership, linked-ancestor recovery, and prior system-setting/service
+ownership still need a separate redesign. Review each target and backup before
+using `--apply`; keep system changes out of recovery unless their original state
+is known. An unchanged file matching this checkout may be removed. Nonempty
+directories and unrelated Homebrew packages are retained.
+
+macOS permission grants, existing Homebrew state, external dotfiles managers,
+and privately stored data are not restored by the deployment ledger. Treat
+physical-machine recovery as unverified until you have rehearsed it.

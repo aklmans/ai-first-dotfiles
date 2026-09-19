@@ -10,11 +10,11 @@ Everything is shell. There is no build step.
 
 ```bash
 brew install ripgrep     # the suite hard-fails without it
-bash tests/run-all.sh    # every suite, both machines, ~3 minutes
+bash tests/run-all.sh    # every suite, two fixture homes; not hardware validation
 ```
 
-That is exactly what [CI](.github/workflows/ci.yml) runs on `macos-latest`, so a
-green local run is a green PR.
+That is the entry point used by [CI](.github/workflows/ci.yml) on `macos-latest`.
+A local pass is useful evidence, not a guarantee that CI or another Mac passes.
 
 The runner exists because "run the tests" has two answers. It runs every suite
 twice: once against a `$HOME` with nothing installed — a stranger's Mac, and
@@ -31,8 +31,16 @@ installed  some_smoke.sh    FAILED
 the suite is reading the machine. Pin `HOME` inside it; `aerospace_workflow_smoke.sh`
 has the pattern near the top.
 
-Running a single suite is still `bash tests/smoke/<name>.sh` — just remember it
-inherits your own `$HOME` when you do.
+Run a single suite through the same isolation boundary:
+
+```bash
+bash tests/run-all.sh tests/smoke/safety_boundary_smoke.sh
+```
+
+Do not run suites directly on a working desktop. Fake `HOME` alone does not
+isolate AeroSpace or Hammerspoon IPC. The runner requires macOS `sandbox-exec`
+and fails if that boundary is unavailable; it never retries unprotected. See
+[test isolation and its limits](docs/testing.md).
 
 The smoke suites cover the repo:
 
@@ -44,6 +52,7 @@ The smoke suites cover the repo:
 | `install_script_side_effects_smoke.sh` | No module writes outside its declared targets |
 | `install_deploy_smoke.sh` | Module scripts run for real against a throwaway `$HOME` |
 | `deploy_engine_smoke.sh` | The four deploy guarantees: per-file, keep-local, back-up, never-follow-symlinks |
+| `safety_boundary_smoke.sh` | Backup/copy/state failures and retry, concurrent writer refusal, linked ancestors, conflicts, no implicit IPC, strict data parsing |
 | `orchestration_smoke.sh` | `setup.sh` profiles, flag handling, failure isolation, preflight |
 | `choice_architecture_smoke.sh` | catalog validity, preset behavior, cost boundaries and copy deployment — including that every catalog module has an installer, which is what covers `skills` |
 | `shell_layer_smoke.sh` | `~/.zshenv` takeover, `ZDOTDIR`, not clobbering an existing `~/.zshrc` |
@@ -52,7 +61,7 @@ The smoke suites cover the repo:
 | `route_merge_smoke.sh` | The four route layers, the legacy layout-only merge, and the workspace whitelist |
 | `overlay_scope_smoke.sh` | Module preference overlays are written where the runtime reads them, and never overwrite the profile they land beside |
 | `portability_smoke.sh` | awk portability: no `-v` name shadowing a built-in, no doubled `\n` in a format string |
-| `config_injection_smoke.sh` | Which user-editable config files are data and which are shell: the `displays.conf` / `workspaces.conf` grammar, the compatibility fallback, and a hostile value in `theme.conf` |
+| `config_injection_smoke.sh` | Literal display/workspace/theme data, hostile values, and refusal of unsupported legacy shell syntax |
 | `cross_tool_consistency_smoke.sh` | `plan.sh` exit codes, the four-tool agreement it checks, `none` meaning no shipped app placement, and CJK-safe columns |
 | `sketchybar_smoke.sh` | Theme sourcing, display resolution, running without AeroSpace |
 | `ai_router_cli_smoke.sh` | Router CLI contract |
@@ -85,10 +94,11 @@ If you need a newer bash, you need a different design.
 
 ## Rules that are not negotiable
 
-**Nothing writes to `$HOME` except `deploy_repo_path`.** It is the single
-chokepoint in `bootstrap/lib/common.sh`, and it is what makes the backup ledger,
-the uninstaller, and `--dry-run`'s path preview possible. A `cp` straight into
-`$HOME` in a module script bypasses all three.
+**Installer asset copies go through `deploy_repo_path`.** It is the shared
+deployment boundary in `bootstrap/lib/common.sh`. A `cp` straight into `$HOME`
+in a module script bypasses backup and baseline tracking. Render/route controls
+also write files: they must use the shared path guard and writer lock, preserve
+the previous content, and report failures. Rendering must not activate services.
 
 **Copies, never symlinks.** And never write through a symlink you find at the
 target — that means another dotfiles manager owns the path.

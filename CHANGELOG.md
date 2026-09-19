@@ -7,6 +7,12 @@ Notable changes to this project. Format loosely follows
 
 ### Added
 
+- A macOS-isolated test runner with clean and author-full fixture homes, denied
+  external desktop commands/network, and failure/retry regression fixtures.
+- Shared deployment/render write guards, a cooperative writer lock, and minimal
+  write-ahead recovery records before deployment moves an original file.
+- `aerospace/activate.sh --apply` for explicit desktop reload after rendering.
+
 - Opt-outs for background window automation and clock seconds, with behavior
   tests for display topology, routing, native Command-N and recording targets.
 - A public capability catalog with composable modules and three explicit presets:
@@ -33,6 +39,18 @@ Notable changes to this project. Format loosely follows
   quality scorecard and release checklist.
 
 ### Changed
+
+- Deployment preserves conflicts when both upstream and local content changed;
+  failed backup/copy/manifest operations no longer claim a new successful
+  baseline. Unavailable recovery state refuses deployment before replacement.
+- Symlink checks include existing ancestors. `--force` can replace a leaf link
+  with a backed-up copy, but cannot write through a linked parent directory.
+- AeroSpace renderers and `--deploy-only` do not reload desktop services. Layout
+  and app rules are staged together before replacement; render errors propagate.
+- Display/workspace/theme data rejects unsupported shell syntax with file/line
+  diagnostics instead of executing it as a compatibility fallback.
+- `setup.sh` returns 3 for a partial deployment, not success; other failures
+  remain nonzero. See [coexistence and migration notes](docs/coexisting.md).
 
 - Recording Mode now resolves its semantic task from the shared profile/overlay
   reader on invocation instead of reading only the old workspace file. Invalid

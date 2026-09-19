@@ -14,8 +14,9 @@
 
 ## Verification
 
-- [ ] All `tests/smoke/*.sh` pass under macOS Bash 3.2.
-- [ ] AI router tests pass.
+- [ ] `bash tests/run-all.sh` passes all smoke and AI router suites inside the macOS isolation boundary, for both fixture HOME states.
+- [ ] Backup/copy/manifest failures, conflict retries, linked ancestors, and strict data parsing have passing negative-path fixtures.
+- [ ] Fixture passes are recorded separately from physical-display, permissions and recovery acceptance; historical product scores are not reused as current certification.
 - [ ] Repository author preset preserves the 13-workspace display and app-routing constraints.
 - [ ] `minimal --deploy-only` works in a throwaway HOME and creates no symlink.
 - [ ] Uninstall dry-run is reviewed against the same throwaway HOME.
