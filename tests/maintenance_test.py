@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -239,6 +240,32 @@ AEROSPACE_WORKSPACE_ROLE_MAP="focus:2 stage:4"
         engine.save_json(bundle / "manifest.json", original)
         with self.assertRaises(engine.Refused):
             import_intent(self.service, bundle, True)  # Existing comments/data differ: no overwrite.
+
+    def test_cli_import_refusals_are_handled_without_writes(self):
+        self.private()
+        bundle = self.root / "bundle"
+        export_intent(self.service, bundle, True)
+        original = json.loads((bundle / "manifest.json").read_text())
+        restored = self.root / "restored"
+        restored.mkdir()
+        cases = (
+            ({"revision": "wrong"}, "implementation"),
+            ({"files": {"../outside": "bad"}}, "path"),
+            ({"files": {".config/ai-first/profile.conf": "bad"}}, "checksum"),
+        )
+        for update, reason in cases:
+            with self.subTest(reason=reason):
+                engine.save_json(bundle / "manifest.json", dict(original, **update))
+                result = subprocess.run(
+                    ["/bin/bash", str(REPO / "bootstrap/setup.sh"), "import", str(bundle), "--apply"],
+                    env=dict(os.environ, HOME=str(restored), XDG_STATE_HOME=str(restored / ".state")),
+                    capture_output=True, text=True, timeout=30,
+                )
+                self.assertEqual(3, result.returncode, result.stderr)
+                self.assertIn("Refused: ", result.stderr)
+                self.assertIn(reason, result.stderr.lower())
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertEqual([], list(restored.iterdir()))
 
     def test_invalid_render_is_preflight_no_copy(self):
         self.private()

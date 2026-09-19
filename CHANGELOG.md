@@ -48,6 +48,9 @@ Notable changes to this project. Format loosely follows
 
 ### Changed
 
+- Intent import refusals now use the CLI's documented exit status and concise
+  error message. Corrupt, incompatible and unsafe bundles remain rejected before
+  writes; end-to-end command tests cover these paths, not just function calls.
 - AI Router 2.5 requires per-request text recipients, never appends legacy
   fallback chains, and refuses unverified stock text adapters. Render, snippets
   and agent launch remain; old GUI run gestures now refuse pending a recipient UI.

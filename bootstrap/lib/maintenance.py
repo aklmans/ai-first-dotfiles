@@ -627,6 +627,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # intent/health import this module's exception and helpers. When launched
+    # as a file, reuse __main__ rather than loading a second Refused class that
+    # the CLI's handler cannot catch.
+    sys.modules["maintenance"] = sys.modules[__name__]
     def interrupted(_signum, _frame):
         raise KeyboardInterrupt()
     signal.signal(signal.SIGTERM, interrupted)
