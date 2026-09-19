@@ -542,187 +542,32 @@ case_fixture_paths_and_orphans() {
   assert_equal 0 "$(backup_count "$home")" 'fixture redeploys must not create backups'
 }
 
-# --- case: uninstall dry run changes nothing --------------------------------
-
-case_uninstall_dry_run_is_inert() {
+# --- legacy installs are recovery references, not proven ownership -----------
+# New operation rollback/uninstall coverage lives in maintenance_test.py.
+case_uninstall_legacy_is_read_only() {
   local home before after
   home="$(new_home)"
-
   run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
+  printf '# user edit\n' >>"$home/.config/zsh/aliases.zsh"
   before="$(home_snapshot "$home")"
-
   run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only
-  assert_equal 0 "$last_status" 'a dry run should succeed'
-  assert_output_matches "$last_output" 'dry run' 'a dry run must say it is a dry run'
-  assert_output_matches "$last_output" '\-\-apply' 'a dry run must name the flag that performs it'
-
+  assert_equal 0 "$last_status" 'legacy recovery preview succeeds'
+  assert_output_matches "$last_output" 'read-only recovery reference' 'legacy ledger is identified honestly'
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only --apply
+  assert_equal 3 "$last_status" 'legacy automatic uninstall is refused without ownership'
   after="$(home_snapshot "$home")"
-  assert_equal "$before" "$after" 'a dry run must not change anything'
+  assert_equal "$before" "$after" 'legacy apply must not remove or restore any files'
+  assert_file_contains "$home/.config/zsh/aliases.zsh" '# user edit' 'legacy local edit is intact'
 }
 
-# --- case: uninstall --apply restores the pre-deploy state ------------------
-
-case_uninstall_apply_restores() {
-  local home before after
-  home="$(new_home)"
-  mkdir -p "$home/.config/zsh"
-  printf 'my own zshrc\n' >"$home/.config/zsh/.zshrc"
-  printf 'my own notes\n' >"$home/.config/zsh/my-notes.txt"
-
-  before="$(home_snapshot "$home")"
-
-  run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
-  assert_equal 0 "$last_status" 'deploy before uninstall should succeed'
-  assert_exists "$home/.zshenv" 'deploy should have written a file to remove again'
-
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only --apply
-  assert_equal 0 "$last_status" 'uninstall --apply should succeed'
-
-  after="$(home_snapshot "$home")"
-  assert_equal "$before" "$after" 'uninstall --apply must restore the pre-deploy HOME'
-  assert_equal 'my own zshrc' "$(cat "$home/.config/zsh/.zshrc" 2>/dev/null || true)" \
-    'the user version of an overwritten file must come back'
-  assert_equal 0 "$(backup_count "$home")" 'a completed rollback must leave no backups behind'
-}
-
-# --- case: uninstall keeps what the user changed after deploying ------------
-
-case_uninstall_keeps_local_edits() {
+case_uninstall_system_is_not_inferred() {
   local home
   home="$(new_home)"
-
-  run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
-  printf '# my tweak\n' >>"$home/.config/zsh/aliases.zsh"
-
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only --apply
-  assert_exists "$home/.config/zsh/aliases.zsh" 'a file edited after deploy must not be deleted'
-  assert_file_contains "$home/.config/zsh/aliases.zsh" '# my tweak' 'the local edit must be intact'
-  assert_missing "$home/.zshenv" 'untouched deployed files must still be removed'
-}
-
-# --- case: uninstall lists the system side effects it would undo ------------
-
-case_uninstall_lists_system_side_effects() {
-  local home
-  home="$(new_home)"
-
   run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
-  assert_equal 0 "$last_status" 'the system-only dry run should succeed'
-  assert_output_matches "$last_output" 'NSWindowShouldDragOnGesture' \
-    'uninstall must cover the AeroSpace default'
-  assert_output_matches "$last_output" 'PATH' \
-    'uninstall must cover the GUI PATH launchctl setting'
-  assert_output_matches "$last_output" 'brew services stop (sketchybar|borders)' \
-    'uninstall must cover the services the installers start'
-}
-
-# --- case: uninstall un-prepends the GUI PATH instead of erasing it ----------
-#
-# bootstrap/install/gui-path.sh reads the GUI session PATH and *prepends* the
-# two Homebrew entries, deliberately keeping whatever was already there. This
-# used to be undone with a flat `launchctl unsetenv PATH`, which threw the whole
-# variable away - a Nix profile, ~/.local/bin, another package manager, all of
-# it - for two entries that were never the user's to begin with.
-#
-# Reading the real GUI PATH would make the assertion depend on the machine
-# running the suite, so launchctl is stood in for and every branch is checked.
-
-write_launchctl_stub() {
-  local path_value="$1"
-
-  cat >"$stub_dir/launchctl-fake" <<STUB
-#!/bin/sh
-if [ "\$1" = getenv ] && [ "\$2" = PATH ]; then
-  printf '%s\n' '$path_value'
-fi
-exit 0
-STUB
-  chmod +x "$stub_dir/launchctl-fake"
-}
-
-case_uninstall_keeps_the_rest_of_the_gui_path() {
-  local home
-  home="$(new_home)"
-
-  write_launchctl_stub '/opt/homebrew/bin:/opt/homebrew/sbin:/nix/var/nix/profiles/default/bin:/usr/bin'
-  RUN_ENV=("DOTFILES_LAUNCHCTL=$stub_dir/launchctl-fake")
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
-  assert_output_matches "$last_output" \
-    'setenv PATH /nix/var/nix/profiles/default/bin:/usr/bin' \
-    'uninstall must put back the entries it did not add'
-  if printf '%s\n' "$last_output" | grep -Eq 'unsetenv PATH'; then
-    fail 'uninstall must not erase a GUI PATH that still holds other entries' "$last_output"
-  else
-    pass
-  fi
-
-  # Nothing but the prefix left: there is no remainder to keep, so unsetenv is
-  # the right answer and launchd hands out its default again.
-  write_launchctl_stub '/opt/homebrew/bin:/opt/homebrew/sbin'
-  RUN_ENV=("DOTFILES_LAUNCHCTL=$stub_dir/launchctl-fake")
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
-  assert_output_matches "$last_output" 'unsetenv PATH' \
-    'a PATH holding only this repo prefix must be unset'
-
-  # A PATH this repo never wrote. gui-path.sh skips a session that already has
-  # Homebrew on it, so uninstall has to skip it too.
-  write_launchctl_stub '/usr/local/bin:/usr/bin:/bin'
-  RUN_ENV=("DOTFILES_LAUNCHCTL=$stub_dir/launchctl-fake")
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only
-  if printf '%s\n' "$last_output" | grep -Eq '(un)?setenv PATH'; then
-    fail 'uninstall must not touch a GUI PATH this repo did not set' "$last_output"
-  else
-    pass
-  fi
-  assert_output_matches "$last_output" 'does not start with' \
-    'uninstall must say why it left the GUI PATH alone'
-}
-
-# --- case: the rollback summary counts what happened, not what was attempted -
-#
-# `rmdir` refuses a directory that still holds something, and that refusal was
-# swallowed by `|| true` while the summary counted the directory as removed. A
-# rollback that leaves two directories behind must not report them as removals.
-
-case_uninstall_summary_counts_real_removals() {
-  local home removed kept
-
-  home="$(new_home)"
-  run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
-  printf 'not ours\n' >"$home/.config/zsh/my-own-notes.txt"
-
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only --apply
-  assert_exists "$home/.config/zsh" 'a directory holding the user files must survive'
-
-  removed="$(printf '%s\n' "$last_output" | sed -n 's/^\([0-9]*\) restored, \([0-9]*\) removed.*/\2/p')"
-  kept="$(printf '%s\n' "$last_output" | sed -n 's/.*removed, \([0-9]*\) kept.*/\1/p')"
-  if [[ "$kept" -ge 1 ]]; then
-    pass
-  else
-    fail 'a directory that could not be removed must be counted as kept' "$last_output"
-  fi
-  assert_output_matches "$last_output" 'still holds files that are not ours' \
-    'the summary must name the directory it could not remove'
-
-  # Every counted removal has to be a path that is really gone.
-  if [[ "$removed" -gt 0 ]] && [[ -d "$home/.config/zsh" ]] && \
-     printf '%s\n' "$last_output" | grep -Fq "rmdir $home/.config/zsh "; then
-    fail 'a surviving directory must not appear as an rmdir that happened' "$last_output"
-  else
-    pass
-  fi
-}
-
-# A dry run cannot know whether a directory will be empty by the time the plan
-# reaches it, so it must not fold those into the same count.
-case_uninstall_dry_run_separates_pending_directories() {
-  local home
-  home="$(new_home)"
-
-  run_home "$home" "$repo_root/bootstrap/install/zsh.sh" --deploy-only
-  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only
-  assert_output_matches "$last_output" 'directory removal\(s\) are not counted above' \
-    'a dry run must say that planned directory removals are conditional'
+  assert_equal 0 "$last_status" 'system-only preview succeeds'
+  assert_output_matches "$last_output" 'ownership/original values are not recorded' 'unknown system ownership is explicit'
+  run_home "$home" "$repo_root/bootstrap/uninstall.sh" --system-only --apply
+  assert_equal 3 "$last_status" 'unowned system reversal is refused'
 }
 
 # --- case: an unwritable state directory must not stop a deploy -------------
@@ -750,7 +595,7 @@ case_skipped_symlink_does_not_abort_setup() {
   ln -sfn /tmp/managed-elsewhere "$home/.zshenv"
 
   RUN_ENV=("DOTFILES_SKIP_PREFLIGHT=1")
-  run_home "$home" "$repo_root/bootstrap/setup.sh" deploy
+  run_home "$home" "$repo_root/bootstrap/setup.sh" deploy --all
 
   assert_equal 3 "$last_status" 'partial setup must return incomplete deployment'
   assert_exists "$home/.config/ai-router" 'modules after the skip must still deploy'
@@ -822,13 +667,8 @@ case_symlinked_parent_is_refused
 case_force_replaces_symlink
 case_force_env_var
 case_fixture_paths_and_orphans
-case_uninstall_dry_run_is_inert
-case_uninstall_apply_restores
-case_uninstall_keeps_local_edits
-case_uninstall_lists_system_side_effects
-case_uninstall_keeps_the_rest_of_the_gui_path
-case_uninstall_summary_counts_real_removals
-case_uninstall_dry_run_separates_pending_directories
+case_uninstall_legacy_is_read_only
+case_uninstall_system_is_not_inferred
 case_state_dir_failure_is_survivable
 case_skipped_symlink_does_not_abort_setup
 case_unbackupable_file_is_not_replaced

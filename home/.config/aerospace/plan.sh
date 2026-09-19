@@ -84,7 +84,7 @@ printf 'Workspaces: %s\n' "$(aerospace_layout_workspaces)"
 configured_pack="${AI_FIRST_ROUTING_PACK:-author}"
 case "$configured_pack" in
   ''|*[!a-z0-9_-]*) report_issue "routing pack name is not data-safe: $configured_pack" ;;
-  *) [ -r "$SCRIPT_DIR/routing-packs/$configured_pack.conf" ] || report_issue "routing pack does not exist: $configured_pack" ;;
+  *) [ "$configured_pack" = "$(aerospace_routing_pack)" ] || report_issue "routing pack does not exist: $configured_pack" ;;
 esac
 
 printf '\nDisplay roles:\n'
@@ -354,8 +354,8 @@ EOF
 }
 
 # render-layout.sh already knows what the generated blocks should contain, and
-# --check makes it say so without writing. --no-app-rules keeps it from
-# re-rendering the placement block as a side effect of being asked a question.
+# --check stages the complete candidate without writing or activating it,
+# including app routes: a workspace-only comparison misses placement drift.
 check_aerospace_toml() {
   local toml="${AEROSPACE_CONFIG_PATH:-$HOME/.aerospace.toml}"
   local renderer="$SCRIPT_DIR/render-layout.sh"
@@ -369,10 +369,10 @@ check_aerospace_toml() {
     return 0
   fi
 
-  if /bin/bash "$renderer" --check --no-app-rules "$toml" >/dev/null 2>&1; then
-    report_ok "$toml matches workspaces.conf and displays.conf"
+  if /bin/bash "$renderer" --check "$toml" >/dev/null 2>&1; then
+    report_ok "$toml matches workspaces.conf, displays.conf and app routes"
   else
-    report_drift "$toml no longer matches workspaces.conf/displays.conf; run render-layout.sh to regenerate it"
+    report_drift "$toml no longer matches workspaces.conf/displays.conf/app routes; run render-layout.sh to regenerate it"
   fi
 }
 
@@ -381,6 +381,8 @@ check_sketchybar_workspaces
 check_hammerspoon_stage
 check_karabiner_rules
 check_aerospace_toml
+
+printf '\nRuntime: unknown (read-only monitor/config checks do not prove loaded state or permissions).\n'
 
 printf '\nResult: '
 if [ "$issues" -eq 0 ] && [ "$drift" -eq 0 ]; then

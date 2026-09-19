@@ -151,7 +151,8 @@ assert_missing "$applied_home/.config/aerospace/app-routes.conf" 'advisor must n
 assert_exists "$applied_home/.state/ai-first-dotfiles/backups.tsv" 'generated files participate in the backup ledger'
 doctor_output="$(HOME="$applied_home" PATH="/usr/bin:/bin" "$system_bash" "$repo_root/bootstrap/doctor.sh" 2>&1 || true)"
 assert_contains "$doctor_output" 'Active profile: advisor' 'doctor recognizes an advisor-generated profile'
-assert_contains "$doctor_output" 'recording —' 'doctor derives selected advisor capabilities from scenes'
+assert_contains "$doctor_output" 'No confirmed selection' 'config-only advice does not silently confirm installed modules'
+assert_contains "$doctor_output" 'choose modules explicitly' 'generated/private profiles require explicit selection adoption'
 case "$doctor_output" in *'gestures —'*|*'warp —'*) fail 'advisor doctor must not inspect unselected paid/closed modules' "$doctor_output" ;; *) pass ;; esac
 
 # Tune consumes explicit feedback and backs up the generated profile.

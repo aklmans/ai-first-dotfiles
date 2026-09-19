@@ -805,6 +805,17 @@ AEROSPACE_SIDE_WORKSPACES="4 5"
 AEROSPACE_STAGE_WORKSPACES=""
 EOF
 
+original_count_toml="$(cksum <"$count_home/.aerospace.toml")"
+run_in_home "$count_home" "$count_fixture" "$count_home/.config/aerospace/render-layout.sh"
+if [ "$last_status" -ne 0 ]; then pass; else fail 'missing semantic targets must refuse the complete render'; fi
+assert_equal "$original_count_toml" "$(cksum <"$count_home/.aerospace.toml")" \
+  'invalid reduced layout leaves the original TOML unchanged'
+# Reducing the workspace set also requires a consistent role map and pack.
+printf 'AEROSPACE_WORKSPACE_ROLE_MAP="focus:2 stage:5"\n' >>"$count_home/.config/aerospace/workspaces.conf"
+mkdir -p "$count_home/.config/ai-first"
+cp -R "$repo_root/home/.config/ai-first/." "$count_home/.config/ai-first/"
+printf 'AI_FIRST_ROUTING_PACK="none"\n' >"$count_home/.config/ai-first/profile.conf"
+
 run_in_home "$count_home" "$count_fixture" "$count_home/.config/aerospace/render-layout.sh"
 assert_status 0 "$last_status" "render-layout.sh must accept a five-workspace config" "$last_output"
 
@@ -815,7 +826,7 @@ assert_file_lacks "$count_home/.aerospace.toml" "ctrl-6 = " \
 assert_file_lacks "$count_home/.aerospace.toml" "workspace 13" \
   "No shortcut may point at a workspace that no longer exists"
 assert_file_lacks "$count_home/.aerospace.toml" "move-node-to-workspace 13" \
-  "App rules with missing semantic targets are omitted"
+  "An explicitly empty pack emits no stale app workspace targets"
 assert_file_contains "$count_home/.aerospace.toml" "'4' = ['secondary', 'main']" \
   "Side workspaces follow the role split from workspaces.conf"
 

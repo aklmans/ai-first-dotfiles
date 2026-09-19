@@ -134,7 +134,7 @@ assert_output_matches "$full_plan" 'ok .*Recording Mode parks on workspace 13' \
   'Recording Mode must resolve inside the configured stage group'
 assert_output_matches "$full_plan" 'ok .*Karabiner: all [0-9]+ shipped rule' \
   'the shipped Karabiner rules must be reported as enabled'
-assert_output_matches "$full_plan" 'ok .*matches workspaces.conf and displays.conf' \
+assert_output_matches "$full_plan" 'ok .*matches workspaces.conf, displays.conf and app routes' \
   'the shipped .aerospace.toml must match the shipped workspace config'
 assert_equal '0' "$(plan_status "$full_home" --check)" \
   'a consistent four-tool deployment must pass --check'

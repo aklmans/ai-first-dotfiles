@@ -28,6 +28,14 @@ if [ "$stdout_only" -eq 0 ]; then
     original="$(ai_first_file_state "$CONFIG_PATH")"
 fi
 
+if ! awk '
+    /^# Application placement and floating rules\./ { begin++; start=NR }
+    /^\[mode\.main\.binding\]/ { end++; finish=NR }
+    END { exit !(begin == 1 && end == 1 && start < finish) }
+' "$CONFIG_PATH"; then
+    printf 'Missing or ambiguous app-rule markers in %s; no replacement.\n' "$CONFIG_PATH" >&2
+    exit 65
+fi
 "$SCRIPT_DIR/app-defaults.sh" --toml > "$RULES_FILE"
 
 awk -v rules_file="$RULES_FILE" '
@@ -49,11 +57,7 @@ BEGIN {
 }
 ' "$CONFIG_PATH" > "$OUTPUT_FILE"
 
-# tomllib arrived in python 3.11. Skipping the check on an older interpreter is
-# better than refusing to render for everyone who has one.
-if command -v python3 >/dev/null 2>&1 && python3 -c 'import tomllib' >/dev/null 2>&1; then
-    python3 -c 'import pathlib, sys, tomllib; tomllib.loads(pathlib.Path(sys.argv[1]).read_text())' "$OUTPUT_FILE"
-fi
+python3 -B "$SCRIPT_DIR/lib/validate-toml.py" "$OUTPUT_FILE"
 
 if [ "$stdout_only" -eq 1 ]; then
     cat "$OUTPUT_FILE"

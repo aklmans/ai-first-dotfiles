@@ -1,0 +1,32 @@
+# installer|copy-deployed path relative to home/
+aerospace|.aerospace.toml
+aerospace|.config/aerospace
+sketchybar|.config/sketchybar
+borders|.config/borders
+karabiner|.config/karabiner/assets/complex_modifications/capslock-ai-lite.json
+hammerspoon|.hammerspoon
+ai-router|.config/ai-router
+bettertouchtool|.config/bettertouchtool
+kaku|.config/kaku/kaku.lua
+kaku|.config/kaku/assistant.toml
+warp|.warp
+zsh|.zshenv
+zsh|.config/zsh/.zprofile
+zsh|.config/zsh/.zshrc
+zsh|.config/zsh/env.zsh
+zsh|.config/zsh/plugins.zsh
+zsh|.config/zsh/codex-widget.zsh
+zsh|.config/zsh/aliases.zsh
+zsh|.config/zsh/functions.zsh
+zsh|.config/zsh/private.zsh.example
+zsh|.config/zsh/aliases.local.zsh.example
+zsh|.config/zsh/completions/_openclaw
+starship|.config/starship.toml
+yazi|.config/yazi
+ideavim|.ideavimrc
+sublime|Library/Application Support/Sublime Text/Packages/User/gui_path.py
+sublime|Library/Application Support/Sublime Text/Packages/User/Terminal.sublime-settings
+sublime|Library/Application Support/Sublime Text/Packages/User/Default (OSX).sublime-keymap
+mpv|.config/mpv
+skills|.agents/skills
+gui-path|Library/LaunchAgents/com.ai-first-dotfiles.gui-path.plist

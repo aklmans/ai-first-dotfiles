@@ -438,12 +438,12 @@ case_uninstall_keeps_the_rescue_copy() {
   assert_exists "$home/.config/zsh/.zshrc.pre-dotfiles" 'setup for the rollback'
 
   run_home "$home" "$repo_root/bootstrap/uninstall.sh" --files-only --apply
-  assert_equal 0 "$last_status" 'uninstall --apply should succeed'
+  assert_equal 3 "$last_status" 'legacy-only uninstall must refuse unknown ownership'
   assert_equal 'export MY_OWN_THING=1' "$(cat "$home/.zshrc" 2>/dev/null || true)" \
     'uninstall must not touch the original ~/.zshrc'
   assert_exists "$home/.config/zsh/.zshrc.pre-dotfiles" \
     'uninstall must not delete the rescue copy: it is the user'"'"'s own file'
-  assert_missing "$home/.zshenv" 'uninstall must still remove what this repo deployed'
+  assert_exists "$home/.zshenv" 'legacy shell takeover is not automatically reversed'
 }
 
 # --- case: no private environment in the deployed config --------------------

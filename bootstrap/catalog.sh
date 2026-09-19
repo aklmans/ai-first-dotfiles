@@ -50,15 +50,15 @@ ai_first_profile_conf_get() {
 
   [ -r "$file" ] || return 1
   /usr/bin/awk -v key="$key" '
+    { sub(/[[:space:]]+$/, "") }
     index($0, key "=\"") == 1 {
       value = substr($0, length(key) + 3)
-      if (substr(value, length(value), 1) == "\"") {
-        print substr(value, 1, length(value) - 1)
+      if (value ~ /^[^"$`]*"$/) {
+        result = substr(value, 1, length(value) - 1)
         found = 1
-        exit
       }
     }
-    END { if (!found) exit 1 }
+    END { if (!found) exit 1; print result }
   ' "$file"
 }
 

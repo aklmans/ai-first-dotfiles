@@ -49,12 +49,58 @@ aerospace_captured_routes_file() {
 aerospace_routing_pack() {
     local pack="${AI_FIRST_ROUTING_PACK:-author}"
     case "$pack" in ''|*[!a-z0-9_-]*) pack='none' ;; esac
-    [ -r "$_app_defaults_dir/routing-packs/$pack.conf" ] || pack='none'
+    if [ ! -r "${AEROSPACE_CONFIG_DIR:-$_app_defaults_dir}/routing-packs/$pack.conf" ] &&
+       [ ! -r "$_app_defaults_dir/routing-packs/$pack.conf" ]; then pack='none'; fi
     printf '%s\n' "$pack"
 }
 
 aerospace_routing_pack_file() {
-    printf '%s/routing-packs/%s.conf\n' "$_app_defaults_dir" "$(aerospace_routing_pack)"
+    local pack dir
+    pack="$(aerospace_routing_pack)"
+    dir="${AEROSPACE_CONFIG_DIR:-$_app_defaults_dir}"
+    [ -r "$dir/routing-packs/$pack.conf" ] || dir="$_app_defaults_dir"
+    printf '%s/routing-packs/%s.conf\n' "$dir" "$pack"
+}
+
+# Render-time validation must not silently drop malformed data or missing
+# targets. Runtime lookups remain tolerant; plan/renderer expose the error.
+aerospace_validate_route_data() {
+    local file line kind value target field4 field5 rest number pack role workspace separators seen=' '
+    pack="${AI_FIRST_ROUTING_PACK:-author}"
+    case "$pack" in ''|*[!a-z0-9_-]*) printf 'Invalid routing pack name: %s\n' "$pack" >&2; return 65 ;; esac
+    if [ "$pack" != "$(aerospace_routing_pack)" ]; then
+        printf 'Missing routing pack: %s\n' "$pack" >&2; return 65
+    fi
+    for line in $AEROSPACE_WORKSPACE_ROLE_MAP; do
+        case "$line" in *:*) ;; *) printf 'Invalid workspace role: %s\n' "$line" >&2; return 65 ;; esac
+        role="${line%%:*}"; workspace="${line#*:}"
+        case "$role" in ''|*[!a-z0-9_-]*) return 65 ;; esac
+        case "$seen" in *" $role "*) printf 'Duplicate workspace role: %s\n' "$role" >&2; return 65 ;; esac
+        seen="$seen$role "
+        aerospace_layout_workspace_is_configured "$workspace" || { printf 'Role %s targets missing workspace %s\n' "$role" "$workspace" >&2; return 65; }
+    done
+    while IFS= read -r file; do
+        [ -f "$file" ] || continue
+        number=0
+        while IFS= read -r line || [ -n "$line" ]; do
+            number=$((number + 1))
+            case "$line" in ''|'#'*) continue ;; esac
+            separators="${line//[^|]/}"
+            case "${#separators}" in 2|3|4) ;; *) printf '%s:%s: expected 3 to 5 route fields\n' "$file" "$number" >&2; return 65 ;; esac
+            IFS='|' read -r kind value target field4 field5 rest <<< "$line"
+            case "$kind" in id|name) ;; *) printf '%s:%s: invalid route kind\n' "$file" "$number" >&2; return 65 ;; esac
+            case "$value" in ''|*"'"*) printf '%s:%s: invalid app match\n' "$file" "$number" >&2; return 65 ;; esac
+            if [ -n "$rest" ] || ! aerospace_normalize_route_fields "$target" "$field4" "$field5"; then
+                printf '%s:%s: invalid route or unconfigured target\n' "$file" "$number" >&2
+                return 65
+            fi
+        done <"$file"
+    done <<EOF
+$(aerospace_app_routes_file)
+$(aerospace_captured_routes_file)
+$(aerospace_advisor_routes_file)
+$(aerospace_routing_pack_file)
+EOF
 }
 
 # Normalized route fields are returned through globals so the same parser can
@@ -590,5 +636,6 @@ TOML
 }
 
 if [ "${1:-}" = "--toml" ]; then
+    aerospace_validate_route_data || exit "$?"
     emit_on_window_detected_rules
 fi

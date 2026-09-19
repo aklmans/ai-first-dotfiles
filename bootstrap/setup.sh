@@ -11,6 +11,9 @@ repo_root="$(repo_root_dir)"
 # parser so `recommend --apply` and `tune --workspace-feedback fewer` remain
 # data-oriented commands rather than pretending their flags are setup modules.
 case "${1:-}" in
+  select|update|operations|rollback|export|import)
+    exec python3 -B "$script_dir/lib/maintenance.py" "$@"
+    ;;
   recommend|tune)
     advisor_command="$1"
     shift
@@ -33,6 +36,12 @@ dry_run=0
 no_brew=0
 deploy_only=0
 install_only=0
+accept_preferences=0
+allow_all=0
+had_preferences=0
+if [ -f "$HOME/.config/ai-first/profile.conf" ] || [ -d "$HOME/.config/ai-first/modules" ]; then
+  had_preferences=1
+fi
 
 usage() {
   cat <<'EOF'
@@ -44,6 +53,12 @@ Start here:
   recommend     Detect this Mac, ask about common scenes, and preview a layout
   tune          Refine an advisor-generated profile from explicit feedback
   capture-current  Propose app routes from the desktop you arranged yourself
+  select        Preview/confirm selected modules (MODULE... --apply to save)
+  update        Preview updating ONLY saved modules; --apply writes files
+  operations    List recorded file maintenance operations
+  rollback ID   Preview a content-checked operation rollback; --apply to write
+  export DIR    Preview a private intent bundle; --apply to write it locally
+  import DIR    Preview restoring a validated intent bundle; --apply to write
   minimal       Free desktop starting point: workspace + bar
   developer     Keyboard desktop plus local AI workflows
   author-full   The author's complete, opinionated setup (includes paid/closed choices)
@@ -72,12 +87,15 @@ Compatibility profiles:
   desktop       Karabiner, AeroSpace, SketchyBar, Borders, Hammerspoon
   extras        BetterTouchTool, Warp
   app-store     App Store apps from manifests/app-store
-  deploy        Deploy all tracked config without package installation
+  deploy        Compatibility all-config deploy; requires --all
 
 Running with no module prints this help and changes nothing. `all` remains for
 old automation, but new users should choose modules or a preset explicitly.
 
 Options:
+  --accept-preferences  Apply shown defaults for newly added module overlays.
+                        Without this, existing explicit preferences are kept.
+  --all           Confirm the broad compatibility deploy scope (not an update).
   --no-brew       Skip Homebrew commands where possible.
   --deploy-only   Deploy config only. Installs nothing, starts nothing, and
                   changes no macOS settings.
@@ -92,7 +110,7 @@ wired up; this refuses before it writes anything instead. --dry-run still
 previews on any machine.
 
 Environment:
-  DOTFILES_SKIP_PREFLIGHT=1  Skip the Apple Silicon, brew, git and Xcode CLT
+  DOTFILES_SKIP_PREFLIGHT=1  Skip Apple Silicon, brew, git, Python and Xcode CLT
                              prerequisite checks.
   DOTFILES_FORCE=1           Replace symlinked targets and local changes,
                              backing up whatever is replaced.
@@ -582,7 +600,14 @@ run_capability() {
   apply_capability_config "$capability"
 
   for module in $(catalog_module_scripts "$capability"); do
-    run_module "$module"
+    if [ -z "$selected_preset" ]; then
+      # Module repair is not a preference reset, including first adoption of
+      # private data with no old deployment baseline. Overlay opt-in above is
+      # independent; a named preset remains an explicit preference operation.
+      DOTFILES_KEEP_INTENT=1 run_module "$module"
+    else
+      run_module "$module"
+    fi
   done
 }
 
@@ -678,11 +703,31 @@ apply_capability_config() {
   local source_rel="bootstrap/modules/$capability.conf"
   local target="$HOME/.config/ai-first/modules/$overlay_scope/$capability.conf"
   local base_target="$HOME/.config/ai-first/modules/custom/00-base.conf"
-  local stamp status
+  local stamp status key _rest current proposed
 
   [ "$install_only" -eq 0 ] || return 0
+  ensure_ai_first_shared_config
   [ -f "$repo_root/$source_rel" ] || return 0
   capability_is_in_scope_preset "$capability" && return 0
+
+  if [ "$had_preferences" -eq 1 ] || [ -e "$target" ]; then
+    printf '    Preference proposal for %s (current -> proposed):\n' "$target"
+    while IFS='=' read -r key _rest; do
+      case "$key" in ''|'#'*) continue ;; esac
+      proposed="$(ai_first_profile_conf_get "$repo_root/$source_rel" "$key")"
+      current="$(AI_FIRST_CONFIG_DIR="$HOME/.config/ai-first" \
+        AI_FIRST_PROFILE_PATH="$HOME/.config/ai-first/profile.conf" AI_FIRST_PROFILE_LOADED=0 \
+        /bin/bash -c 'source "$1"; key="$2"; printf "%s" "${!key-<unset>}"' \
+        _ "$repo_root/home/.config/ai-first/lib/profile.sh" "$key")"
+      printf '      %s: %s -> %s\n' "$key" "$current" "$proposed"
+    done <"$repo_root/$source_rel"
+  fi
+
+  if [ "$accept_preferences" -eq 0 ] && { [ -e "$target" ] || [ "$had_preferences" -eq 1 ]; }; then
+    printf '    Preserving existing preferences for %s; implementation only.\n' "$capability"
+    printf '    Use --accept-preferences only after reviewing the proposal.\n'
+    return 0
+  fi
 
   ensure_ai_first_shared_config
   if [ "$dry_run" -eq 1 ]; then
@@ -770,6 +815,12 @@ while [[ "$#" -gt 0 ]]; do
     --dry-run)
       dry_run=1
       ;;
+    --accept-preferences)
+      accept_preferences=1
+      ;;
+    --all)
+      allow_all=1
+      ;;
     -h|--help)
       usage
       exit 0
@@ -823,6 +874,13 @@ if [[ "${#profiles[@]}" -eq 0 ]]; then
   catalog_print
   exit 0
 fi
+
+for profile in "${profiles[@]}"; do
+  if [ "$profile" = deploy ] && [ "$allow_all" -ne 1 ]; then
+    printf 'deploy is a broad compatibility action, not an update. Use update, or preview deploy --all --dry-run.\n' >&2
+    exit 64
+  fi
+done
 
 # Runs after argument parsing so `--help` still works on a machine that has
 # nothing installed yet, and before any profile so the failure is one readable
@@ -899,4 +957,20 @@ fi
 
 if [ "$skipped_modules" -gt 0 ]; then
   exit 3
+fi
+
+# Selection records user choices, not asset discovery. No mutation on previews,
+# package-only runs, failed/partial installs or compatibility-wide profiles.
+if [ "$dry_run" -eq 0 ] && [ "$install_only" -eq 0 ] && [ "$DOTFILES_SKIPPED_COUNT" -eq 0 ]; then
+  choices=()
+  while IFS= read -r capability; do
+    [ -z "$capability" ] || choices+=("$capability")
+  done <<< "$resolved_capabilities"
+  if [ "${#choices[@]}" -gt 0 ]; then
+    if [ -n "$selected_preset" ]; then
+      python3 -B "$script_dir/lib/maintenance.py" record-selection "${choices[@]}" --replace
+    else
+      python3 -B "$script_dir/lib/maintenance.py" record-selection "${choices[@]}"
+    fi
+  fi
 fi

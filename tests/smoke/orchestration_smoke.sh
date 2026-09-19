@@ -435,7 +435,7 @@ case_deploy_only_is_inert() {
   local home
   home="$(new_home)"
 
-  run_setup "$home" deploy
+  run_setup "$home" deploy --all
 
   # Evidence the run did real work, so the assertions below are not vacuous.
   assert_exists "$home/.config/ai-router" 'deploy must actually deploy config'
@@ -526,7 +526,7 @@ case_all_excludes_opt_in_layers() {
     'extras must cover Warp'
 
   # Deploying installs nothing, so it still covers every tracked config.
-  run_setup "$home" deploy --dry-run
+  run_setup "$home" deploy --all --dry-run
   assert_output_matches "$last_output" 'install/zsh\.sh' \
     'deploy must still cover the config of the opt-in layers'
   assert_output_matches "$last_output" 'install/warp\.sh' \

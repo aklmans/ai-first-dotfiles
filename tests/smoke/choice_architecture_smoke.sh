@@ -288,7 +288,7 @@ else
 fi
 assert_missing "$deploy_output" 'brew install' 'deploy-only must not install packages'
 
-compose_output="$(HOME="$deploy_home" PATH="$choice_stub_dir:$PATH" DOTFILES_SKIP_PREFLIGHT=1 /bin/bash "$repo_root/bootstrap/setup.sh" minimal notifications --deploy-only 2>&1)"
+compose_output="$(HOME="$deploy_home" PATH="$choice_stub_dir:$PATH" DOTFILES_SKIP_PREFLIGHT=1 /bin/bash "$repo_root/bootstrap/setup.sh" minimal notifications --deploy-only --accept-preferences 2>&1)"
 composed_profile="$(HOME="$deploy_home" /bin/bash -c 'source "$1"; printf "%s|%s|%s" "$AI_FIRST_FEATURE_NOTIFICATIONS" "$AI_FIRST_BAR_RIGHT_ITEMS" "$AI_FIRST_NOTIFICATION_APPS"' _ "$deploy_home/.config/ai-first/lib/profile.sh")"
 assert_equal '1|clock calendar battery volume ai_notifications|warp codex idea goland' "$composed_profile" \
   'an extra notification module must activate itself on top of minimal'
@@ -334,10 +334,10 @@ else
 fi
 
 recording_deploy="$(HOME="$deploy_home" PATH="$choice_stub_dir:$PATH" DOTFILES_SKIP_PREFLIGHT=1 \
-  /bin/bash "$repo_root/bootstrap/setup.sh" developer recording --deploy-only 2>&1)"
+  /bin/bash "$repo_root/bootstrap/setup.sh" developer recording --deploy-only --accept-preferences 2>&1)"
 recording_profile="$(HOME="$deploy_home" /bin/bash -c 'source "$1"; printf "%s|%s|%s|%s" "$AI_FIRST_PRESET" "$AI_FIRST_ROUTING_PACK" "$AI_FIRST_FEATURE_NOTIFICATIONS" "$AI_FIRST_FEATURE_RECORDING"' _ "$deploy_home/.config/ai-first/lib/profile.sh")"
-assert_equal 'developer|creator|0|1' "$recording_profile" \
-  'adding recording must activate its own pack without enabling notifications'
+assert_equal 'developer|none|0|1' "$recording_profile" \
+  'adding recording must preserve the selected pack without enabling notifications'
 assert_equal '8' "$(HOME="$deploy_home" /bin/bash "$deploy_home/.config/aerospace/recording-target.sh")" \
   'copy-deployed recording helper follows the public preset task role'
 assert_missing "$recording_deploy" 'brew install' 'recording deploy-only must not install applications'

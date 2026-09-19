@@ -75,7 +75,7 @@ run_setup "$preset_home" minimal --deploy-only
 assert_file_contains "$preset_home/.config/ai-first/profile.conf" 'AI_FIRST_PRESET="minimal"' \
   'the preset records its own scope name'
 
-run_setup "$preset_home" notifications --deploy-only
+run_setup "$preset_home" notifications --deploy-only --accept-preferences
 assert_path_exists "$preset_home/.config/ai-first/modules/minimal/notifications.conf" \
   'a module added later lands in the installed preset scope, not in custom'
 assert_path_absent "$preset_home/.config/ai-first/modules/custom/notifications.conf" \
@@ -100,7 +100,7 @@ AI_FIRST_BAR_CENTER_ITEMS="spotify media"
 AI_FIRST_BAR_RIGHT_ITEMS="clock calendar battery volume"
 EOF
 
-run_setup "$advisor_home" notifications --deploy-only
+run_setup "$advisor_home" notifications --deploy-only --accept-preferences
 assert_path_exists "$advisor_home/.config/ai-first/modules/advisor/notifications.conf" \
   'a generated profile scope receives its overlays too'
 assert_equal '1' "$(profile_value "$advisor_home" AI_FIRST_FEATURE_NOTIFICATIONS)" \
@@ -159,7 +159,7 @@ traversal_home="$(new_home)"
 mkdir -p "$traversal_home/.config/ai-first"
 cp -R "$repo_root/home/.config/ai-first/." "$traversal_home/.config/ai-first/"
 printf 'AI_FIRST_PRESET="../../../etc"\n' >"$traversal_home/.config/ai-first/profile.conf"
-run_setup "$traversal_home" notifications --deploy-only
+run_setup "$traversal_home" notifications --deploy-only --accept-preferences
 assert_path_exists "$traversal_home/.config/ai-first/modules/custom/notifications.conf" \
   'an unusable scope name falls back to custom'
 assert_equal '' "$(overlay_paths "$traversal_home" | /usr/bin/grep -F '..' || true)" \
@@ -174,7 +174,7 @@ cp "$repo_root/bootstrap/presets/minimal.conf" "$preview_home/.config/ai-first/p
 
 preview="$(env -u XDG_STATE_HOME -u AI_FIRST_PROFILE_PATH \
   "HOME=$preview_home" "DOTFILES_SKIP_PREFLIGHT=1" \
-  "$system_bash" "$setup_sh" notifications --dry-run 2>&1 || true)"
+  "$system_bash" "$setup_sh" notifications --dry-run --accept-preferences 2>&1 || true)"
 assert_output_matches "$preview" 'modules/minimal/notifications\.conf' \
   'the preview names the scope the real run would use'
 assert_output_lacks "$preview" 'modules/custom/notifications\.conf' \

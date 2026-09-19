@@ -28,8 +28,9 @@ if should_deploy; then
   # intentionally empty block used by the minimal preset.
   if [ "$DOTFILES_SKIPPED_COUNT" -eq 0 ]; then
     render_status=0
-    if [ -r "$HOME/.config/ai-first/profile.conf" ] && \
-      grep -Eq '^AI_FIRST_APP_ROUTING=' "$HOME/.config/ai-first/profile.conf"; then
+    if [ -d "$HOME/.config/ai-first/modules" ] || { \
+      [ -r "$HOME/.config/ai-first/profile.conf" ] && \
+      grep -Eq '^AI_FIRST_APP_ROUTING=' "$HOME/.config/ai-first/profile.conf"; }; then
       AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace" /bin/bash "$repo_root/home/.config/aerospace/render-layout.sh" "$HOME/.aerospace.toml" || render_status=$?
     else
       AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace" /bin/bash "$repo_root/home/.config/aerospace/render-layout.sh" --no-app-rules "$HOME/.aerospace.toml" || render_status=$?

@@ -56,6 +56,16 @@ require_prerequisites() {
     problems+=('git is missing. It ships with the Xcode Command Line Tools, or: brew install git')
   fi
 
+  if ! command -v python3 >/dev/null 2>&1; then
+    problems+=('Python 3.9+ is required for mandatory offline TOML validation and maintenance.')
+  elif xcode-select -p >/dev/null 2>&1; then
+    # The /usr/bin/python3 shim may open a CLT install dialog if CLT is absent.
+    # The existing CLT failure above is sufficient; a preview must not open it.
+    if ! python3 -B -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1; then
+      problems+=('Python 3.9+ is required; upgrade Python before deploying.')
+    fi
+  fi
+
   if ! command -v brew >/dev/null 2>&1; then
     problems+=('Homebrew is missing. Install it from https://brew.sh, then open a new shell so brew is on PATH.')
   fi
@@ -471,7 +481,7 @@ ensure_parent_dir() {
 #      while the repo copy has not moved since the last deploy was changed on
 #      this machine, and stays.
 #   3. Anything that is replaced is moved aside first and written to the
-#      backup ledger, so bootstrap/uninstall.sh can put it back.
+#      legacy recovery ledger for manual inspection (not proof of ownership).
 #   4. Symbolic links are never followed or replaced. A symlink means another
 #      tool (GNU Stow, chezmoi, a hand-rolled setup) owns that path; deploying
 #      over it would silently cut the link.
@@ -888,6 +898,16 @@ deploy_single_file() {
     return 0
   fi
   original="$(ai_first_file_state "$target_file")" || return 1
+  if [ "${DOTFILES_KEEP_INTENT:-0}" = 1 ] && [ -e "$target_file" ]; then
+    case "$source_rel" in
+      home/.aerospace.toml|home/.zshenv|home/.ideavimrc|*.conf|*.toml|*.json|*.yaml|*.yml|*.plist|*.sublime-settings|*.sublime-keymap|home/.config/kaku/kaku.lua|home/.config/yazi/*.lua|home/.config/sketchybar/colors.sh|home/.config/borders/bordersrc)
+        printf 'Kept preference: %s\n' "$target_file"
+        deploy_record_manifest_entry "$rel" "${previous:--}"
+        DOTFILES_LAST_ACTION="kept"
+        return 0
+        ;;
+    esac
+  fi
   if files_match "$source_file" "$target_file"; then
     deploy_record_manifest_entry "$rel" "$fingerprint"
     return 0
