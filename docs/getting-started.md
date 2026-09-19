@@ -158,7 +158,8 @@ The deploy engine preserves local changes. See
 Older automation can still use `all`, `desktop`, `extras`, `packages`,
 `packages-all`, `shell`, `ai`, `media`, `app-store` and `deploy`. `all` is no
 longer the recommended entry point. It preserves its previous behavior and does
-not mean “every possible module.”
+not mean “every possible module.” `deploy` requires `--all`; routine updates use
+`setup.sh update`, which previews only confirmed selections and preserves preferences.
 
 Each `bootstrap/install/*.sh` script also remains independently runnable with
 the common flags.
@@ -167,12 +168,13 @@ the common flags.
 
 ```bash
 ./bootstrap/uninstall.sh            # plan only
-./bootstrap/uninstall.sh --apply    # restore/remove deployed files safely
+./bootstrap/uninstall.sh --apply    # reverse recorded maintenance changes only
 ```
 
-The uninstaller replays the backup ledger. It removes only unchanged repository
-copies, moves edited files aside, never follows symlinks, and leaves Homebrew
-packages alone because another workflow may use them.
+The uninstaller refuses user-edit conflicts and reverses only recorded file
+operations. Legacy installs require manual backup review. It does not stop
+services, uninstall packages or reverse unknown system settings. See
+[maintenance](maintenance.md) for per-operation rollback and private restore rehearsal.
 
 ## Next
 

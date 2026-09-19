@@ -79,10 +79,10 @@ Leave out modules whose paths another dotfiles manager owns. In particular,
 
 ## Updates and rendering
 
-Until a selected-module update workflow is implemented, review the dry-run for
-the exact modules you intend to update. Do not use `all` or reapply a preset as
-a supposedly preference-neutral update, especially with private profiles:
-module overlays and preset selection can still affect effective preferences.
+Use `setup.sh select` to inspect/adopt a confirmed module list, then `setup.sh
+update` to preview and `setup.sh update --apply` to copy only those modules while
+preserving existing preference data. Do not use `all` or reapply a preset as a
+preference-neutral update. Broad compatibility deployment requires `deploy --all`.
 
 `render-layout.sh` stages generated workspace, key and app-rule blocks together
 before replacing the TOML; `--no-app-rules` preserves the existing app block.
@@ -114,17 +114,16 @@ the file. No user config is automatically migrated.
 ./bootstrap/uninstall.sh --files-only  # inspect the plan; no changes
 ```
 
-The legacy uninstaller considers the newest ledger row for each path. It is
-**not** “restore the pre-install machine” after several updates. It has no
-complete operation history and does not replay pending recovery records or
-renderer backups. Changed files can be moved aside during a restore; a leaf
-symlink may also be moved aside. Do not assume every linked path is untouched.
+The old ledger is now a **read-only recovery reference**. It does not prove
+original ownership or replay pending records/renderer backups. Legacy-only
+automatic uninstall refuses instead of guessing which version to restore.
 
-Uninstall ownership, linked-ancestor recovery, and prior system-setting/service
-ownership still need a separate redesign. Review each target and backup before
-using `--apply`; keep system changes out of recovery unless their original state
-is known. An unchanged file matching this checkout may be removed. Nonempty
-directories and unrelated Homebrew packages are retained.
+New select/update/import operations have per-operation before images and hashes.
+Rollback and uninstall preflight user-edit/link conflicts and retain nonempty
+directories. No service/package/system reversal is inferred from file presence.
+See [maintenance](maintenance.md) for the exact coverage, failure boundaries and
+private restore rehearsal. Installation steps outside the new maintenance
+commands still require manual legacy-backup review.
 
 macOS permission grants, existing Homebrew state, external dotfiles managers,
 and privately stored data are not restored by the deployment ledger. Treat

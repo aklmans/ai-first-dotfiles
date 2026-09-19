@@ -40,7 +40,7 @@ argument.
 | Keyboard layer | A Karabiner complex-modification you enable yourself; `karabiner.json` is never written | Yours |
 | Multi-display | Workspaces carry a role — main, side, stage — and roles resolve to whichever monitors are connected now | Monitor names in a config file |
 | Existing dotfiles | Copied in file by file, backed up before replacement, a symlinked path refused rather than written through | However careful you are |
-| Removal | `uninstall.sh` removes only files byte-identical to what it shipped | However careful you were |
+| Removal | Content-checked rollback of recorded maintenance; manual review for legacy installs | However careful you were |
 
 That fourth row is the one worth reading twice if you already have a setup you
 like. [docs/coexisting.md](coexisting.md) is the whole of it: four rules, and how

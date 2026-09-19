@@ -20,6 +20,8 @@
 - [ ] Repository author preset preserves the 13-workspace display and app-routing constraints.
 - [ ] `minimal --deploy-only` works in a throwaway HOME and creates no symlink.
 - [ ] Uninstall dry-run is reviewed against the same throwaway HOME.
+- [ ] Selected-only update preserves private intent; three-update rollback, partial failure, user edits and legacy refusal fixtures pass.
+- [ ] A private intent bundle restores into a clean temporary HOME at the same implementation revision/content; its off-device destination is chosen separately.
 - [ ] Live config is inspected separately; no release test silently deploys repository config into it.
 
 ## Communication

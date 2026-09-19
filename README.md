@@ -18,10 +18,10 @@ every cost and permission first, and keep your own preferences.**
 
 Three things before the details, because they are the three questions people ask:
 
-- **It will not touch the dotfiles you already have.** Every file is copied,
+- **Copy deployment has explicit conflict boundaries.** Every file is copied,
   never symlinked; a path another manager owns is refused rather than written
-  through; anything replaced is backed up first and listed in a ledger the
-  uninstaller can replay. [Check each of those claims before you install
+  through; replacements are backed up first. Legacy installation recovery is
+  manual; recorded maintenance has conflict-checked rollback. [Check before installing
   anything.](docs/coexisting.md)
 - **You see the whole plan first.** `--dry-run` prints every tap, package, file
   under `$HOME` and macOS permission, and installs nothing.
@@ -75,7 +75,7 @@ but Homebrew installed:
 | Typed by you | One `brew trust`, because Homebrew will not install from a third-party tap on your say-so alone (see [Prerequisites](#prerequisites)) |
 | Clicked by you | One Accessibility checkbox in System Settings |
 | Left behind | Two Homebrew taps and roughly 60 files under `~/.config` |
-| To undo | `./bootstrap/uninstall.sh`, which lists every one of them before removing anything |
+| To undo | Recorded maintenance can be rolled back; legacy installation backups require manual review. No automatic package/system reversal. |
 
 What you get for it: `Ctrl+1`…`Ctrl+6` switch workspaces, and windows tile
 themselves as they open. Nothing else changes — not your shell, not CapsLock,
@@ -329,21 +329,23 @@ permission checklist.
 
 ---
 
-## Uninstall
+## Update and recovery
 
 ```bash
-./bootstrap/uninstall.sh            # prints the plan, changes nothing
-./bootstrap/uninstall.sh --apply    # performs it
+./bootstrap/setup.sh select         # inspect saved selection or legacy candidate
+./bootstrap/setup.sh update         # preview only selected modules
+./bootstrap/setup.sh update --apply # files only; preserves existing preferences
+./bootstrap/setup.sh operations
+./bootstrap/setup.sh rollback OPERATION_ID  # preview one operation
+./bootstrap/uninstall.sh            # preview reversal of recorded changes
 ```
 
-It replays the backup ledger newest-first. A file byte-identical to the copy this
-repo shipped is removed; anything you changed is moved aside, never deleted;
-symlinks and non-empty directories are never touched. It also stops the
-SketchyBar and Borders services and reverts the two system settings the install
-changed.
-
-Homebrew packages are left alone on purpose — you may have wanted `ripgrep`
-anyway. `brew uninstall` whatever you don't.
+Rollback/uninstall require `--apply` to write and refuse conflicting user edits.
+They cover new maintenance operations, not the earliest state of legacy installs.
+Legacy ledgers remain read-only recovery references. Services, packages and
+system settings are never automatically reversed without ownership/original
+state records. See [maintenance and private restore rehearsal](docs/maintenance.md)
+for selection migration, preference opt-in, activation and export/import.
 
 ---
 

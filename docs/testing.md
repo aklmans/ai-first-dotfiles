@@ -42,3 +42,12 @@ IPC endpoint.
 Add a refusal/failure fixture before changing a safety contract. Check the exit
 status as well as the output: “expected file exists” does not prove the setup
 completed. Never make tests pass by swallowing an unexpected command failure.
+
+## Maintenance regression
+
+`maintenance_smoke.sh` also runs `tests/maintenance_test.py` inside the same
+boundary. It covers selected-only updates, private stage/quiet preferences,
+route drift, ordered multi-operation rollback, failed/partial writes, interrupted
+restore retry, user-edit/link/corrupt-image refusal, activation failure, asset
+inventory parity, full TOML rejection, literal parser agreement and private
+export/import into a fresh HOME. No real desktop activation is part of this drill.

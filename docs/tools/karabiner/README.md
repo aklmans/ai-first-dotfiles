@@ -85,8 +85,9 @@ Remove the rule in **Complex Modifications**, then delete the asset:
 rm ~/.config/karabiner/assets/complex_modifications/capslock-ai-lite.json
 ```
 
-`./bootstrap/uninstall.sh` does the file half of that for you. Removing the rule from
-the running profile is still a GUI action, for the same reason enabling it is.
+`./bootstrap/uninstall.sh` only reverses newly recorded maintenance changes;
+legacy installation files require manual review. Removing the rule from the
+running profile is still a GUI action, for the same reason enabling it is.
 
 ## Validation
 

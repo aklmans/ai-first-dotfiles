@@ -54,7 +54,8 @@ So `bootstrap/install/zsh.sh` will not do that behind your back:
 
 Move whatever you want to keep from `.zshrc.pre-dotfiles` into
 `~/.config/zsh/private.zsh`. To undo the takeover entirely, remove `~/.zshenv`
-(or run `./bootstrap/uninstall.sh --apply`) and `~/.zshrc` is read again.
+after checking its contents and any prior backup; `~/.zshrc` is read again.
+The new uninstaller does not infer ownership of legacy shell takeover files.
 
 ## Shell layout
 

@@ -78,7 +78,7 @@ report the names rather than writing placeholders that will never match.
 ```
 
 Non-interactive mutation requires both `--apply` and `--yes`. Generated profile
-and route files are backed up and recorded in the uninstall ledger; a symlink is
+and route files are backed up and recorded in the legacy recovery ledger; a symlink is
 refused unless `--force` is explicit. Notifications, Full Disk Access,
 BetterTouchTool and Warp installation are never inferred. Hardware/application
 detection is not stored or sent anywhere.
@@ -114,7 +114,7 @@ Unknown bar item names and unsupported notification applications are ignored;
 they are not executed as shell. With no profile present, legacy full behavior
 is preserved for existing users.
 
-When a module is added to a preset, its small data overlay is stored under
+When module defaults are explicitly accepted, their small data overlay is stored under
 `~/.config/ai-first/modules/<preset>/`. The preset loads first and these explicit
 additions load second. Module-only composition uses the `custom` scope and a
 neutral base, so `automation` alone does not silently activate AI,
@@ -122,11 +122,12 @@ notifications or recording. Switching presets ignores overlays from other
 scopes; returning to a preset restores the choices previously added to it.
 
 The scope is taken from the profile already installed, not from the command
-line, so adding a module later is one word:
+line. On an existing install, review the proposal and explicitly opt in:
 
 ```bash
 ./bootstrap/setup.sh minimal          # profile.conf records "minimal"
-./bootstrap/setup.sh notifications    # overlay is stored in modules/minimal/
+./bootstrap/setup.sh notifications --dry-run
+./bootstrap/setup.sh notifications --accept-preferences # modules/minimal/
 ```
 
 A generated advisor profile behaves the same way under its own `advisor` scope.
@@ -304,4 +305,6 @@ files, remove or move aside its matching file under
 File removal is repository-wide because some capabilities share one runtime
 directory (notifications live inside SketchyBar; recording lives inside
 Hammerspoon). To stop one shared capability, turn its feature flag off. Use the
-ledger-based uninstaller when removing the whole deployed configuration.
+recorded-operation uninstaller for owned maintenance changes; legacy installation
+backups need manual review. See [maintenance](maintenance.md). Selecting a smaller
+module list changes future updates only; feature flags control runtime behavior.

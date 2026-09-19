@@ -54,8 +54,12 @@ system changes, provider cancellation, or physical multi-display behavior.
 
 Display/workspace/theme files now reject unsupported shell syntax. Test results
 are fixture results, not additional clean-machine installations. No new numeric
-score is assigned: update/recovery semantics and hardware acceptance remain
-open gates. See [testing](testing.md) and [recovery limits](coexisting.md).
+score is assigned. The second batch adds selected-only updates, preference
+opt-in, complete staged TOML validation, recorded file-operation rollback and
+private intent restore rehearsal. Legacy system ownership, abrupt-loss recovery,
+provider cancellation and physical hardware acceptance remain unverified. See
+[testing](testing.md), [maintenance coverage](maintenance.md) and
+[recovery limits](coexisting.md).
 
 ## Historical assessment — 2026-08-01
 

@@ -7,6 +7,14 @@ Notable changes to this project. Format loosely follows
 
 ### Added
 
+- Explicit `select` and selected-only `update` commands, with preview-first
+  maintenance and separate desktop activation. Minimal updates do not adopt
+  shell, Warp or media configuration.
+- Private per-operation file images/hashes, failure/activation records,
+  content-checked rollback and local intent export/import with restore rehearsal.
+- Mandatory offline full TOML parsing on Python 3.9+ using vendored Tomli, plus
+  project workspace/route checks and app-route drift detection.
+
 - A macOS-isolated test runner with clean and author-full fixture homes, denied
   external desktop commands/network, and failure/retry regression fixtures.
 - Shared deployment/render write guards, a cooperative writer lock, and minimal
@@ -39,6 +47,18 @@ Notable changes to this project. Format loosely follows
   quality scorecard and release checklist.
 
 ### Changed
+
+- Adding/reinstalling modules preserves existing preferences unless their shown
+  defaults are explicitly accepted. Recording no longer selects a routing pack.
+- Doctor distinguishes selected, installed, configured enablement, static config
+  validity and unverified runtime; private/unknown profiles are not assumed full.
+- `deploy` requires explicit `--all`; use `update` for preference-preserving
+  maintenance of confirmed modules.
+- Legacy ledgers are now read-only recovery references. Uninstall reverses only
+  newly recorded maintenance changes and refuses user edits or unknown ownership;
+  it never guesses service, package, GUI PATH or defaults restoration. Standalone
+  installation/adapter actions are not a complete transactional history. See
+  [maintenance and migration](docs/maintenance.md).
 
 - Deployment preserves conflicts when both upstream and local content changed;
   failed backup/copy/manifest operations no longer claim a new successful
@@ -96,13 +116,9 @@ Notable changes to this project. Format loosely follows
   enabled, and whether `~/.aerospace.toml` still matches `workspaces.conf` and
   `displays.conf`. Everything is read-only, a tool that is not installed is
   skipped with a line saying so, and `karabiner.json` is never written.
-- `./bootstrap/uninstall.sh` no longer clears the whole GUI session `PATH`.
-  Install prepends `/opt/homebrew/bin:/opt/homebrew/sbin` and keeps whatever was
-  already there; uninstall now removes exactly that prefix and puts the rest
-  back, and only unsets the variable when nothing else was on it.
-- The uninstall summary counts directories it actually removed. `rmdir` refuses
-  a directory that still holds files, and that refusal used to be counted as a
-  removal anyway.
+- GUI PATH installation preserves existing entries. Uninstall deliberately does
+  not reverse it without recorded original ownership/value. Nonempty directories
+  retained during file rollback are reported as kept, not counted as removals.
 - `app-route.sh capture-current` reports how many windows it had to ignore
   because their app name or workspace could not be written as a route, instead
   of dropping them from the proposal in silence.

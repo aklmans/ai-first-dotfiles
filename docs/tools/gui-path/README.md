@@ -64,8 +64,9 @@ For Sublime Text LSP-json, a successful runtime looks like:
 ## Uninstall
 
 ```bash
-./bootstrap/uninstall.sh --system-only --apply
+./bootstrap/uninstall.sh --system-only  # reports unknown ownership; changes nothing
 ```
 
-That boots the agent out and runs `launchctl unsetenv PATH`. Log out and back in to be
-sure the session picked up the original value.
+The installer has no reliable original-session PATH/agent ownership record.
+Automatic reversal is refused; do not blindly unset PATH or unload a pre-existing
+agent. Review your original configuration/backups and restore it deliberately.

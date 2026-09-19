@@ -112,8 +112,10 @@ persistent workspace list, the workspace-to-monitor assignment and the
 `Ctrl + N` / `Ctrl + Shift + N` shortcuts, and re-renders the app placement
 rules. Shortcut keys are handed out in order `1`-`9`, `0`, `[`, `]`, `\`;
 workspaces past the fourteenth work but have no single-key shortcut. Semantic
-app targets are resolved through `AEROSPACE_WORKSPACE_ROLE_MAP`; missing targets
-are reported instead of being crowded onto the highest workspace.
+app targets are resolved through `AEROSPACE_WORKSPACE_ROLE_MAP`. Adjust the map
+and any fixed app targets when removing workspaces; select pack `none` if you no
+longer want the shipped app placements. Missing targets refuse the entire render
+and leave the old TOML unchanged, rather than silently dropping rules.
 
 Everything outside the markers - your own bindings, your own comments - is left
 untouched, so `render-layout.sh` is safe to run against a config you have
