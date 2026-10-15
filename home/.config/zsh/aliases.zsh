@@ -101,15 +101,16 @@ emptytrash() {
 command -v lazygit >/dev/null 2>&1 && alias lg='lazygit'
 command -v lazydocker >/dev/null 2>&1 && alias lzd='lazydocker'
 
-# Do not hide package upgrades, service disruption and cleanup behind a generic
-# alias. Dotfile updates and software updates are different workflows.
-unalias update 2>/dev/null || true
+# Explicit software updates. Resolve next to this file, so copied installs and
+# checkouts work equally well without depending on DOTFILES_DIR or the cwd.
+typeset -g _AI_FIRST_UPGRADE_SCRIPT="${${(%):-%x}:A:h}/upgrade-tools.py"
+unalias update upgrade updates upall 2>/dev/null || true
 update() {
-  printf '%s\n' 'No changes made. From the dotfiles checkout run:' \
-    '  ./bootstrap/setup.sh software plan    # software ownership/update guidance' \
-    '  ./bootstrap/setup.sh update           # selected dotfiles preview' \
-    'Review targets before using a vendor/package-manager updater.'
+  command python3 -B "$_AI_FIRST_UPGRADE_SCRIPT" "$@"
 }
+upgrade() { update "$@"; }
+upall() { update "$@"; }
+updates() { update --dry-run "$@"; }
 
 # --- your own ---------------------------------------------------------------
 # aliases.local.zsh is sourced by .zshrc when it exists, and is never tracked or

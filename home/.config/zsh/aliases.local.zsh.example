@@ -67,9 +67,9 @@
 
 # --- other update paths -----------------------------------------------------
 # aliases.zsh ships one `update`. These were the other three.
-# alias upgrade='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup'
-# alias updates='topgrade --dry-run'
-# alias upall='topgrade'
+# update / upgrade / upall already update installed software across managers.
+# updates (or update --dry-run) previews; update --only brew,uv selects managers.
+# Override these here only if you want a different personal update workflow.
 
 # --- Jupyter ----------------------------------------------------------------
 # alias jnb='jupyter notebook'

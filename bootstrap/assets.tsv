@@ -17,6 +17,7 @@ zsh|.config/zsh/env.zsh
 zsh|.config/zsh/plugins.zsh
 zsh|.config/zsh/codex-widget.zsh
 zsh|.config/zsh/aliases.zsh
+zsh|.config/zsh/upgrade-tools.py
 zsh|.config/zsh/functions.zsh
 zsh|.config/zsh/private.zsh.example
 zsh|.config/zsh/aliases.local.zsh.example

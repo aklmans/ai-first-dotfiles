@@ -241,12 +241,12 @@ class SoftwareTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("unrecognized arguments", result.stderr)
 
-    def test_update_alias_is_not_an_upgrader(self):
+    def test_updates_alias_previews_without_upgrading(self):
         self.assertNotIn("alias update=", (REPO / "home/.config/zsh/aliases.zsh").read_text())
-        result = subprocess.run(["/bin/zsh", "-f", "-c", 'alias update="exit 99"; source "$1"; update', "_", str(REPO / "home/.config/zsh/aliases.zsh")],
+        result = subprocess.run(["/bin/zsh", "-f", "-c", 'alias update="exit 99"; source "$1"; updates --only uv', "_", str(REPO / "home/.config/zsh/aliases.zsh")],
                                 env=dict(os.environ, HOME=str(self.home), PATH=str(self.bin) + ":/usr/bin:/bin"), capture_output=True, text=True)
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("No changes made", result.stdout)
+        self.assertIn("Preview only", result.stdout)
 
     def test_pnpm_existing_bin_is_on_shell_path_without_setup(self):
         directory = self.home / ".local/share/pnpm/bin"

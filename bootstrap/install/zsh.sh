@@ -143,6 +143,7 @@ if should_deploy; then
   deploy_repo_path "$repo_root" "home/.config/zsh/plugins.zsh" "$HOME/.config/zsh/plugins.zsh" "$stamp"
   deploy_repo_path "$repo_root" "home/.config/zsh/codex-widget.zsh" "$HOME/.config/zsh/codex-widget.zsh" "$stamp"
   deploy_repo_path "$repo_root" "home/.config/zsh/aliases.zsh" "$HOME/.config/zsh/aliases.zsh" "$stamp"
+  deploy_repo_path "$repo_root" "home/.config/zsh/upgrade-tools.py" "$HOME/.config/zsh/upgrade-tools.py" "$stamp"
   deploy_repo_path "$repo_root" "home/.config/zsh/functions.zsh" "$HOME/.config/zsh/functions.zsh" "$stamp"
   # Template only. private.zsh itself is never tracked and never deployed, so
   # whatever the user puts in it survives every update of this repo.

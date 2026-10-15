@@ -1,4 +1,53 @@
-# Software ownership and review-first updates
+# Software updates and ownership
+
+The shell provides an explicit updater for installed software:
+
+```zsh
+updates                    # preview commands; no upgrade commands run
+update                     # run all available managers
+upgrade                    # same as update
+upall                      # same as update; no Topgrade dependency
+update --only brew,uv       # run only selected managers
+update --dry-run --only bun # preview a subset
+```
+
+These commands are deployed with the shell module. Open a new terminal after
+deployment, or run `source ~/.config/zsh/aliases.zsh` to reload them. Personal
+overrides in `aliases.local.zsh` / `private.zsh` still take precedence on startup.
+
+| Group (`--only`) | Updates |
+|---|---|
+| `brew` | Refresh metadata, upgrade formulae (including brew-owned Node/Go/mise), then explicitly selected installed casks |
+| `mise` | Standalone mise itself, then globally configured tools within their configured version ranges |
+| `npm` | Global packages, excluding local links and packages linked from Homebrew/mise (including bundled npm) |
+| `pnpm` | Global packages |
+| `bun` | Standalone Bun itself and global packages |
+| `rust` | Installed rustup toolchains; Cargo apps if `cargo-install-update` from cargo-update is already installed |
+| `uv` | Standalone uv itself and all uv-installed tools |
+| `go` | Versioned commands in GOBIN (or the first GOPATH/bin), using `go install path@latest` |
+| `mas` | Installed App Store applications |
+
+Package-managed Bun/uv/mise/rustup do not run competing self-updates. Select their
+owner as well if using `--only`. Node and Go toolchains installed manually need
+their original installer; this updater does not replace them with a new manager.
+Go binaries with local replacements, development versions or custom build flags
+are left alone. Cargo apps are skipped explicitly when cargo-update is absent.
+Native agent/vendor GUI updaters outside these managers remain separate.
+
+Missing managers are skipped. A failed step is reported, independent managers
+continue, and the command exits nonzero; Ctrl-C stops remaining steps. Homebrew
+upgrades are skipped if its metadata refresh fails. The updater honors the
+private `vendor_casks` exclusions below and Homebrew's pins/default cask policy.
+It does not run cleanup/autoremove, install missing managers, update macOS, or
+update project dependencies. Commands run from `/` to avoid the current project's
+configuration. Existing global package constraints and manager policies apply;
+Homebrew formula updates can still include major runtime versions.
+
+Preview performs only local inventory probes (brew/npm/Go); it does not contact
+registries to determine all available versions. Failed probes are visible and
+make the preview fail. Vendor tools may access their own metadata caches.
+
+## Read-only inventory and guidance
 
 Inventory is not install intent. Node/Python is an implementation technology,
 not necessarily the owner of a packaged CLI. CLI and desktop apps are separate.
@@ -12,7 +61,7 @@ not necessarily the owner of a packaged CLI. CLI and desktop apps are separate.
 The entry point never installs, upgrades, uninstalls, restarts services, changes
 PATH, runs an agent or executes its suggested commands. There is no `--apply`.
 Confirm a concrete list, then use the original owner's targeted updater. This
-is an inventory/check/plan surface, not yet a cross-manager update executor.
+is an inventory/check/plan surface, separate from the explicit shell updater above.
 
 ## Evidence and limits
 

@@ -333,6 +333,16 @@ permission checklist.
 
 Software updates are separate from dotfile deployment:
 
+```zsh
+updates                       # preview software update commands
+update                        # update installed brew/Node/Bun/Go/Rust/uv/mise/etc.
+upgrade                       # same updater (upall also works)
+update --only brew,uv          # update selected managers
+```
+
+Missing managers are skipped; failures are reported. Package ownership and
+private vendor-cask exclusions are respected. No Topgrade installation is needed.
+
 ```bash
 ./bootstrap/setup.sh software plan  # inventory + source-aware guidance; no upgrades
 ./bootstrap/setup.sh software check # partial version checks; no installs/restarts

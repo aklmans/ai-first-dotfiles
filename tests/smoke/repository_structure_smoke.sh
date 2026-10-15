@@ -79,6 +79,7 @@ require_file home/.config/zsh/.zshrc
 require_file home/.config/zsh/env.zsh
 require_file home/.config/zsh/plugins.zsh
 require_file home/.config/zsh/aliases.zsh
+require_file home/.config/zsh/upgrade-tools.py
 require_file home/.config/zsh/functions.zsh
 require_file home/.config/zsh/codex-widget.zsh
 require_file home/.config/zsh/private.zsh.example

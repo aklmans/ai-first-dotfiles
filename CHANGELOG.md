@@ -5,6 +5,13 @@ Notable changes to this project. Format loosely follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore `update`, `upgrade` and `upall` as explicit cross-manager software
+  updaters, with `updates` / `--dry-run` previews, per-manager selection, ownership
+  exclusions, failure reporting and no Topgrade dependency. Dotfile maintenance
+  remains a separate command.
+
 ### Added
 
 - Private, data-only software update ownership, vendor-cask queue exclusions,
