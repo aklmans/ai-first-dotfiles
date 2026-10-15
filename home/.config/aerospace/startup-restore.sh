@@ -51,6 +51,9 @@ wait_for_screen_metadata() {
 
 sleep "$RESTORE_DELAY"
 aerospace_layout_wait_for_monitors || exit 0
+# Reuse this settled snapshot in the immediate refresh children. A later bar
+# event runs in a fresh process and queries the current topology again.
+export AEROSPACE_LAYOUT_MONITOR_LINES AEROSPACE_LAYOUT_MONITORS_READ
 wait_for_screen_metadata
 
 # SketchyBar may start before AeroSpace has stable display metadata. Reload once

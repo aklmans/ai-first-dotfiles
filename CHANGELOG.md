@@ -7,6 +7,12 @@ Notable changes to this project. Format loosely follows
 
 ### Fixed
 
+- Workspace layout shortcuts now target the entire tiling root, show TILE/ACC
+  in the optional bar indicator, and preserve that mode during workspace repair.
+- Remember per-workspace display choices with role-based disconnect fallbacks,
+  keep SketchyBar chips on the actual display, and add an Option-click menu for
+  layout selection, display moves and individual windows.
+
 - Restore `update`, `upgrade` and `upall` as explicit cross-manager software
   updaters, with `updates` / `--dry-run` previews, per-manager selection, ownership
   exclusions, failure reporting and no Topgrade dependency. Dotfile maintenance

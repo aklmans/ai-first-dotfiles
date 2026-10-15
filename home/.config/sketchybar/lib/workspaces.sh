@@ -158,6 +158,35 @@ sketchybar_workspace_list() {
 # lookups below are answered from cached state.
 sketchybar_workspace_display_bindings() {
   local sid role name main_display="" side_display="" stage_display=""
+  local bin placements="" monitor_lines="" monitor_id actual_name actual_display
+  local -a cached_names cached_displays
+  cached_names=(); cached_displays=()
+
+  _binding_display_for_name() {
+    local wanted="$1" target="$2" i=0 result=""
+    while [ "$i" -lt "${#cached_names[@]}" ]; do
+      if [ "${cached_names[$i]}" = "$wanted" ]; then
+        printf -v "$target" '%s' "${cached_displays[$i]}"
+        return
+      fi
+      i=$((i+1))
+    done
+    if [ -n "$wanted" ] && type sketchybar_display_id_for_monitor_var >/dev/null 2>&1; then
+      sketchybar_display_id_for_monitor_var "$wanted" || true
+      result="${SKETCHYBAR_DISPLAY_ID:-}"
+    fi
+    cached_names[${#cached_names[@]}]="$wanted"
+    cached_displays[${#cached_displays[@]}]="${result:-all}"
+    printf -v "$target" '%s' "${result:-all}"
+  }
+
+  # Use live placement after a workspace moves or a display disconnects. Tool
+  # monitor IDs are NOT SketchyBar arrangement IDs; resolve through the name.
+  if type aerospace_layout_bin >/dev/null 2>&1; then
+    bin="$(aerospace_layout_bin)"
+    placements="$("$bin" list-workspaces --all --format '%{workspace}%{tab}%{monitor-id}' 2>/dev/null || true)"
+    monitor_lines="$(aerospace_layout_monitor_lines)"
+  fi
 
   # Unknown identity is visibly unassigned, not silently pinned to display 1.
   _binding_display_for_role() {
@@ -169,12 +198,7 @@ sketchybar_workspace_display_bindings() {
       name=""
     fi
 
-    if [ -n "$name" ] && type sketchybar_display_id_for_monitor_var >/dev/null 2>&1; then
-      sketchybar_display_id_for_monitor_var "$name" || true
-      resolved="${SKETCHYBAR_DISPLAY_ID:-}"
-    fi
-
-    printf -v "$target" '%s' "${resolved:-all}"
+    _binding_display_for_name "$name" "$target"
   }
 
   _binding_display_for_role main main_display
@@ -183,6 +207,14 @@ sketchybar_workspace_display_bindings() {
 
   for sid in $(sketchybar_workspace_list); do
     [ -n "$sid" ] || continue
+
+    monitor_id="$(printf '%s\n' "$placements" | awk -F '\t' -v ws="$sid" '$1==ws { print $2; exit }')"
+    actual_name="$(printf '%s\n' "$monitor_lines" | awk -F '\t' -v id="$monitor_id" '$1==id { print $2; exit }')"
+    if [ -n "$actual_name" ] && type sketchybar_display_id_for_monitor_var >/dev/null 2>&1; then
+      _binding_display_for_name "$actual_name" actual_display
+      printf '%s %s\n' "$sid" "$actual_display"
+      continue
+    fi
 
     role=main
     if type aerospace_layout_role_for_workspace >/dev/null 2>&1; then
@@ -196,5 +228,5 @@ sketchybar_workspace_display_bindings() {
     esac
   done
 
-  unset -f _binding_display_for_role
+  unset -f _binding_display_for_role _binding_display_for_name
 }

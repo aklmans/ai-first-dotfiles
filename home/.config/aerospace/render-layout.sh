@@ -91,6 +91,7 @@ if [ ! -f "$config_path" ]; then
 fi
 
 aerospace_layout_load_config || exit "$?"
+aerospace_layout_monitor_override '' >/dev/null || exit "$?"
 
 # TOML literal strings cannot contain a single quote, so a monitor name that
 # does gets a basic string with the two escapes that form needs instead.
@@ -176,7 +177,7 @@ role_monitor_patterns() {
 }
 
 generate_layout_block() {
-    local workspace role pattern first
+    local workspace role pattern first preferred
 
     printf 'persistent-workspaces = ['
     first=1
@@ -196,6 +197,11 @@ generate_layout_block() {
         for workspace in $(aerospace_layout_workspaces_for_role "$role"); do
             printf '    %s = [' "$(toml_string "$workspace")"
             first=1
+            preferred="$(aerospace_layout_monitor_override "$workspace")"
+            if [ -n "$preferred" ]; then
+                monitor_pattern "$preferred"
+                first=0
+            fi
             while IFS= read -r pattern; do
                 [ -n "$pattern" ] || continue
                 if [ "$first" -eq 1 ]; then

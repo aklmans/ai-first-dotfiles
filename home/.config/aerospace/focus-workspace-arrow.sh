@@ -22,6 +22,8 @@ esac
 
 focused_workspace="$("$AEROSPACE_BIN" list-workspaces --focused 2>/dev/null | head -n 1)"
 role="$(aerospace_layout_role_for_workspace "$focused_workspace" || true)"
+placements="$("$AEROSPACE_BIN" list-workspaces --all --format '%{workspace}%{tab}%{monitor-id}' 2>/dev/null || true)"
+monitor="$(printf '%s\n' "$placements" | awk -F '\t' -v ws="$focused_workspace" '$1==ws {print $2; exit}')"
 
 if [ -z "$role" ]; then
     "$AEROSPACE_BIN" workspace --wrap-around "$direction"
@@ -29,9 +31,18 @@ if [ -z "$role" ]; then
 fi
 
 workspaces=()
-for workspace in $(aerospace_layout_workspaces_for_role "$role"); do
-    workspaces[${#workspaces[@]}]="$workspace"
-done
+if [ -n "$monitor" ]; then
+    # Dynamic display choices override the original role group. Keep the
+    # configured order, but cycle only through workspaces actually here.
+    on_monitor="$(printf '%s\n' "$placements" | awk -F '\t' -v id="$monitor" '$2==id {print $1}' | tr '\n' ' ')"
+    for workspace in $(aerospace_layout_workspaces); do
+        case " $on_monitor " in *" $workspace "*) workspaces[${#workspaces[@]}]="$workspace" ;; esac
+    done
+else
+    for workspace in $(aerospace_layout_workspaces_for_role "$role"); do
+        workspaces[${#workspaces[@]}]="$workspace"
+    done
+fi
 
 # Indexed rather than `for i in "${!workspaces[@]}"`: that form needs a guard
 # to survive an empty array under `set -u` on bash 3.2, and the guarded spelling

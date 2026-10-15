@@ -7,6 +7,7 @@ ICON_MAP="$CONFIG_DIR/plugins/icon_map.sh"
 source "$CONFIG_DIR/lib/theme.sh"
 source "$CONFIG_DIR/lib/runtime.sh"
 source "$CONFIG_DIR/lib/workspaces.sh"
+source "$CONFIG_DIR/lib/display-resolver.sh"
 
 SKETCHYBAR="${SKETCHYBAR:-$(sketchybar_runtime_bin "" sketchybar)}"
 SKETCHYBAR="${SKETCHYBAR:-/opt/homebrew/bin/sketchybar}"
@@ -28,6 +29,11 @@ run_aerospace() {
 # The one list, shared with items/spaces.sh, so a chip is never repainted that
 # was never created - and never left stale because it was.
 WORKSPACES="$(sketchybar_workspace_list)"
+if [ -r "${AEROSPACE_CONFIG_DIR:-$HOME/.config/aerospace}/lib/layout.sh" ]; then
+  source "${AEROSPACE_CONFIG_DIR:-$HOME/.config/aerospace}/lib/layout.sh"
+  aerospace_layout_resolve
+fi
+DISPLAY_BINDINGS="$(sketchybar_workspace_display_bindings)"
 
 collect_windows() {
   local windows
@@ -57,13 +63,14 @@ for workspace in $WORKSPACES; do
   apps="$(
     printf '%s\n' "$WINDOWS" |
       awk -F "$(printf '\t')" -v workspace="$workspace" '$1 == workspace && $2 != "" && $2 != "Typeless" { print $2 }' |
-      sort -u
+      sort | uniq -c
   )"
 
   if [ -n "$apps" ]; then
-    while IFS= read -r app_name; do
+    while read -r app_count app_name; do
       [ -n "$app_name" ] || continue
       label="$label $("$ICON_MAP" "$app_name" 2>/dev/null || printf ':default:')"
+      if [ "$app_count" -gt 1 ]; then label="$label $app_count"; fi
     done <<< "$apps"
   else
     label=" -"
@@ -83,6 +90,9 @@ for workspace in $WORKSPACES; do
     label.highlight="$selected"
     background.border_color="$border_color"
   )
+  display="$(printf '%s\n' "$DISPLAY_BINDINGS" | awk -v ws="$workspace" '$1==ws {print $2; exit}')"
+  [ -z "$display" ] || args+=(display="$display")
 done
 
 "$SKETCHYBAR" "${args[@]}" >/dev/null 2>&1 || true
+"$SKETCHYBAR" --trigger window_focus >/dev/null 2>&1 || true

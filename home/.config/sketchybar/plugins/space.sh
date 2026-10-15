@@ -29,6 +29,8 @@ mouse_clicked() {
   if [ "$BUTTON" = "right" ]; then
     require_aerospace &&
       "$AEROSPACE" move-node-to-workspace --focus-follows-window "$workspace" 2>/dev/null || true
+  elif [ "${MODIFIER:-}" = alt ] || [ "${MODIFIER:-}" = option ]; then
+    require_aerospace && python3 -B "$CONFIG_DIR/plugins/workspace-menu.py" "$workspace"
   elif [ "$MODIFIER" = "shift" ]; then
     SPACE_LABEL="$(osascript -e "return (text returned of (display dialog \"Give a name to workspace $workspace:\" default answer \"\" with icon note buttons {\"Cancel\", \"Continue\"} default button \"Continue\"))")"
     if [ $? -eq 0 ]; then

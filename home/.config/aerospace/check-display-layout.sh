@@ -91,6 +91,21 @@ for role in $(aerospace_layout_roles); do
     printf '%s display %s (%s): %s\n' "$role" "$monitor_name" "$monitor_id" "$actual"
 
     for workspace in $role_workspaces; do
+        override="$(aerospace_layout_monitor_override "$workspace")"
+        if [ -n "$override" ]; then
+            override_id="$(printf '%s\n' "$monitor_lines" | awk -F '\t' -v name="$override" '$2==name {print $1}')"
+            actual_id="$(monitor_for_workspace "$workspace" || true)"
+            if [ -n "$override_id" ]; then
+                if [ "$actual_id" != "$override_id" ]; then
+                    printf 'WARN: workspace %s is not on its preferred display %s.\n' "$workspace" "$override"
+                    issues=$((issues + 1))
+                fi
+            elif [ -z "$actual_id" ]; then
+                printf 'WARN: workspace %s is on no connected display.\n' "$workspace"
+                issues=$((issues + 1))
+            fi
+            continue
+        fi
         if contains_workspace "$actual" "$workspace"; then
             continue
         fi
@@ -132,6 +147,9 @@ for role in $(aerospace_layout_roles); do
     fi
 done
 printf '\n'
+if [ -f "${AEROSPACE_WORKSPACE_MONITORS_FILE:-$AEROSPACE_CONFIG_DIR/workspace-monitors.conf}" ]; then
+    printf 'Per-workspace display choices override these role defaults.\n'
+fi
 
 if [ "$issues" -eq 0 ]; then
     printf 'OK: workspace layout matches the current monitor profile.\n'

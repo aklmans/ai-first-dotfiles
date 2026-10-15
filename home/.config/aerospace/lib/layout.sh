@@ -367,6 +367,25 @@ aerospace_layout_role_for_workspace() {
     return 1
 }
 
+# Per-workspace display choices are private data, independent of role defaults.
+# Names are literal monitor names; render-layout escapes them as anchored regex.
+aerospace_layout_monitor_override() {
+    local wanted="${1:-}" file line workspace monitor result="" seen=" "
+    file="${AEROSPACE_WORKSPACE_MONITORS_FILE:-$AEROSPACE_CONFIG_DIR/workspace-monitors.conf}"
+    [ -f "$file" ] || return 0
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in ''|'#'*) continue ;; esac
+        case "$line" in *'|'*) ;; *) printf 'Invalid workspace monitor record in %s\n' "$file" >&2; return 65 ;; esac
+        workspace="${line%%|*}"; monitor="${line#*|}"
+        case "$workspace" in ''|*[!A-Za-z0-9_-]*) return 65 ;; esac
+        case "$monitor" in ''|*'|'*|*$'\r'*|*$'\t'*) return 65 ;; esac
+        case "$seen" in *" $workspace "*) printf 'Duplicate workspace monitor: %s\n' "$workspace" >&2; return 65 ;; esac
+        seen="$seen$workspace "
+        [ "$workspace" != "$wanted" ] || result="$monitor"
+    done < "$file"
+    printf '%s\n' "$result"
+}
+
 # Legacy generated rules may still contain numeric targets. New app routes use
 # aerospace_layout_resolve_route_target and never rely on this clamp; keeping
 # it here preserves compatibility for older callers during migration.
@@ -497,7 +516,10 @@ aerospace_layout_monitor_lines() {
 aerospace_layout_monitor_count() {
     local lines count=0 line
 
-    lines="$(aerospace_layout_monitor_lines)"
+    if [ "$AEROSPACE_LAYOUT_MONITORS_READ" -eq 0 ]; then
+        aerospace_layout_refresh_monitors
+    fi
+    lines="$AEROSPACE_LAYOUT_MONITOR_LINES"
     [ -n "$lines" ] || {
         printf '0\n'
         return 0
@@ -551,7 +573,10 @@ aerospace_layout_resolve() {
     AEROSPACE_RESOLVED_STAGE_ID=""
     AEROSPACE_MONITOR_COUNT=0
 
-    lines="$(aerospace_layout_monitor_lines)"
+    if [ "$AEROSPACE_LAYOUT_MONITORS_READ" -eq 0 ]; then
+        aerospace_layout_refresh_monitors
+    fi
+    lines="$AEROSPACE_LAYOUT_MONITOR_LINES"
     if [ -n "$lines" ]; then
         while IFS= read -r line; do
             [ -n "$line" ] || continue

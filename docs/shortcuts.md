@@ -49,6 +49,17 @@ below is the `author-full` reference map, not a requirement for other presets.
 | `Alt + Tab` | Toggle back to the previously focused workspace |
 | `Ctrl + Up` | Mission Control — a running BetterTouchTool, else Hammerspoon, else `Mission Control.app` |
 | `Ctrl + Down` | App Exposé — a running BetterTouchTool, else Hammerspoon (`setup.sh automation`) |
+| `Ctrl + Alt + Shift + Left/Right` | Move the whole workspace to the previous/next connected display and remember that display |
+| `Option + click` a SketchyBar workspace | Open its layout, display and window menu |
+
+Display changes apply to the whole workspace, including floating windows. They
+are saved privately in `~/.config/aerospace/workspace-monitors.conf` as literal
+`workspace|monitor name` records. They override the role's display default; if
+the chosen display is unplugged, the role's existing fallback list applies.
+Reconnecting it makes the remembered display eligible again. Choose **恢复默认显示器**
+in the menu to remove only that workspace's override. Existing left-click
+switching, right-click window moves and Shift-click naming remain available.
+Ctrl+Left/Right follows the workspaces actually assigned to the current display.
 
 ## Window Focus And Layout
 
@@ -61,8 +72,8 @@ below is the `author-full` reference map, not a requirement for other presets.
 | `Ctrl + Alt + Up/Down` | Decrease / increase window height |
 | `Alt + -` / `Alt + =` | Smart resize smaller / larger |
 | `Alt + Shift + E` | Balance tiled window sizes |
-| `Alt + /` | Toggle tiles layout orientation |
-| `Alt + ,` | Toggle accordion layout orientation |
+| `Alt + /` | Set the whole workspace's tiling root to horizontal tiles |
+| `Alt + ,` | Set the whole workspace's tiling root to horizontal accordion |
 | `Alt + Shift + T` | Toggle focused window floating / tiling |
 | `Alt + Shift + A` | Toggle windows from the focused app in the current workspace floating / tiling |
 | `Alt + Shift + W` | Toggle all windows in the current workspace floating / tiling |
@@ -72,7 +83,7 @@ below is the `author-full` reference map, not a requirement for other presets.
 | `Alt + F` | Toggle AeroSpace fullscreen |
 | `Ctrl + Alt + F` | Toggle AeroSpace fullscreen |
 | `Alt + Shift + F` | Toggle native macOS fullscreen |
-| `Alt + Shift + R` | Repair current workspace: restore default tiling/floating, flatten tree, tiles layout, balance sizes |
+| `Alt + Shift + R` | Repair current workspace: restore default tiling/floating, flatten tree, preserve tiles/accordion mode and orientation, balance sizes |
 | `Option + Shift + B` | Persistently bind the focused app to the current workspace |
 | `Option + Shift + U` | Persistently unpin the focused app so new windows stay where opened |
 
@@ -81,6 +92,18 @@ exception: they update the focused app's persistent route, back up the old route
 file, render the AeroSpace rules and reload them. Finder and Preview ship as
 unpin/follow-current while remaining floating. Repair keeps known utility/status
 windows floating so they do not consume tiling space.
+
+With only one tiled window, tiles and accordion look similar. Floating windows
+remain floating when changing the root layout. Enable `aerospace_layout` in
+`AI_FIRST_BAR_LEFT_ITEMS` to show **TILE / ACC**; left-click toggles the root layout
+and right-click toggles the focused window's floating state. Workspace icons
+include a count when an app has multiple windows. Option-click lists their
+titles and focuses the selected window by ID.
+
+Workspace chips follow AeroSpace's actual display placement, correlated by
+display identity rather than assuming AeroSpace and SketchyBar share IDs.
+Display changes validate generated TOML and keep backups; a rejected reload
+rolls back the changed preference and configuration when they remain unedited.
 
 ## Displays And Desktop UI
 

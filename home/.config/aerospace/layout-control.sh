@@ -17,8 +17,9 @@ aerospace_cmd() {
     for _ in 1 2 3; do
         if "$AEROSPACE_BIN" "$@"; then
             return 0
+        else
+            status=$?
         fi
-        status=$?
         /bin/sleep 0.15
     done
 
@@ -29,6 +30,7 @@ refresh_spaces() {
     if [ -x "$SKETCHYBAR_SPACES" ]; then
         /bin/bash "$SKETCHYBAR_SPACES" >/dev/null 2>&1 || true
     fi
+    "${SKETCHYBAR_BIN:-/opt/homebrew/bin/sketchybar}" --trigger window_focus >/dev/null 2>&1 || true
 }
 
 focused_window() {
@@ -103,7 +105,11 @@ toggle_workspace() {
 }
 
 repair_workspace() {
-    local lines target first_tiling_window
+    local lines target first_tiling_window previous_layout orientation target_layout
+
+    previous_layout="$(aerospace_cmd list-windows --workspace focused --format '%{workspace-root-container-layout}' | head -n 1)"
+    case "$previous_layout" in *accordion*) target_layout=accordion ;; *) target_layout=tiles ;; esac
+    case "$previous_layout" in v_*) orientation=vertical ;; *) orientation=horizontal ;; esac
 
     lines="$(workspace_windows_with_metadata)"
     first_tiling_window=""
@@ -123,12 +129,12 @@ repair_workspace() {
     fi
 
     aerospace_cmd flatten-workspace-tree >/dev/null
-    aerospace_cmd layout tiles horizontal vertical >/dev/null
+    aerospace_cmd layout --root "$target_layout" "$orientation" >/dev/null
     aerospace_cmd balance-sizes >/dev/null
 }
 
 tiles_workspace() {
-    aerospace_cmd layout tiles horizontal vertical >/dev/null
+    aerospace_cmd layout --root tiles horizontal >/dev/null
 }
 
 balance_workspace() {
@@ -151,11 +157,21 @@ case "$action" in
     tiles)
         tiles_workspace
         ;;
+    accordion)
+        aerospace_cmd layout --root accordion horizontal >/dev/null
+        ;;
+    toggle-layout)
+        current="$(aerospace_cmd list-windows --workspace focused --format '%{workspace-root-container-layout}' | head -n 1)"
+        case "$current" in
+            *accordion*) tiles_workspace ;;
+            *) aerospace_cmd layout --root accordion horizontal >/dev/null ;;
+        esac
+        ;;
     balance)
         balance_workspace
         ;;
     *)
-        printf 'Usage: %s {toggle-window|toggle-app|toggle-workspace|repair-workspace|tiles|balance}\n' "$0" >&2
+        printf 'Usage: %s {toggle-window|toggle-app|toggle-workspace|repair-workspace|tiles|accordion|toggle-layout|balance}\n' "$0" >&2
         exit 64
         ;;
 esac

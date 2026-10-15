@@ -55,6 +55,8 @@ window_state() {
   if [ -n "$WINDOW" ]; then
     IFS=$'\t' read -r WINDOW_LAYOUT PARENT_LAYOUT ROOT_LAYOUT IS_FULLSCREEN <<<"$WINDOW"
 
+    case "$ROOT_LAYOUT" in *accordion*) LABEL="ACC" ;; *) LABEL="TILE" ;; esac
+
     if [ "$IS_FULLSCREEN" = "true" ] || [[ "$WINDOW_LAYOUT" == *fullscreen* ]]; then
       ICON=$YABAI_FULLSCREEN_ZOOM
       COLOR=$GREEN
@@ -71,7 +73,7 @@ window_state() {
   args=(--animate sin 10 --set "$NAME" icon.color=$COLOR)
 
   [ -z "$LABEL" ] && args+=(label.width=0) \
-                  || args+=(label="$LABEL" label.width=36)
+                  || args+=(label="$LABEL" label.width=46)
 
   [ -z "$ICON" ] && args+=(icon.width=0) \
                  || args+=(icon="$ICON" icon.width=30)
@@ -80,7 +82,11 @@ window_state() {
 }
 
 mouse_clicked() {
-  run_aerospace layout floating tiling >/dev/null || true
+  if [ "${BUTTON:-left}" = right ]; then
+    /bin/bash "$HOME/.config/aerospace/layout-control.sh" toggle-window
+  else
+    /bin/bash "$HOME/.config/aerospace/layout-control.sh" toggle-layout
+  fi
   window_state
 }
 
