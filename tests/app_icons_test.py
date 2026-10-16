@@ -135,6 +135,13 @@ class AppIcons(unittest.TestCase):
 
     def test_app_names_localizations_and_bundle_ids(self):
         groups = {
+            "manus": ["Manus", "Manus Studio", "im.manus.desktop"],
+            "codexbar": ["CodexBar", "Codex Bar", "com.steipete.codexbar"],
+            "craft": ["Craft", "com.lukilabs.lukiapp"],
+            "xmind": ["Xmind", "XMind", "XMind ZEN", "net.xmind.vana.app"],
+            "code": ["Code", "Visual Studio Code", "com.microsoft.VSCode"],
+            "openai": ["ChatGPT", "ChatGPT Classic", "com.openai.chat"],
+            "codex": ["Codex", "OpenAI Codex", "com.openai.codex"],
             "edrawmax": ["万兴图示", "亿图图示", "EdrawMax", "Edraw Max", "Wondershare EdrawMax", "com.edrawsoft.edrawmax"],
             "edrawmind": ["万兴脑图", "亿图脑图", "MindMaster", "EdrawMind", "Edraw Mind", "Wondershare EdrawMind", "com.edrawsoft.mindmaster"],
             "zcode": ["ZCode", "ZCode Preview", "zcode", "dev.zcode.app"],

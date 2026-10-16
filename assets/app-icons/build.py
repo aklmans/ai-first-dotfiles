@@ -99,12 +99,12 @@ def build(base, output):
         if record.nameID in (1, 3, 4, 6):
             value = "AIFirstAppIcons-Regular" if record.nameID == 6 else FAMILY
         elif record.nameID == 5:
-            value = "Version 1.000; upstream 2.0.89"
+            value = "Version 1.001; upstream 2.0.89"
         else:
             continue
         record.string = value.encode(record.getEncoding())
     font["head"].created = font["head"].modified = 3872707200
-    font["head"].fontRevision = 1.0
+    font["head"].fontRevision = 1.001
     mapping = REPO / "home/.config/sketchybar/plugins/icon_map.sh"
     used = set(re.findall(r'icon_result="(:[a-z0-9_-]+:)"', mapping.read_text()))
     ligatures = sorted(entry.LigGlyph for entries in substitutions.values() for entry in entries)
@@ -114,7 +114,7 @@ def build(base, output):
     output.mkdir(parents=True, exist_ok=True)
     target = output / "ai-first-app-icons.ttf"
     font.save(target, reorderTables=True)
-    manifest = dict(schema=1, family=FAMILY, version="1.000", upstream_url=BASE_URL,
+    manifest = dict(schema=1, family=FAMILY, version="1.001", upstream_url=BASE_URL,
                     upstream_sha256=BASE_SHA256, font_sha256=digest(target),
                     additions=additions, ligatures=ligatures, sources=source_hashes,
                     mapping_sha256=digest(mapping), builder_sha256=digest(Path(__file__)),

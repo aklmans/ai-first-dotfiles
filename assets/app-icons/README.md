@@ -1,7 +1,7 @@
 # Monochrome app icons
 
 `home/.config/sketchybar/fonts/ai-first-app-icons.ttf` is a generated, copy-deployed
-asset. It combines **sketchybar-app-font v2.0.89** with fourteen additional monochrome
+asset. It combines **sketchybar-app-font v2.0.89** with sixteen additional monochrome
 glyphs. All app-name mappings must correspond to an actual nonempty ligature.
 Neither installation nor bar startup downloads or builds this font.
 
@@ -15,7 +15,7 @@ with the bar's normal copy-deploy/update/rollback scope.
 - Base: [kvndrsslr/sketchybar-app-font v2.0.89](https://github.com/kvndrsslr/sketchybar-app-font/releases/tag/v2.0.89),
   CC0-1.0. Download URL and SHA-256 are pinned in `build.py` and the generated
   manifest. `licenses/CC0.txt` retains the license.
-- Kimi, Qoder, TRAE and Doubao: monochrome paths from
+- Kimi, Qoder, TRAE, Doubao and Manus: monochrome paths from
   [LobeHub icons at a94750e3](https://github.com/lobehub/lobe-icons/tree/a94750e3f5f8fc33757b839d85030e742284e43a/src),
   specifically each brand's `components/Mono.tsx`. JSX was converted to SVG;
   Qoder's shading was flattened to a single-color silhouette. MIT notice is in
@@ -23,7 +23,7 @@ with the bar's normal copy-deploy/update/rollback scope.
 - WorkBuddy: adapted from the [official website's SVG](https://download.codebuddy.ai/web/workbuddy/ea2a61614c71b7bed74ab35460e918796a083362/assets/logo.svg),
   with its background, clipping and color effects removed; retains the mascot
   outline and eyes. The SVG was linked by `workbuddy.ai` during this update.
-- ZCode, Kimi Code, Surge, Loopback, DoubaoWork, Cola, Camtasia, EdrawMax and
+- ZCode, Kimi Code, Surge, Loopback, DoubaoWork, Cola, Camtasia, CodexBar, EdrawMax and
   EdrawMind/MindMaster: small monochrome vector
   adaptations of the respective macOS app icons, redrawn for 16px use. They are
   not the original color assets and not official replacement artwork. Sources
@@ -32,6 +32,9 @@ with the bar's normal copy-deploy/update/rollback scope.
   TRAE. Kimi Code and DoubaoWork intentionally do not share Kimi/Doubao glyphs.
   EdrawMax and EdrawMind retain their distinct center marks without the shared
   Wondershare footer/background; their Chinese app names are also mapped.
+  CodexBar retains its chevron and segmented usage bar. Manus and Manus Studio
+  share the Manus mark. Craft and Xmind use existing base-font glyphs with exact
+  app-name and bundle-ID mappings.
 
 Application names and logos identify the corresponding products; trademark and
 brand-art rights remain with their owners. The base font's CC0 and LobeHub's MIT

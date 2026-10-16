@@ -7,6 +7,9 @@ Notable changes to this project. Format loosely follows
 
 ### Fixed
 
+- Add Manus/Manus Studio and CodexBar monochrome glyphs and restore missing
+  Craft, Xmind, Visual Studio Code and ChatGPT Classic app-name mappings.
+
 - Workspace layout shortcuts now target the entire tiling root, show TILE/ACC
   in the optional bar indicator, and preserve that mode during workspace repair.
 - Remember per-workspace display choices with role-based disconnect fallbacks,

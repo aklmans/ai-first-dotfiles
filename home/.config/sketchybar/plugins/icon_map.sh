@@ -3,6 +3,18 @@
 ### START-OF-ICON-MAP
 function __icon_map() {
     case "$1" in
+   "Manus" | "Manus Studio" | "im.manus.desktop")
+        icon_result=":manus:"
+        ;;
+   "CodexBar" | "Codex Bar" | "com.steipete.codexbar")
+        icon_result=":codexbar:"
+        ;;
+   "Craft" | "com.lukilabs.lukiapp")
+        icon_result=":craft:"
+        ;;
+   "Xmind" | "XMind" | "XMind ZEN" | "net.xmind.vana.app")
+        icon_result=":xmind:"
+        ;;
    "万兴图示" | "亿图图示" | "EdrawMax" | "Edraw Max" | "Wondershare EdrawMax" | "com.edrawsoft.edrawmax")
         icon_result=":edrawmax:"
         ;;
@@ -190,7 +202,7 @@ function __icon_map() {
    "ClickUp")
         icon_result=":click_up:"
         ;;
-   "Code" | "Code - Insiders")
+   "Code" | "Code - Insiders" | "Visual Studio Code" | "com.microsoft.VSCode")
         icon_result=":code:"
         ;;
    "Cold Turkey Blocker")
@@ -571,13 +583,13 @@ function __icon_map() {
    "Open Video Downloader")
         icon_result=":open_video_downloader:"
         ;;
-   "ChatGPT")
+   "ChatGPT" | "ChatGPT Classic" | "com.openai.chat")
         icon_result=":openai:"
         ;;
    "ChatGPT Atlas" | "Atlas")
         icon_result=":chatgpt_atlas:"
         ;;
-   "Codex" | "OpenAI Codex")
+   "Codex" | "OpenAI Codex" | "com.openai.codex")
         icon_result=":codex:"
         ;;
    "Cola" | "ai.colaos.desktop")
